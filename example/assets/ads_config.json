@@ -1,0 +1,50 @@
+{
+  "Interstitial_btm_nav": {
+    "adUnit": "ca-app-pub-3940256099942544/1033173712",
+    "click_threshold": 3,
+    "show": true
+  },
+  "ProCloseInterstitial": {
+    "adUnit": "ca-app-pub-3940256099942544/1033173712",
+    "show": true
+  },
+  "click_interstitial": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
+    "is_enabled": true,
+    "click_threshold": 3
+  },
+  "SplashInterstitial": {
+    "adUnit": "ca-app-pub-3940256099942544/1033173712",
+    "show": true
+  },
+  "SplashAppOpen": {
+    "adUnit": "ca-app-pub-3940256099942544/9257395921",
+    "show": true
+  },
+  "OnResumeAppOpen": {
+    "adUnit": "ca-app-pub-3940256099942544/9257395921",
+    "show": true
+  },
+  "Screens": {
+    "splash_screen": {
+      "native_id": "ca-app-pub-3940256099942544/2247696110",
+      "native_ads": true
+    },
+    "onboarding_screen": {
+      "banner_id": "ca-app-pub-3940256099942544/6300978111",
+      "banner_ads": true
+    },
+    "home_screen": {
+      "native_id": "ca-app-pub-3940256099942544/2247696110",
+      "native_ads": true,
+      "banner_id": "ca-app-pub-3940256099942544/6300978111",
+      "banner_ads": true
+    },
+    "setting_screen": {
+      "native_id": "ca-app-pub-3940256099942544/2247696110",
+      "native_ads": true,
+      "banner_id": "ca-app-pub-3940256099942544/6300978111",
+      "banner_ads": false
+    }
+  }
+}
