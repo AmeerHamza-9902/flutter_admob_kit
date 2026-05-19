@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.2
+
+* **Fix:** Removed unused `_lastAdUnitId` field from `InterstitialAdManager`
+* **Fix:** Updated SDK constraints to `>=3.3.0 <4.0.0`
+* **Fix:** Flutter constraint updated to `>=3.19.0`
+* **Fix:** Topics reduced to 5 (pub.dev limit)
+
 ## 3.0.1
 
 * **Fix:** Broadened `google_mobile_ads` constraint to `>=5.1.0 <7.0.0` — compatible with v5 and v6

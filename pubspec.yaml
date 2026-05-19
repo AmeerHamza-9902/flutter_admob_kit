@@ -26,9 +26,6 @@ dev_dependencies:
 topics:
   - admob
   - ads
-  - google-ads
   - monetization
   - interstitial
-  - native-ads
   - rewarded
-  - app-open
