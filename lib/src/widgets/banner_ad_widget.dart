@@ -1,21 +1,40 @@
-// lib/widgets/banner_ad_widget.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import '../admob_kit.dart';
 
-/// Drop-in banner widget. Pass [screenKey] matching your config's Screens key.
+/// A drop-in banner ad widget.
 ///
-/// Usage:
-///   BannerAdWidget(screenKey: 'home_screen')
+/// Equivalent to Swift's `BannerAdView`.
+///
+/// ```dart
+/// BannerAdWidget(
+///   adUnitId: 'ca-app-pub-XXXX/XXXX',
+///   onAdLoadFailed: () => setState(() => _showBanner = false),
+/// )
+/// ```
 class BannerAdWidget extends StatefulWidget {
-  final String screenKey;
+  /// The AdMob banner ad unit ID.
+  final String adUnitId;
+
+  /// The banner size. Defaults to [AdSize.banner].
   final AdSize size;
 
+  /// Called when the ad loads successfully.
+  final VoidCallback? onAdLoaded;
+
+  /// Called when the ad fails to load. Use this to hide the container.
+  final VoidCallback? onAdLoadFailed;
+
+  /// Called when the ad is clicked.
+  final VoidCallback? onAdClicked;
+
+  /// Creates a [BannerAdWidget].
   const BannerAdWidget({
     super.key,
-    required this.screenKey,
+    required this.adUnitId,
     this.size = AdSize.banner,
+    this.onAdLoaded,
+    this.onAdLoadFailed,
+    this.onAdClicked,
   });
 
   @override
@@ -29,19 +48,26 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    final kit = AdMobKit.instance;
-    if (!kit.isBannerEnabled(widget.screenKey)) return;
-    final adUnitId = kit.getBannerId(widget.screenKey)!;
+    _load();
+  }
+
+  void _load() {
     _ad = BannerAd(
-      adUnitId: adUnitId,
+      adUnitId: widget.adUnitId,
       size: widget.size,
       request: const AdRequest(),
       listener: BannerAdListener(
-        onAdLoaded: (_) => setState(() => _loaded = true),
-        onAdFailedToLoad: (ad, err) {
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _loaded = true);
+          widget.onAdLoaded?.call();
+        },
+        onAdFailedToLoad: (Ad ad, LoadAdError error) {
           ad.dispose();
           _ad = null;
+          if (mounted) setState(() => _loaded = false);
+          widget.onAdLoadFailed?.call();
         },
+        onAdClicked: (_) => widget.onAdClicked?.call(),
       ),
     )..load();
   }

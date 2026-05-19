@@ -4,21 +4,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-android%20%7C%20ios-green.svg)]()
 
-A production-ready, **config-driven AdMob library** for Flutter.
+Flutter port of [shahid0/AdMobKit](https://github.com/shahid0/AdMobKit) (Swift/SwiftUI).
 
-Manage all your ads from a single JSON config — loaded from **Firebase Remote Config** (with local asset fallback). No more scattered ad unit IDs across your codebase.
+Same ViewModel pattern. Same callbacks. Same `isInProScreen` guard. Just Flutter.
 
 ---
 
 ## ✨ Features
 
-- 🎯 **Config-driven** — one JSON controls all ads across all screens
-- 🔥 **Firebase Remote Config** — update ad units & enable/disable ads without an app update
-- 📦 **Local fallback** — works offline with a bundled `ads_config.json`
-- ⚡ **Click threshold** — show interstitials after N clicks automatically
-- 🖼️ **Drop-in widgets** — `BannerAdWidget` and `NativeAdWidget` in one line
-- 🚀 **App Open ads** — splash + on-resume, fully managed
-- 🔄 **Ad preloading** — ads are cached in background for instant display
+| Feature | Details |
+|---------|---------|
+| 📺 **All ad formats** | Banner, Interstitial, Rewarded, Rewarded Interstitial, App Open, Native |
+| 🔄 **Auto retry** | Retries failed loads up to 3 times (2s, 4s, 6s backoff) |
+| ⏱️ **Expiry handling** | Discards stale ads automatically — no more black screens |
+| 🪙 **Coin tracking** | `coins` property with `onCoinsEarned` callback |
+| 🛡️ **Paywall guard** | `AppOpenAdManager.isInProScreen` prevents ads on purchase screens |
+| 🔁 **Click threshold** | Show interstitial after N clicks automatically |
 
 ---
 
@@ -26,7 +27,7 @@ Manage all your ads from a single JSON config — loaded from **Firebase Remote 
 
 ```yaml
 dependencies:
-  flutter_admob_kit: ^1.0.0
+  flutter_admob_kit: ^3.0.2
 ```
 
 ```bash
@@ -35,75 +36,16 @@ flutter pub get
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Setup
 
-### 1. Add your config file
-
-Create `assets/ads_config.json`:
-
-```json
-{
-  "Interstitial_btm_nav": {
-    "adUnit": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "click_threshold": 3,
-    "show": true
-  },
-  "ProCloseInterstitial": {
-    "adUnit": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "show": true
-  },
-  "click_interstitial": {
-    "ad_unit_id": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "is_enabled": true,
-    "click_threshold": 3
-  },
-  "SplashInterstitial": {
-    "adUnit": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "show": true
-  },
-  "SplashAppOpen": {
-    "adUnit": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "show": true
-  },
-  "OnResumeAppOpen": {
-    "adUnit": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-    "show": true
-  },
-  "Screens": {
-    "home_screen": {
-      "native_id": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-      "native_ads": true,
-      "banner_id": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-      "banner_ads": true
-    },
-    "setting_screen": {
-      "native_id": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-      "native_ads": true,
-      "banner_id": "ca-app-pub-XXXXXXXX/XXXXXXXXXX",
-      "banner_ads": false
-    }
-  }
-}
-```
-
-Register it in `pubspec.yaml`:
-
-```yaml
-flutter:
-  assets:
-    - assets/ads_config.json
-```
-
-### 2. Initialize in `main.dart`
+Initialize once in `main.dart`:
 
 ```dart
-import 'package:flutter_admob_kit/flutter_admob_kit.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  await FlutterAdmobKit.instance.init(); // Firebase → local fallback
+  await MobileAds.instance.initialize();
   runApp(const MyApp());
 }
 ```
@@ -112,86 +54,177 @@ void main() async {
 
 ## 📱 Usage
 
-### Interstitial Ads
+### Banner Ad
 
 ```dart
-// Bottom navigation tap
-AdMobKit.instance.onBottomNavClick(context);
-
-// Any general click (button, list item, etc.)
-FlutterAdmobKit.instance.onGeneralClick(context);
-
-// Pro/Premium screen close
-await FlutterAdmobKit.instance.showProCloseInterstitial(context);
-
-// Splash screen interstitial
-await FlutterAdmobKit.instance.showSplashInterstitial(context);
-```
-
-### App Open Ads
-
-```dart
-// In SplashScreen
-@override
-void initState() {
-  super.initState();
-  FlutterAdmobKit.instance.showSplashAppOpen().then((_) {
-    Navigator.pushReplacementNamed(context, '/home');
-  });
-}
-```
-
-### Banner Widget
-
-```dart
-@override
-Widget build(BuildContext context) {
-  return Column(
-    children: [
-      Expanded(child: YourContent()),
-      BannerAdWidget(screenKey: 'home_screen'), // checks config automatically
-    ],
-  );
-}
-```
-
-### Native Ad Widget
-
-```dart
-NativeAdWidget(screenKey: 'home_screen')
-NativeAdWidget(screenKey: 'splash_screen', height: 80)
-```
-
-### Check ad status at runtime
-
-```dart
-final kit = FlutterAdmobKit.instance;
-
-if (kit.isBannerEnabled('home_screen')) { ... }
-if (kit.isNativeEnabled('setting_screen')) { ... }
-
-final config = kit.screenConfig('home_screen');
-print(config.bannerId);
+// Swift: BannerAdView(AdUnitID: "...", adLoadFailed: $failed)
+BannerAdWidget(
+  adUnitId: 'ca-app-pub-XXXX/XXXX',
+  onAdLoadFailed: () => setState(() => _showBanner = false),
+)
 ```
 
 ---
 
-## 🔥 Firebase Remote Config (optional)
+### Interstitial Ad
 
-To control ads remotely without an app update:
+```dart
+// Swift: @StateObject var interstitialVM = InterstitialViewModel()
+final _vm = InterstitialAdManager();
 
-1. Go to **Firebase Console → Remote Config**
-2. Add a new parameter with key: `ads_config`
-3. Paste your full JSON as the value
-4. Publish changes
+@override
+void initState() {
+  super.initState();
+  _vm.onAdLoadComplete = () => print('Ad loaded!');
+  _vm.onAdDismissed   = () => Navigator.pushNamed(context, '/home');
+  _vm.loadAd('ca-app-pub-XXXX/XXXX');
+}
 
-The library fetches it automatically on every app launch. If fetch fails, it falls back to your local `assets/ads_config.json`.
+// Show immediately
+_vm.showAd();
+
+// Show after N clicks (bottom nav, general buttons)
+_vm.onClickEvent('ca-app-pub-XXXX/XXXX', threshold: 3);
+
+@override
+void dispose() {
+  _vm.dispose();
+  super.dispose();
+}
+```
+
+---
+
+### App Open Ad
+
+```dart
+// Swift: @StateObject var appOpenVM = AppOpenAdManager()
+final _appOpenVM = AppOpenAdManager();
+
+@override
+void initState() {
+  super.initState();
+  _appOpenVM.onAdDismissed = () => widget.onFinish();
+  _appOpenVM.loadAd('ca-app-pub-XXXX/XXXX').then((_) {
+    _appOpenVM.showAdIfAvailable('ca-app-pub-XXXX/XXXX');
+  });
+}
+
+@override
+void dispose() {
+  _appOpenVM.dispose();
+  super.dispose();
+}
+```
+
+**Prevent on paywall — same as Swift:**
+```dart
+@override
+void initState() {
+  super.initState();
+  AppOpenAdManager.isInProScreen = true; // onAppear
+}
+
+@override
+void dispose() {
+  AppOpenAdManager.isInProScreen = false; // onDisappear
+  super.dispose();
+}
+```
+
+---
+
+### Rewarded Ad
+
+```dart
+// Swift: @StateObject var rewardedVM = RewardedViewModel()
+final _rewardedVM = RewardedAdManager();
+
+@override
+void initState() {
+  super.initState();
+  _rewardedVM.onAdDismissed = () { };
+  _rewardedVM.onCoinsEarned = (coins) => print('Coins: $coins');
+  _rewardedVM.loadAd('ca-app-pub-XXXX/XXXX');
+}
+
+// Show only when ready
+ElevatedButton(
+  onPressed: _rewardedVM.isAdReady ? () => _rewardedVM.showAd() : null,
+  child: const Text('Watch Ad'),
+)
+
+// Listen to coins — Swift: .onChange(of: rewardedVM.coins)
+ListenableBuilder(
+  listenable: _rewardedVM,
+  builder: (_, __) => Text('Coins: ${_rewardedVM.coins}'),
+)
+```
+
+---
+
+### Rewarded Interstitial Ad
+
+```dart
+// Swift: @StateObject var riVM = RewardedInterstitialViewModel()
+final _riVM = RewardedInterstitialAdManager();
+
+@override
+void initState() {
+  super.initState();
+  _riVM.onAdDismissed = () { };
+  _riVM.onCoinsEarned = (coins) => print('Coins: $coins');
+  _riVM.loadAd('ca-app-pub-XXXX/XXXX');
+}
+
+_riVM.showAd();
+```
+
+---
+
+### Native Ad
+
+```dart
+// Swift: @StateObject var nativeVM = NativeAdViewModel(adUnitID: "...")
+final _nativeVM = NativeAdManager(adUnitId: 'ca-app-pub-XXXX/XXXX');
+
+@override
+void initState() {
+  super.initState();
+  _nativeVM.refreshAd(); // Swift: nativeVM.refreshAd()
+}
+
+// In build — Swift: GoogleNativeAdView(nativeViewModel: nativeVM)
+ListenableBuilder(
+  listenable: _nativeVM,
+  builder: (_, __) => NativeAdWidget(manager: _nativeVM, height: 300),
+)
+
+@override
+void dispose() {
+  _nativeVM.dispose();
+  super.dispose();
+}
+```
+
+---
+
+## 📊 Swift → Flutter API
+
+| Swift | Flutter |
+|-------|---------|
+| `@StateObject var vm = InterstitialViewModel()` | `final vm = InterstitialAdManager()` |
+| `vm.onAdLoadComplete = { }` | `vm.onAdLoadComplete = () { }` |
+| `vm.onAdDismissed = { }` | `vm.onAdDismissed = () { }` |
+| `await vm.loadAd(adUnitID: "...")` | `await vm.loadAd('...')` |
+| `vm.showAd()` | `vm.showAd()` |
+| `AppOpenAdManager.isInProScreen = true` | `AppOpenAdManager.isInProScreen = true` |
+| `.onChange(of: vm.coins)` | `ListenableBuilder(listenable: vm, ...)` |
+| `nativeVM.refreshAd()` | `nativeVM.refreshAd()` |
 
 ---
 
 ## 🧪 Test Ad Unit IDs
-
-Use these during development:
 
 | Format | Test ID |
 |--------|---------|
@@ -199,29 +232,13 @@ Use these during development:
 | Interstitial | `ca-app-pub-3940256099942544/1033173712` |
 | Banner | `ca-app-pub-3940256099942544/6300978111` |
 | Native | `ca-app-pub-3940256099942544/2247696110` |
-
----
-
-## 📋 Config Schema
-
-| Key | Fields | Description |
-|-----|--------|-------------|
-| `Interstitial_btm_nav` | `adUnit`, `click_threshold`, `show` | Bottom nav interstitial |
-| `ProCloseInterstitial` | `adUnit`, `show` | Pro screen close interstitial |
-| `click_interstitial` | `ad_unit_id`, `is_enabled`, `click_threshold` | General click interstitial |
-| `SplashInterstitial` | `adUnit`, `show` | Splash interstitial |
-| `SplashAppOpen` | `adUnit`, `show` | Splash app open ad |
-| `OnResumeAppOpen` | `adUnit`, `show` | On-resume app open ad |
-| `Screens` | per-screen config | Banner + Native per screen |
-
----
-
-## 🤝 Contributing
-
-PRs welcome! Please open an issue first to discuss what you'd like to change.
+| Rewarded | `ca-app-pub-3940256099942544/5224354917` |
+| Rewarded Interstitial | `ca-app-pub-3940256099942544/6978759866` |
 
 ---
 
 ## 📄 License
 
 MIT © [Ameerhamza-tech](https://github.com/Ameerhamza-tech)
+
+Flutter port of [shahid0/AdMobKit](https://github.com/shahid0/AdMobKit) by Shahid Hussain.

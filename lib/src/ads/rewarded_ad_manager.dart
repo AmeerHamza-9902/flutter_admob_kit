@@ -1,45 +1,44 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-/// Manages App Open ads with expiry handling and paywall guard.
+/// Manages rewarded ads with coin tracking.
 ///
-/// Equivalent to Swift's `AppOpenAdManager`.
+/// Equivalent to Swift's `RewardedViewModel`.
 ///
 /// ```dart
-/// final vm = AppOpenAdManager();
-/// vm.onAdDismissed = () => navigateToHome();
+/// final vm = RewardedAdManager();
+/// vm.onAdDismissed = () { };
+/// vm.onCoinsEarned = (coins) => print('Earned: $coins');
 /// await vm.loadAd('ca-app-pub-XXXX/XXXX');
-/// vm.showAdIfAvailable('ca-app-pub-XXXX/XXXX');
+/// vm.showAd();
 /// ```
 ///
-/// Prevent ads on paywall screens:
+/// Listen to coin changes:
 /// ```dart
-/// AppOpenAdManager.isInProScreen = true;  // on appear
-/// AppOpenAdManager.isInProScreen = false; // on disappear
+/// ListenableBuilder(
+///   listenable: vm,
+///   builder: (context, _) => Text('Coins: ${vm.coins}'),
+/// )
 /// ```
-class AppOpenAdManager extends ChangeNotifier {
+class RewardedAdManager extends ChangeNotifier {
   static const int _maxRetries = 3;
-  static const Duration _adExpiry = Duration(hours: 4);
+  static const Duration _adExpiry = Duration(hours: 1);
 
-  AppOpenAd? _ad;
-  bool _isLoadingAd = false;
-  bool _isShowingAd = false;
+  RewardedAd? _ad;
+  bool _isLoading = false;
+  bool _isLoaded = false;
   int _retryCount = 0;
+  int _coins = 0;
   DateTime? _loadedAt;
 
-  /// Whether an ad is ready and not expired.
-  bool get isAdReady => _ad != null && !_isExpired;
+  /// Whether an ad is loaded and not expired.
+  bool get isAdReady => _isLoaded && !_isExpired;
 
   /// Whether an ad is currently loading.
-  bool get isLoadingAd => _isLoadingAd;
+  bool get isLoading => _isLoading;
 
-  /// Whether an ad is currently showing.
-  bool get isShowingAd => _isShowingAd;
-
-  /// Set to `true` on paywall screen appear, `false` on disappear.
-  ///
-  /// Prevents App Open ads from interrupting purchase flows.
-  static bool isInProScreen = false;
+  /// Total coins earned. Listen with [ListenableBuilder].
+  int get coins => _coins;
 
   /// Fires when the ad loads successfully.
   VoidCallback? onAdLoadComplete;
@@ -51,38 +50,43 @@ class AppOpenAdManager extends ChangeNotifier {
   VoidCallback? onAdDismiss;
 
   /// Fires after the ad fully dismisses.
-  ///
-  /// Use this for navigation.
   VoidCallback? onAdDismissed;
+
+  /// Fires when the user earns a reward, with the updated total.
+  // ignore: avoid_positional_boolean_parameters
+  void Function(int coins)? onCoinsEarned;
 
   bool get _isExpired {
     if (_loadedAt == null) return true;
     return DateTime.now().difference(_loadedAt!) > _adExpiry;
   }
 
-  /// Loads an App Open ad. Safe to call multiple times.
+  /// Loads a rewarded ad. Safe to call multiple times.
   Future<void> loadAd(String adUnitId) async {
-    if (_ad != null && _isExpired) {
+    if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
+      _isLoaded = false;
     }
-    if (_isLoadingAd || _ad != null) return;
-    _isLoadingAd = true;
+    if (_isLoading || _isLoaded) return;
+    _isLoading = true;
     notifyListeners();
-    await AppOpenAd.load(
+    await RewardedAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      adLoadCallback: AppOpenAdLoadCallback(
-        onAdLoaded: (AppOpenAd ad) {
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (RewardedAd ad) {
           _ad = ad;
-          _isLoadingAd = false;
+          _isLoaded = true;
+          _isLoading = false;
           _retryCount = 0;
           _loadedAt = DateTime.now();
           notifyListeners();
           onAdLoadComplete?.call();
         },
         onAdFailedToLoad: (LoadAdError error) {
-          _isLoadingAd = false;
+          _isLoaded = false;
+          _isLoading = false;
           notifyListeners();
           if (_retryCount < _maxRetries) {
             _retryCount++;
@@ -99,38 +103,44 @@ class AppOpenAdManager extends ChangeNotifier {
     );
   }
 
-  /// Shows the ad if available and not on a paywall screen.
-  ///
-  /// Returns `true` if shown.
-  bool showAdIfAvailable(String adUnitId) {
-    if (isInProScreen || _isShowingAd || !isAdReady || _ad == null) {
-      return false;
-    }
-    _isShowingAd = true;
-    notifyListeners();
+  /// Shows the rewarded ad. Returns `true` if shown.
+  bool showAd() {
+    if (!isAdReady || _ad == null) return false;
     _ad!.fullScreenContentCallback =
-        FullScreenContentCallback<AppOpenAd>(
+        FullScreenContentCallback<RewardedAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
-      onAdDismissedFullScreenContent: (AppOpenAd ad) {
+      onAdDismissedFullScreenContent: (RewardedAd ad) {
         ad.dispose();
         _ad = null;
-        _isShowingAd = false;
+        _isLoaded = false;
         _loadedAt = null;
         notifyListeners();
         onAdDismissed?.call();
       },
       onAdFailedToShowFullScreenContent:
-          (AppOpenAd ad, AdError error) {
+          (RewardedAd ad, AdError error) {
         ad.dispose();
         _ad = null;
-        _isShowingAd = false;
+        _isLoaded = false;
         _loadedAt = null;
         notifyListeners();
         onAdDismissed?.call();
       },
     );
-    _ad!.show();
+    _ad!.show(
+      onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        _coins += reward.amount.toInt();
+        notifyListeners();
+        onCoinsEarned?.call(_coins);
+      },
+    );
     return true;
+  }
+
+  /// Resets the coin counter to zero.
+  void resetCoins() {
+    _coins = 0;
+    notifyListeners();
   }
 
   @override
