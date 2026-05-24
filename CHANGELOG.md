@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.5
+## 3.0.6
 
 * **Fix:** Removed unused `_lastAdUnitId` field from `InterstitialAdManager`
 * **Fix:** Updated `google_mobile_ads` constraint to `>=5.1.0 <9.0.0` — now supports v8
