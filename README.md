@@ -4,8 +4,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-android%20%7C%20ios-green.svg)]()
 
-Flutter port of [shahid0/AdMobKit](https://github.com/shahid0/AdMobKit) (Swift/SwiftUI).
-
 Same ViewModel pattern. Same callbacks. Same `isInProScreen` guard. Just Flutter.
 
 ---
@@ -207,38 +205,6 @@ void dispose() {
 }
 ```
 
----
-
-## 📊 Swift → Flutter API
-
-| Swift | Flutter |
-|-------|---------|
-| `@StateObject var vm = InterstitialViewModel()` | `final vm = InterstitialAdManager()` |
-| `vm.onAdLoadComplete = { }` | `vm.onAdLoadComplete = () { }` |
-| `vm.onAdDismissed = { }` | `vm.onAdDismissed = () { }` |
-| `await vm.loadAd(adUnitID: "...")` | `await vm.loadAd('...')` |
-| `vm.showAd()` | `vm.showAd()` |
-| `AppOpenAdManager.isInProScreen = true` | `AppOpenAdManager.isInProScreen = true` |
-| `.onChange(of: vm.coins)` | `ListenableBuilder(listenable: vm, ...)` |
-| `nativeVM.refreshAd()` | `nativeVM.refreshAd()` |
-
----
-
-## 🧪 Test Ad Unit IDs
-
-| Format | Test ID |
-|--------|---------|
-| App Open | `ca-app-pub-3940256099942544/9257395921` |
-| Interstitial | `ca-app-pub-3940256099942544/1033173712` |
-| Banner | `ca-app-pub-3940256099942544/6300978111` |
-| Native | `ca-app-pub-3940256099942544/2247696110` |
-| Rewarded | `ca-app-pub-3940256099942544/5224354917` |
-| Rewarded Interstitial | `ca-app-pub-3940256099942544/6978759866` |
-
----
-
 ## 📄 License
 
 MIT © [Ameerhamza-tech](https://github.com/Ameerhamza-tech)
-
-Flutter port of [shahid0/AdMobKit](https://github.com/shahid0/AdMobKit) by Shahid Hussain.

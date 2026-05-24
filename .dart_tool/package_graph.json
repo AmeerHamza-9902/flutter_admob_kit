@@ -5,7 +5,7 @@
   "packages": [
     {
       "name": "flutter_admob_kit",
-      "version": "3.0.2",
+      "version": "3.0.3",
       "dependencies": [
         "flutter",
         "google_mobile_ads"
