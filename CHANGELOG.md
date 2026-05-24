@@ -1,19 +1,19 @@
 # Changelog
 
-## 3.0.3
+## 3.0.5
 
 * **Fix:** Removed unused `_lastAdUnitId` field from `InterstitialAdManager`
 * **Fix:** Updated `google_mobile_ads` constraint to `>=5.1.0 <9.0.0` — now supports v8
 * **Fix:** Shortened `pubspec.yaml` description to meet 60-180 character requirement
 
-## 3.0.2
+## 3.0.4
 
 * **Fix:** Static analysis warnings resolved
 * **Fix:** Updated SDK constraints to `>=3.3.0 <4.0.0`
 * **Fix:** Flutter constraint updated to `>=3.19.0`
 * **Fix:** Topics reduced to 5 (pub.dev limit)
 
-## 3.0.1
+## 3.0.3
 
 * **Fix:** Broadened `google_mobile_ads` constraint to `>=5.1.0 <7.0.0`
 * **Fix:** Removed JSON config — pass ad unit IDs directly
