@@ -21,7 +21,6 @@ class InterstitialAdManager extends ChangeNotifier {
   int _retryCount = 0;
   int _clickCount = 0;
   DateTime? _loadedAt;
-  String? _lastAdUnitId;
 
   /// Whether an ad is loaded and not expired.
   bool get isAdReady => _isLoaded && !_isExpired;
@@ -52,7 +51,6 @@ class InterstitialAdManager extends ChangeNotifier {
   ///
   /// Retries up to 3 times on failure with exponential backoff.
   Future<void> loadAd(String adUnitId) async {
-    _lastAdUnitId = adUnitId;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;

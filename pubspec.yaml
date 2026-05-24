@@ -1,10 +1,6 @@
 name: flutter_admob_kit
-description: >-
-  Production-ready AdMob library for Flutter. Flutter port of Swift AdMobKit.
-  Supports Banner, Interstitial, Rewarded, Rewarded Interstitial, App Open,
-  and Native ads. ViewModel-based with callbacks, auto expiry, retry logic,
-  and coin tracking. No Firebase required.
-version: 3.0.2
+description: AdMob library for Flutter with Banner, Interstitial, Rewarded, App Open, and Native ads support.
+version: 3.0.3
 homepage: https://github.com/Ameerhamza-tech/flutter_admob_kit
 repository: https://github.com/Ameerhamza-tech/flutter_admob_kit
 issue_tracker: https://github.com/Ameerhamza-tech/flutter_admob_kit/issues
@@ -16,7 +12,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  google_mobile_ads: '>=5.1.0 <7.0.0'
+  google_mobile_ads: '>=5.1.0 <9.0.0'
 
 dev_dependencies:
   flutter_test:
