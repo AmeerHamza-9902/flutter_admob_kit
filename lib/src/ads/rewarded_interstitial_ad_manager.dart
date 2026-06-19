@@ -22,6 +22,7 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
   RewardedInterstitialAd? _ad;
   bool _isLoading = false;
   bool _isLoaded = false;
+  bool _disposed = false;
   int _retryCount = 0;
   int _coins = 0;
   DateTime? _loadedAt;
@@ -57,6 +58,7 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
 
   /// Loads a rewarded interstitial ad. Safe to call multiple times.
   Future<void> loadAd(String adUnitId) async {
+    if (_disposed) return;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
@@ -68,9 +70,12 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
     await RewardedInterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
-      rewardedInterstitialAdLoadCallback:
-          RewardedInterstitialAdLoadCallback(
+      rewardedInterstitialAdLoadCallback: RewardedInterstitialAdLoadCallback(
         onAdLoaded: (RewardedInterstitialAd ad) {
+          if (_disposed) {
+            ad.dispose();
+            return;
+          }
           _ad = ad;
           _isLoaded = true;
           _isLoading = false;
@@ -80,6 +85,7 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
           onAdLoadComplete?.call();
         },
         onAdFailedToLoad: (LoadAdError error) {
+          if (_disposed) return;
           _isLoaded = false;
           _isLoading = false;
           notifyListeners();
@@ -87,7 +93,9 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
-              () => loadAd(adUnitId),
+              () {
+                if (!_disposed) loadAd(adUnitId);
+              },
             );
           } else {
             _retryCount = 0;
@@ -100,11 +108,16 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
 
   /// Shows the rewarded interstitial ad. Returns `true` if shown.
   bool showAd() {
+    if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
     _ad!.fullScreenContentCallback =
         FullScreenContentCallback<RewardedInterstitialAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (RewardedInterstitialAd ad) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isLoaded = false;
@@ -114,6 +127,10 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
       },
       onAdFailedToShowFullScreenContent:
           (RewardedInterstitialAd ad, AdError error) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isLoaded = false;
@@ -124,6 +141,7 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
     );
     _ad!.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        if (_disposed) return;
         _coins += reward.amount.toInt();
         notifyListeners();
         onCoinsEarned?.call(_coins);
@@ -134,12 +152,14 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
 
   /// Resets the coin counter to zero.
   void resetCoins() {
+    if (_disposed) return;
     _coins = 0;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _ad?.dispose();
     super.dispose();
   }

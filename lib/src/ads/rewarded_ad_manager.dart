@@ -27,6 +27,7 @@ class RewardedAdManager extends ChangeNotifier {
   RewardedAd? _ad;
   bool _isLoading = false;
   bool _isLoaded = false;
+  bool _disposed = false;
   int _retryCount = 0;
   int _coins = 0;
   DateTime? _loadedAt;
@@ -63,6 +64,7 @@ class RewardedAdManager extends ChangeNotifier {
 
   /// Loads a rewarded ad. Safe to call multiple times.
   Future<void> loadAd(String adUnitId) async {
+    if (_disposed) return;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
@@ -76,6 +78,10 @@ class RewardedAdManager extends ChangeNotifier {
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (RewardedAd ad) {
+          if (_disposed) {
+            ad.dispose();
+            return;
+          }
           _ad = ad;
           _isLoaded = true;
           _isLoading = false;
@@ -85,6 +91,7 @@ class RewardedAdManager extends ChangeNotifier {
           onAdLoadComplete?.call();
         },
         onAdFailedToLoad: (LoadAdError error) {
+          if (_disposed) return;
           _isLoaded = false;
           _isLoading = false;
           notifyListeners();
@@ -92,7 +99,9 @@ class RewardedAdManager extends ChangeNotifier {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
-              () => loadAd(adUnitId),
+              () {
+                if (!_disposed) loadAd(adUnitId);
+              },
             );
           } else {
             _retryCount = 0;
@@ -105,11 +114,15 @@ class RewardedAdManager extends ChangeNotifier {
 
   /// Shows the rewarded ad. Returns `true` if shown.
   bool showAd() {
+    if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
-    _ad!.fullScreenContentCallback =
-        FullScreenContentCallback<RewardedAd>(
+    _ad!.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (RewardedAd ad) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isLoaded = false;
@@ -117,8 +130,11 @@ class RewardedAdManager extends ChangeNotifier {
         notifyListeners();
         onAdDismissed?.call();
       },
-      onAdFailedToShowFullScreenContent:
-          (RewardedAd ad, AdError error) {
+      onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isLoaded = false;
@@ -129,6 +145,7 @@ class RewardedAdManager extends ChangeNotifier {
     );
     _ad!.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {
+        if (_disposed) return;
         _coins += reward.amount.toInt();
         notifyListeners();
         onCoinsEarned?.call(_coins);
@@ -139,12 +156,14 @@ class RewardedAdManager extends ChangeNotifier {
 
   /// Resets the coin counter to zero.
   void resetCoins() {
+    if (_disposed) return;
     _coins = 0;
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     _ad?.dispose();
     super.dispose();
   }

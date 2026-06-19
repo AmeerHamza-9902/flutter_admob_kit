@@ -18,6 +18,7 @@ class InterstitialAdManager extends ChangeNotifier {
   InterstitialAd? _ad;
   bool _isLoading = false;
   bool _isLoaded = false;
+  bool _disposed = false;
   int _retryCount = 0;
   int _clickCount = 0;
   DateTime? _loadedAt;
@@ -51,6 +52,7 @@ class InterstitialAdManager extends ChangeNotifier {
   ///
   /// Retries up to 3 times on failure with exponential backoff.
   Future<void> loadAd(String adUnitId) async {
+    if (_disposed) return;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
@@ -64,6 +66,10 @@ class InterstitialAdManager extends ChangeNotifier {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
+          if (_disposed) {
+            ad.dispose();
+            return;
+          }
           _ad = ad;
           _isLoaded = true;
           _isLoading = false;
@@ -73,6 +79,7 @@ class InterstitialAdManager extends ChangeNotifier {
           onAdLoadComplete?.call();
         },
         onAdFailedToLoad: (LoadAdError error) {
+          if (_disposed) return;
           _isLoaded = false;
           _isLoading = false;
           notifyListeners();
@@ -80,7 +87,9 @@ class InterstitialAdManager extends ChangeNotifier {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
-              () => loadAd(adUnitId),
+              () {
+                if (!_disposed) loadAd(adUnitId);
+              },
             );
           } else {
             _retryCount = 0;
@@ -95,16 +104,15 @@ class InterstitialAdManager extends ChangeNotifier {
   ///
   /// Returns `true` if shown, `false` if not ready.
   bool showAd() {
+    if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
-    _ad!.fullScreenContentCallback =
-        FullScreenContentCallback<InterstitialAd>(
+    _ad!.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
         _onAdClosed(ad);
         onAdDismissed?.call();
       },
-      onAdFailedToShowFullScreenContent:
-          (InterstitialAd ad, AdError error) {
+      onAdFailedToShowFullScreenContent: (InterstitialAd ad, AdError error) {
         _onAdClosed(ad);
         onAdDismissed?.call();
       },
@@ -117,6 +125,7 @@ class InterstitialAdManager extends ChangeNotifier {
   ///
   /// Returns `true` when the ad is actually shown.
   bool onClickEvent(String adUnitId, {int threshold = 3}) {
+    if (_disposed) return false;
     _clickCount++;
     if (_clickCount >= threshold) {
       if (showAd()) return true;
@@ -129,6 +138,10 @@ class InterstitialAdManager extends ChangeNotifier {
   }
 
   void _onAdClosed(InterstitialAd ad) {
+    if (_disposed) {
+      ad.dispose();
+      return;
+    }
     ad.dispose();
     _ad = null;
     _isLoaded = false;
@@ -139,6 +152,7 @@ class InterstitialAdManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _ad?.dispose();
     super.dispose();
   }

@@ -28,6 +28,7 @@ class NativeAdManager extends ChangeNotifier {
   NativeAd? _ad;
   bool _isLoaded = false;
   bool _isLoading = false;
+  bool _disposed = false;
   int _retryCount = 0;
   DateTime? _loadedAt;
 
@@ -67,6 +68,7 @@ class NativeAdManager extends ChangeNotifier {
   ///
   /// Equivalent to Swift's `nativeVM.refreshAd()`.
   void refreshAd() {
+    if (_disposed) return;
     _ad?.dispose();
     _ad = null;
     _isLoaded = false;
@@ -77,12 +79,18 @@ class NativeAdManager extends ChangeNotifier {
   }
 
   void _load() {
+    if (_disposed) return;
     _ad = NativeAd(
       adUnitId: adUnitId,
       factoryId: factoryId,
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (_) {
+          if (_disposed) {
+            _ad?.dispose();
+            _ad = null;
+            return;
+          }
           _isLoaded = true;
           _isLoading = false;
           _retryCount = 0;
@@ -91,6 +99,10 @@ class NativeAdManager extends ChangeNotifier {
           onAdLoaded?.call();
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
+          if (_disposed) {
+            ad.dispose();
+            return;
+          }
           ad.dispose();
           _ad = null;
           _isLoaded = false;
@@ -98,7 +110,9 @@ class NativeAdManager extends ChangeNotifier {
           notifyListeners();
           if (_retryCount < _maxRetries) {
             _retryCount++;
-            Future.delayed(Duration(seconds: _retryCount * 2), _load);
+            Future.delayed(Duration(seconds: _retryCount * 2), () {
+              if (!_disposed) _load();
+            });
           } else {
             _retryCount = 0;
             onAdLoadFailed?.call();
@@ -112,6 +126,7 @@ class NativeAdManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _ad?.dispose();
     super.dispose();
   }

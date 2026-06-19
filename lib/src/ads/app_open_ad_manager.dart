@@ -24,6 +24,7 @@ class AppOpenAdManager extends ChangeNotifier {
   AppOpenAd? _ad;
   bool _isLoadingAd = false;
   bool _isShowingAd = false;
+  bool _disposed = false;
   int _retryCount = 0;
   DateTime? _loadedAt;
 
@@ -62,6 +63,7 @@ class AppOpenAdManager extends ChangeNotifier {
 
   /// Loads an App Open ad. Safe to call multiple times.
   Future<void> loadAd(String adUnitId) async {
+    if (_disposed) return;
     if (_ad != null && _isExpired) {
       _ad?.dispose();
       _ad = null;
@@ -74,6 +76,10 @@ class AppOpenAdManager extends ChangeNotifier {
       request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (AppOpenAd ad) {
+          if (_disposed) {
+            ad.dispose();
+            return;
+          }
           _ad = ad;
           _isLoadingAd = false;
           _retryCount = 0;
@@ -82,13 +88,16 @@ class AppOpenAdManager extends ChangeNotifier {
           onAdLoadComplete?.call();
         },
         onAdFailedToLoad: (LoadAdError error) {
+          if (_disposed) return;
           _isLoadingAd = false;
           notifyListeners();
           if (_retryCount < _maxRetries) {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
-              () => loadAd(adUnitId),
+              () {
+                if (!_disposed) loadAd(adUnitId);
+              },
             );
           } else {
             _retryCount = 0;
@@ -103,15 +112,19 @@ class AppOpenAdManager extends ChangeNotifier {
   ///
   /// Returns `true` if shown.
   bool showAdIfAvailable(String adUnitId) {
+    if (_disposed) return false;
     if (isInProScreen || _isShowingAd || !isAdReady || _ad == null) {
       return false;
     }
     _isShowingAd = true;
     notifyListeners();
-    _ad!.fullScreenContentCallback =
-        FullScreenContentCallback<AppOpenAd>(
+    _ad!.fullScreenContentCallback = FullScreenContentCallback<AppOpenAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (AppOpenAd ad) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isShowingAd = false;
@@ -119,8 +132,11 @@ class AppOpenAdManager extends ChangeNotifier {
         notifyListeners();
         onAdDismissed?.call();
       },
-      onAdFailedToShowFullScreenContent:
-          (AppOpenAd ad, AdError error) {
+      onAdFailedToShowFullScreenContent: (AppOpenAd ad, AdError error) {
+        if (_disposed) {
+          ad.dispose();
+          return;
+        }
         ad.dispose();
         _ad = null;
         _isShowingAd = false;
@@ -135,6 +151,7 @@ class AppOpenAdManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _ad?.dispose();
     super.dispose();
   }

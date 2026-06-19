@@ -29,5 +29,7 @@ export 'src/ads/app_open_ad_manager.dart';
 export 'src/ads/rewarded_ad_manager.dart';
 export 'src/ads/rewarded_interstitial_ad_manager.dart';
 export 'src/ads/native_ad_manager.dart';
+export 'src/ads/ads_config.dart';
+export 'src/flutter_admob_kit_controller.dart';
 export 'src/widgets/banner_ad_widget.dart';
 export 'src/widgets/native_ad_widget.dart';
