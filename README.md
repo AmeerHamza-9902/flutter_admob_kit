@@ -25,7 +25,7 @@ Same ViewModel pattern. Same callbacks. Same `isInProScreen` guard. Just Flutter
 
 ```yaml
 dependencies:
-  flutter_admob_kit: ^3.0.2
+  flutter_admob_kit: ^3.0.6
 ```
 
 ```bash

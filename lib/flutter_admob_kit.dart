@@ -22,7 +22,7 @@
 /// await vm.loadAd('ca-app-pub-XXXX/XXXX');
 /// vm.showAd();
 /// ```
-library flutter_admob_kit;
+library;
 
 export 'src/ads/interstitial_ad_manager.dart';
 export 'src/ads/app_open_ad_manager.dart';

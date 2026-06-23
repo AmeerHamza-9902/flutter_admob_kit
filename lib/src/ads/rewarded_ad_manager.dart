@@ -53,6 +53,12 @@ class RewardedAdManager extends ChangeNotifier {
   /// Fires after the ad fully dismisses.
   VoidCallback? onAdDismissed;
 
+  /// Fires when the ad is clicked.
+  VoidCallback? onAdClicked;
+
+  /// Fires when an impression is recorded.
+  VoidCallback? onAdImpression;
+
   /// Fires when the user earns a reward, with the updated total.
   // ignore: avoid_positional_boolean_parameters
   void Function(int coins)? onCoinsEarned;
@@ -142,6 +148,8 @@ class RewardedAdManager extends ChangeNotifier {
         notifyListeners();
         onAdDismissed?.call();
       },
+      onAdClicked: (_) => onAdClicked?.call(),
+      onAdImpression: (_) => onAdImpression?.call(),
     );
     _ad!.show(
       onUserEarnedReward: (AdWithoutView ad, RewardItem reward) {

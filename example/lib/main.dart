@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
   await FlutterAdmobKit.instance.init(
     remoteKey: 'ads_config',
     localAsset: 'assets/ads_config.json',

@@ -74,10 +74,11 @@ class FlutterAdmobKit {
     return _proCloseInterstitial.showAd();
   }
 
-  bool showOnResumeAppOpen() {
+  Future<bool> showOnResumeAppOpen() async {
     final slot = _config.onResumeAppOpen;
     if (!_canShow(slot)) return false;
-    return _onResumeAppOpen.showAdIfAvailable(slot!.adUnitId!);
+    await _onResumeAppOpen.loadAd(slot!.adUnitId!);
+    return _onResumeAppOpen.showAdIfAvailable(slot.adUnitId!);
   }
 
   ScreenAdConfig screenConfig(String screenKey) =>

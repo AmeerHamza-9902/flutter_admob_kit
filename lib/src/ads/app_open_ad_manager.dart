@@ -56,6 +56,12 @@ class AppOpenAdManager extends ChangeNotifier {
   /// Use this for navigation.
   VoidCallback? onAdDismissed;
 
+  /// Fires when the ad is clicked.
+  VoidCallback? onAdClicked;
+
+  /// Fires when an impression is recorded.
+  VoidCallback? onAdImpression;
+
   bool get _isExpired {
     if (_loadedAt == null) return true;
     return DateTime.now().difference(_loadedAt!) > _adExpiry;
@@ -144,6 +150,8 @@ class AppOpenAdManager extends ChangeNotifier {
         notifyListeners();
         onAdDismissed?.call();
       },
+      onAdClicked: (_) => onAdClicked?.call(),
+      onAdImpression: (_) => onAdImpression?.call(),
     );
     _ad!.show();
     return true;

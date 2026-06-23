@@ -43,6 +43,12 @@ class InterstitialAdManager extends ChangeNotifier {
   /// Use this for navigation or post-ad logic.
   VoidCallback? onAdDismissed;
 
+  /// Fires when the ad is clicked.
+  VoidCallback? onAdClicked;
+
+  /// Fires when an impression is recorded.
+  VoidCallback? onAdImpression;
+
   bool get _isExpired {
     if (_loadedAt == null) return true;
     return DateTime.now().difference(_loadedAt!) > _adExpiry;
@@ -116,6 +122,8 @@ class InterstitialAdManager extends ChangeNotifier {
         _onAdClosed(ad);
         onAdDismissed?.call();
       },
+      onAdClicked: (_) => onAdClicked?.call(),
+      onAdImpression: (_) => onAdImpression?.call(),
     );
     _ad!.show();
     return true;
