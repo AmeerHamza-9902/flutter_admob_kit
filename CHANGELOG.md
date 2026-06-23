@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.0.7
+
+* **New:** `onAdClicked` and `onAdImpression` callbacks on all fullscreen ad managers
+* **Fix:** `showOnResumeAppOpen()` now pre-loads the ad before showing
+* **Fix:** Updated `flutter_lints` to `^6.0.0`
+* **Fix:** Removed stray directories and `.DS_Store` files from repository
+* **Fix:** Removed unnecessary `firebase_core` dependency from example app
+* **Fix:** Added `analysis_options.yaml`
+
 ## 3.0.6
 
 * **Fix:** Removed unused `_lastAdUnitId` field from `InterstitialAdManager`
