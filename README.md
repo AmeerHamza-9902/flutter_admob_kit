@@ -4,20 +4,19 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-android%20%7C%20ios-green.svg)]()
 
-Same ViewModel pattern. Same callbacks. Same `isInProScreen` guard. Just Flutter.
+Production-ready, deterministic Google AdMob package for Flutter with JSON Remote Config, zero Cumulative Layout Shift (CLS) shimmer placeholders, Paywall close guards, automatic App Open resume lifecycles, and concurrency leasing.
 
 ---
 
-## ✨ Features
+## ✨ Why flutter_admob_kit?
 
-| Feature | Details |
-|---------|---------|
-| 📺 **All ad formats** | Banner, Interstitial, Rewarded, Rewarded Interstitial, App Open, Native |
-| 🔄 **Auto retry** | Retries failed loads up to 3 times (2s, 4s, 6s backoff) |
-| ⏱️ **Expiry handling** | Discards stale ads automatically — no more black screens |
-| 🪙 **Coin tracking** | `coins` property with `onCoinsEarned` callback |
-| 🛡️ **Paywall guard** | `AppOpenAdManager.isInProScreen` prevents ads on purchase screens |
-| 🔁 **Click threshold** | Show interstitial after N clicks automatically |
+* ⚡ **1-Line Setup & Preloading:** Initialize with local JSON or Firebase Remote Config in seconds.
+* 🛡️ **Paywall Close Guard (`PaywallCloseGuard`):** Hardware back-button & close-button protection (zero ads for paid users, zero trapped users).
+* 🔒 **Presentation Mutex Coordinator:** Prevents overlapping full-screen ads across all formats.
+* 🎨 **Zero-CLS Shimmer Placeholders:** Built-in animated skeletons for Banner and Native ads.
+* 🔄 **Auto Resume App Open:** 1-line automatic foreground App Open ad listener.
+* ⏱️ **Ad Freshness & Auto-Eviction:** Automatically discards expired ads (1h/4h) to avoid low show rate.
+* 🪙 **Rewarded Ads & Coin Tracking:** Simple coin management with `ListenableBuilder`.
 
 ---
 
@@ -25,185 +24,113 @@ Same ViewModel pattern. Same callbacks. Same `isInProScreen` guard. Just Flutter
 
 ```yaml
 dependencies:
-  flutter_admob_kit: ^3.0.6
-```
-
-```bash
-flutter pub get
+  flutter_admob_kit: ^3.0.7
 ```
 
 ---
 
-## 🚀 Setup
+## 🚀 Quick Start in 3 Easy Steps
 
-Initialize once in `main.dart`:
+### 1. Initialize in `main.dart`
 
 ```dart
-import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await MobileAds.instance.initialize();
+  
+  // Initialize with JSON asset or Firebase Remote Config
+  await AdMobKit.instance.init(localAsset: 'assets/ads_config.json');
+
+  // (Optional) Enable 1-line automatic App Open ad on app resume
+  AdMobKit.instance.enableAutoResumeAppOpen();
+
   runApp(const MyApp());
 }
 ```
 
----
-
-## 📱 Usage
-
-### Banner Ad
+### 2. Drop-in Banner & Native Ads with Shimmer
 
 ```dart
-// Swift: BannerAdView(AdUnitID: "...", adLoadFailed: $failed)
+// Zero setup — resolves automatically from your screen JSON config!
 BannerAdWidget(
+  screenKey: 'home_screen',
+  showShimmer: true, // Smooth zero-shift placeholder
+)
+
+// Or Native ad card
+NativeAdWidget(
+  screenKey: 'home_screen',
+  height: 300,
+  showShimmer: true,
+)
+```
+
+### 3. Bulletproof Paywall Close Guard
+
+```dart
+PaywallCloseGuard(
   adUnitId: 'ca-app-pub-XXXX/XXXX',
-  onAdLoadFailed: () => setState(() => _showBanner = false),
+  isEntitled: user.isPremium, // Bypasses ads if user purchased
+  onDismiss: () => Navigator.of(context).pop(),
+  child: Scaffold(
+    appBar: AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.close),
+        onPressed: () => PaywallCloseGuard.dismiss(context),
+      ),
+    ),
+    body: PaywallBody(),
+  ),
 )
 ```
 
 ---
 
-### Interstitial Ad
+## 📱 Fullscreen Ads & Click Counter
 
+### Interstitial on Button or Tab Click (Every N taps)
 ```dart
-// Swift: @StateObject var interstitialVM = InterstitialViewModel()
-final _vm = InterstitialAdManager();
-
-@override
-void initState() {
-  super.initState();
-  _vm.onAdLoadComplete = () => print('Ad loaded!');
-  _vm.onAdDismissed   = () => Navigator.pushNamed(context, '/home');
-  _vm.loadAd('ca-app-pub-XXXX/XXXX');
-}
-
-// Show immediately
-_vm.showAd();
-
-// Show after N clicks (bottom nav, general buttons)
-_vm.onClickEvent('ca-app-pub-XXXX/XXXX', threshold: 3);
-
-@override
-void dispose() {
-  _vm.dispose();
-  super.dispose();
-}
+// Automatically counts clicks and shows ad when threshold is reached
+AdMobKit.instance.onBottomNavClick(context);
+AdMobKit.instance.onGeneralClick(context);
 ```
 
----
-
-### App Open Ad
-
+### Direct Interstitial Ad
 ```dart
-// Swift: @StateObject var appOpenVM = AppOpenAdManager()
-final _appOpenVM = AppOpenAdManager();
-
-@override
-void initState() {
-  super.initState();
-  _appOpenVM.onAdDismissed = () => widget.onFinish();
-  _appOpenVM.loadAd('ca-app-pub-XXXX/XXXX').then((_) {
-    _appOpenVM.showAdIfAvailable('ca-app-pub-XXXX/XXXX');
-  });
-}
-
-@override
-void dispose() {
-  _appOpenVM.dispose();
-  super.dispose();
-}
+final vm = InterstitialAdManager();
+await vm.loadAd('ca-app-pub-XXXX/XXXX');
+vm.showAd();
 ```
 
-**Prevent on paywall — same as Swift:**
+### Rewarded Ad (With Coins)
 ```dart
-@override
-void initState() {
-  super.initState();
-  AppOpenAdManager.isInProScreen = true; // onAppear
-}
+final vm = RewardedAdManager();
+vm.onCoinsEarned = (coins) => print('Total coins: $coins');
+await vm.loadAd('ca-app-pub-XXXX/XXXX');
+vm.showAd();
 
-@override
-void dispose() {
-  AppOpenAdManager.isInProScreen = false; // onDisappear
-  super.dispose();
-}
-```
-
----
-
-### Rewarded Ad
-
-```dart
-// Swift: @StateObject var rewardedVM = RewardedViewModel()
-final _rewardedVM = RewardedAdManager();
-
-@override
-void initState() {
-  super.initState();
-  _rewardedVM.onAdDismissed = () { };
-  _rewardedVM.onCoinsEarned = (coins) => print('Coins: $coins');
-  _rewardedVM.loadAd('ca-app-pub-XXXX/XXXX');
-}
-
-// Show only when ready
-ElevatedButton(
-  onPressed: _rewardedVM.isAdReady ? () => _rewardedVM.showAd() : null,
-  child: const Text('Watch Ad'),
-)
-
-// Listen to coins — Swift: .onChange(of: rewardedVM.coins)
+// In UI:
 ListenableBuilder(
-  listenable: _rewardedVM,
-  builder: (_, __) => Text('Coins: ${_rewardedVM.coins}'),
-)
+  listenable: vm,
+  builder: (_, __) => Text('Coins: ${vm.coins}'),
+);
 ```
 
 ---
 
-### Rewarded Interstitial Ad
+## ☁️ Firebase Remote Config Integration
+
+When new remote config is fetched from Firebase, simply update AdMobKit:
 
 ```dart
-// Swift: @StateObject var riVM = RewardedInterstitialViewModel()
-final _riVM = RewardedInterstitialAdManager();
-
-@override
-void initState() {
-  super.initState();
-  _riVM.onAdDismissed = () { };
-  _riVM.onCoinsEarned = (coins) => print('Coins: $coins');
-  _riVM.loadAd('ca-app-pub-XXXX/XXXX');
-}
-
-_riVM.showAd();
+final remoteJson = json.decode(FirebaseRemoteConfig.instance.getString('ads_config'));
+AdMobKit.instance.updateConfigFromJson(remoteJson);
 ```
+All banner and native ads currently on screen will **automatically reload and adapt dynamically**!
 
 ---
-
-### Native Ad
-
-```dart
-// Swift: @StateObject var nativeVM = NativeAdViewModel(adUnitID: "...")
-final _nativeVM = NativeAdManager(adUnitId: 'ca-app-pub-XXXX/XXXX');
-
-@override
-void initState() {
-  super.initState();
-  _nativeVM.refreshAd(); // Swift: nativeVM.refreshAd()
-}
-
-// In build — Swift: GoogleNativeAdView(nativeViewModel: nativeVM)
-ListenableBuilder(
-  listenable: _nativeVM,
-  builder: (_, __) => NativeAdWidget(manager: _nativeVM, height: 300),
-)
-
-@override
-void dispose() {
-  _nativeVM.dispose();
-  super.dispose();
-}
-```
 
 ## 📄 License
 

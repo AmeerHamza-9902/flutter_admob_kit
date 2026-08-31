@@ -180,11 +180,41 @@ class FlutterAdmobKit extends ChangeNotifier {
     return _onResumeAppOpen.loadAd(slot!.adUnitId!);
   }
 
+  _AutoResumeObserver? _resumeObserver;
+
+  /// Automatically monitors app foreground/background state and presents
+  /// OnResume App Open ads seamlessly with zero boilerplate code.
+  void enableAutoResumeAppOpen() {
+    if (_resumeObserver != null) return;
+    _resumeObserver = _AutoResumeObserver(this);
+    WidgetsBinding.instance.addObserver(_resumeObserver!);
+    preloadOnResumeAppOpen();
+  }
+
+  /// Disables automatic App Open resume monitoring.
+  void disableAutoResumeAppOpen() {
+    if (_resumeObserver == null) return;
+    WidgetsBinding.instance.removeObserver(_resumeObserver!);
+    _resumeObserver = null;
+  }
+
   /// Resolves banner/native configuration for a specific screen key.
   ScreenAdConfig screenConfig(String screenKey) =>
       _config.screenConfig(screenKey);
 
   bool _canShow(AdSlotConfig? slot) {
     return slot?.adUnitId != null && (slot!.show || slot.isEnabled);
+  }
+}
+
+class _AutoResumeObserver extends WidgetsBindingObserver {
+  final FlutterAdmobKit _kit;
+  _AutoResumeObserver(this._kit);
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _kit.showOnResumeAppOpen();
+    }
   }
 }

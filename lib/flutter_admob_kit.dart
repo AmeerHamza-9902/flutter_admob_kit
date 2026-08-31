@@ -36,3 +36,8 @@ export 'src/widgets/banner_ad_widget.dart';
 export 'src/widgets/native_ad_widget.dart';
 export 'src/widgets/ad_shimmer_placeholder.dart';
 export 'src/widgets/paywall_close_guard.dart';
+
+import 'src/flutter_admob_kit_controller.dart';
+
+/// Shorthand alias for [FlutterAdmobKit] for faster and cleaner code.
+typedef AdMobKit = FlutterAdmobKit;

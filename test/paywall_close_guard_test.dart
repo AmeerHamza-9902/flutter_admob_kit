@@ -63,5 +63,36 @@ void main() {
 
       expect(dismissed, true);
     });
+
+    testWidgets('renders direct child and PaywallCloseGuard.dismiss works',
+        (tester) async {
+      bool dismissed = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PaywallCloseGuard(
+            isEntitled: true,
+            onDismiss: () => dismissed = true,
+            child: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return ElevatedButton(
+                    onPressed: () => PaywallCloseGuard.dismiss(context),
+                    child: const Text('Direct Close Button'),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Direct Close Button'), findsOneWidget);
+
+      await tester.tap(find.text('Direct Close Button'));
+      await tester.pump();
+
+      expect(dismissed, true);
+    });
   });
 }

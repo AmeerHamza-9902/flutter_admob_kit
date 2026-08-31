@@ -13,8 +13,27 @@ import '../ads/interstitial_ad_manager.dart';
 /// - Suppresses App Open ads while on the paywall screen.
 /// - Never traps the user: if ad loading times out or fails, allows immediate dismissal.
 ///
+/// ### Simple Usage with `child`:
 /// ```dart
 /// PaywallCloseGuard(
+///   adUnitId: 'ca-app-pub-XXXX/XXXX',
+///   isEntitled: user.isPremium,
+///   onDismiss: () => Navigator.of(context).pop(),
+///   child: Scaffold(
+///     appBar: AppBar(
+///       leading: IconButton(
+///         icon: const Icon(Icons.close),
+///         onPressed: () => PaywallCloseGuard.dismiss(context),
+///       ),
+///     ),
+///     body: PaywallBody(),
+///   ),
+/// )
+/// ```
+///
+/// ### Usage with `builder`:
+/// ```dart
+/// PaywallCloseGuard.builder(
 ///   adUnitId: 'ca-app-pub-XXXX/XXXX',
 ///   isEntitled: user.isPremium,
 ///   onDismiss: () => Navigator.of(context).pop(),
@@ -51,27 +70,77 @@ class PaywallCloseGuard extends StatefulWidget {
   /// Optional callback when close ad fails.
   final VoidCallback? onAdFailed;
 
-  /// Builder that receives the dismiss trigger callback and ad loading status.
+  /// Direct child widget.
+  final Widget? child;
+
+  /// Optional builder that receives the dismiss trigger callback and ad loading status.
   final Widget Function(
     BuildContext context,
     VoidCallback attemptDismiss,
     bool isAdLoading,
-  ) builder;
+  )? builder;
 
-  /// Creates a [PaywallCloseGuard].
+  /// Creates a [PaywallCloseGuard] with either a direct [child] or custom [builder].
   const PaywallCloseGuard({
     super.key,
-    required this.builder,
+    this.child,
+    this.builder,
     required this.onDismiss,
     this.adUnitId,
     this.isEntitled = false,
     this.timeout = const Duration(seconds: 5),
     this.onAdLoaded,
     this.onAdFailed,
-  });
+  }) : assert(
+          child != null || builder != null,
+          'Provide either child or builder.',
+        );
+
+  /// Creates a [PaywallCloseGuard] with a custom [builder].
+  const PaywallCloseGuard.builder({
+    super.key,
+    required Widget Function(
+      BuildContext context,
+      VoidCallback attemptDismiss,
+      bool isAdLoading,
+    ) this.builder,
+    required this.onDismiss,
+    this.adUnitId,
+    this.isEntitled = false,
+    this.timeout = const Duration(seconds: 5),
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : child = null;
+
+  /// Triggers dismissal on the nearest enclosing [PaywallCloseGuard].
+  static void dismiss(BuildContext context) {
+    final scope =
+        context.dependOnInheritedWidgetOfExactType<_PaywallCloseGuardScope>();
+    if (scope != null) {
+      scope.attemptDismiss();
+    } else {
+      Navigator.of(context).maybePop();
+    }
+  }
 
   @override
   State<PaywallCloseGuard> createState() => _PaywallCloseGuardState();
+}
+
+class _PaywallCloseGuardScope extends InheritedWidget {
+  final VoidCallback attemptDismiss;
+  final bool isAdLoading;
+
+  const _PaywallCloseGuardScope({
+    required this.attemptDismiss,
+    required this.isAdLoading,
+    required super.child,
+  });
+
+  @override
+  bool updateShouldNotify(_PaywallCloseGuardScope oldWidget) {
+    return isAdLoading != oldWidget.isAdLoading;
+  }
 }
 
 class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
@@ -181,13 +250,21 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
         _manager!.isLoading &&
         !_isTimedOut;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        _attemptDismiss();
-      },
-      child: widget.builder(context, _attemptDismiss, isLoading),
+    final content = widget.builder != null
+        ? widget.builder!(context, _attemptDismiss, isLoading)
+        : widget.child!;
+
+    return _PaywallCloseGuardScope(
+      attemptDismiss: _attemptDismiss,
+      isAdLoading: isLoading,
+      child: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, result) {
+          if (didPop) return;
+          _attemptDismiss();
+        },
+        child: content,
+      ),
     );
   }
 }
