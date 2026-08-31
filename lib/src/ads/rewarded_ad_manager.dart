@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'ad_presentation_coordinator.dart';
+
 /// Manages rewarded ads with coin tracking.
 ///
 /// Equivalent to Swift's `RewardedViewModel`.
@@ -122,9 +124,13 @@ class RewardedAdManager extends ChangeNotifier {
   bool showAd() {
     if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
+    if (!AdPresentationCoordinator.instance.tryAcquire(format: 'rewarded')) {
+      return false;
+    }
     _ad!.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (RewardedAd ad) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;
@@ -137,6 +143,7 @@ class RewardedAdManager extends ChangeNotifier {
         onAdDismissed?.call();
       },
       onAdFailedToShowFullScreenContent: (RewardedAd ad, AdError error) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;

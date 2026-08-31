@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'ad_presentation_coordinator.dart';
+
 /// Manages App Open ads with expiry handling and paywall guard.
 ///
 /// Equivalent to Swift's `AppOpenAdManager`.
@@ -122,11 +124,15 @@ class AppOpenAdManager extends ChangeNotifier {
     if (isInProScreen || _isShowingAd || !isAdReady || _ad == null) {
       return false;
     }
+    if (!AdPresentationCoordinator.instance.tryAcquire(format: 'app_open')) {
+      return false;
+    }
     _isShowingAd = true;
     notifyListeners();
     _ad!.fullScreenContentCallback = FullScreenContentCallback<AppOpenAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (AppOpenAd ad) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;
@@ -139,6 +145,7 @@ class AppOpenAdManager extends ChangeNotifier {
         onAdDismissed?.call();
       },
       onAdFailedToShowFullScreenContent: (AppOpenAd ad, AdError error) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;
@@ -159,6 +166,9 @@ class AppOpenAdManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    if (_isShowingAd) {
+      AdPresentationCoordinator.instance.release();
+    }
     _disposed = true;
     _ad?.dispose();
     super.dispose();

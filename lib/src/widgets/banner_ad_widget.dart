@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../flutter_admob_kit_controller.dart';
+import 'ad_shimmer_placeholder.dart';
 
-/// A drop-in banner ad widget.
+/// A drop-in banner ad widget with optional shimmer placeholder support.
 ///
 /// Equivalent to Swift's `BannerAdView`.
 ///
 /// ```dart
 /// BannerAdWidget(
 ///   adUnitId: 'ca-app-pub-XXXX/XXXX',
+///   showShimmer: true,
 ///   onAdLoadFailed: () => setState(() => _showBanner = false),
 /// )
 /// ```
@@ -22,6 +24,12 @@ class BannerAdWidget extends StatefulWidget {
 
   /// The banner size. Defaults to [AdSize.banner].
   final AdSize size;
+
+  /// Whether to show a skeleton shimmer placeholder while the ad is loading.
+  final bool showShimmer;
+
+  /// Custom widget shown while the ad is loading.
+  final Widget? placeholder;
 
   /// Called when the ad loads successfully.
   final VoidCallback? onAdLoaded;
@@ -38,6 +46,8 @@ class BannerAdWidget extends StatefulWidget {
     this.adUnitId,
     this.screenKey,
     this.size = AdSize.banner,
+    this.showShimmer = false,
+    this.placeholder,
     this.onAdLoaded,
     this.onAdLoadFailed,
     this.onAdClicked,
@@ -53,6 +63,7 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget> {
   BannerAd? _ad;
   bool _loaded = false;
+  bool _failed = false;
   String? _activeAdUnitId;
 
   @override
@@ -70,6 +81,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       _ad?.dispose();
       _ad = null;
       _loaded = false;
+      _failed = false;
       _load();
     }
   }
@@ -77,10 +89,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   void _load() {
     final adUnitId = widget.adUnitId ?? _configuredAdUnitId();
     if (adUnitId == null) {
+      _failed = true;
       widget.onAdLoadFailed?.call();
       return;
     }
     _activeAdUnitId = adUnitId;
+    _failed = false;
     _ad = BannerAd(
       adUnitId: adUnitId,
       size: widget.size,
@@ -88,7 +102,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       listener: BannerAdListener(
         onAdLoaded: (_) {
           if (mounted && _activeAdUnitId == adUnitId) {
-            setState(() => _loaded = true);
+            setState(() {
+              _loaded = true;
+              _failed = false;
+            });
           }
           widget.onAdLoaded?.call();
         },
@@ -96,7 +113,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           ad.dispose();
           if (_activeAdUnitId == adUnitId) {
             _ad = null;
-            if (mounted) setState(() => _loaded = false);
+            if (mounted) {
+              setState(() {
+                _loaded = false;
+                _failed = true;
+              });
+            }
           }
           widget.onAdLoadFailed?.call();
         },
@@ -120,7 +142,20 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded || _ad == null) return const SizedBox.shrink();
+    if (_failed) return const SizedBox.shrink();
+    if (!_loaded || _ad == null) {
+      if (widget.placeholder != null) return widget.placeholder!;
+      if (widget.showShimmer) {
+        return AdShimmerPlaceholder(
+          width: widget.size.width.toDouble(),
+          height: widget.size.height.toDouble(),
+          variant: widget.size.height >= 200
+              ? AdShimmerVariant.mediumRectangle
+              : AdShimmerVariant.banner,
+        );
+      }
+      return const SizedBox.shrink();
+    }
     return SizedBox(
       width: _ad!.size.width.toDouble(),
       height: _ad!.size.height.toDouble(),

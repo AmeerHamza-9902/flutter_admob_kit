@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'ad_presentation_coordinator.dart';
+
 /// Manages rewarded interstitial ads with coin tracking.
 ///
 /// Equivalent to Swift's `RewardedInterstitialViewModel`.
@@ -116,10 +118,15 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
   bool showAd() {
     if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
+    if (!AdPresentationCoordinator.instance
+        .tryAcquire(format: 'rewarded_interstitial')) {
+      return false;
+    }
     _ad!.fullScreenContentCallback =
         FullScreenContentCallback<RewardedInterstitialAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (RewardedInterstitialAd ad) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;
@@ -133,6 +140,7 @@ class RewardedInterstitialAdManager extends ChangeNotifier {
       },
       onAdFailedToShowFullScreenContent:
           (RewardedInterstitialAd ad, AdError error) {
+        AdPresentationCoordinator.instance.release();
         if (_disposed) {
           ad.dispose();
           return;

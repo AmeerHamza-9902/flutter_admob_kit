@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../ads/native_ad_manager.dart';
 import '../flutter_admob_kit_controller.dart';
+import 'ad_shimmer_placeholder.dart';
 
 /// Displays a native ad managed by [NativeAdManager].
 ///
@@ -13,6 +14,7 @@ import '../flutter_admob_kit_controller.dart';
 ///   builder: (context, _) => NativeAdWidget(
 ///     manager: nativeVM,
 ///     height: 300,
+///     showShimmer: true,
 ///   ),
 /// )
 /// ```
@@ -26,6 +28,9 @@ class NativeAdWidget extends StatefulWidget {
   /// Height of the native ad container.
   final double height;
 
+  /// Whether to show a skeleton shimmer placeholder while the ad is loading.
+  final bool showShimmer;
+
   /// Widget shown while the ad is loading.
   final Widget? placeholder;
 
@@ -35,6 +40,7 @@ class NativeAdWidget extends StatefulWidget {
     this.manager,
     this.screenKey,
     this.height = 300,
+    this.showShimmer = false,
     this.placeholder,
   }) : assert(
           manager != null || screenKey != null,
@@ -93,8 +99,16 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     final manager = _manager;
     if (manager == null) return widget.placeholder ?? const SizedBox.shrink();
     if (!manager.isAdReady || manager.ad == null) {
-      return widget.placeholder ??
-          SizedBox(height: manager.isLoading ? widget.height : 0);
+      if (widget.placeholder != null) return widget.placeholder!;
+      if (widget.showShimmer && manager.isLoading) {
+        return AdShimmerPlaceholder(
+          height: widget.height,
+          variant: widget.height > 160
+              ? AdShimmerVariant.nativeMedium
+              : AdShimmerVariant.nativeSmall,
+        );
+      }
+      return SizedBox(height: manager.isLoading ? widget.height : 0);
     }
     return SizedBox(
       height: widget.height,

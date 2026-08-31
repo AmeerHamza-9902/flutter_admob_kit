@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import 'ad_presentation_coordinator.dart';
+
 /// Manages interstitial ads with expiry handling and retry logic.
 ///
 /// Equivalent to Swift's `InterstitialViewModel`.
@@ -108,10 +110,13 @@ class InterstitialAdManager extends ChangeNotifier {
 
   /// Shows the ad immediately.
   ///
-  /// Returns `true` if shown, `false` if not ready.
+  /// Returns `true` if shown, `false` if not ready or presentation lease is occupied.
   bool showAd() {
     if (_disposed) return false;
     if (!isAdReady || _ad == null) return false;
+    if (!AdPresentationCoordinator.instance.tryAcquire(format: 'interstitial')) {
+      return false;
+    }
     _ad!.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
@@ -146,6 +151,7 @@ class InterstitialAdManager extends ChangeNotifier {
   }
 
   void _onAdClosed(InterstitialAd ad) {
+    AdPresentationCoordinator.instance.release();
     if (_disposed) {
       ad.dispose();
       return;
