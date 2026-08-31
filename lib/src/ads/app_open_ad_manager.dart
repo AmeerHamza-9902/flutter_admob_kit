@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -29,6 +30,7 @@ class AppOpenAdManager extends ChangeNotifier {
   bool _disposed = false;
   int _retryCount = 0;
   DateTime? _loadedAt;
+  Completer<bool>? _loadCompleter;
 
   /// Whether an ad is ready and not expired.
   bool get isAdReady => _ad != null && !_isExpired;
@@ -70,22 +72,39 @@ class AppOpenAdManager extends ChangeNotifier {
   }
 
   /// Loads an App Open ad. Safe to call multiple times.
-  Future<void> loadAd(String adUnitId) async {
-    if (_disposed) return;
+  ///
+  /// Returns `true` when the ad successfully loads, or `false` on failure.
+  Future<bool> loadAd(String adUnitId) async {
+    if (_disposed) return false;
     if (_ad != null && _isExpired) {
       _ad?.dispose();
       _ad = null;
     }
-    if (_isLoadingAd || _ad != null) return;
+    if (_ad != null && isAdReady) return true;
+    if (_isLoadingAd) {
+      return _loadCompleter?.future ?? Future.value(false);
+    }
     _isLoadingAd = true;
+    _retryCount = 0;
+    _loadCompleter = Completer<bool>();
     notifyListeners();
-    await AppOpenAd.load(
+    _fetchAd(adUnitId);
+    return _loadCompleter!.future;
+  }
+
+  void _fetchAd(String adUnitId) {
+    if (_disposed) {
+      _completeLoad(false);
+      return;
+    }
+    AppOpenAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (AppOpenAd ad) {
           if (_disposed) {
             ad.dispose();
+            _completeLoad(false);
             return;
           }
           _ad = ad;
@@ -94,26 +113,37 @@ class AppOpenAdManager extends ChangeNotifier {
           _loadedAt = DateTime.now();
           notifyListeners();
           onAdLoadComplete?.call();
+          _completeLoad(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          if (_disposed) return;
-          _isLoadingAd = false;
-          notifyListeners();
+          if (_disposed) {
+            _completeLoad(false);
+            return;
+          }
           if (_retryCount < _maxRetries) {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
               () {
-                if (!_disposed) loadAd(adUnitId);
+                if (!_disposed) _fetchAd(adUnitId);
               },
             );
           } else {
             _retryCount = 0;
+            _isLoadingAd = false;
+            notifyListeners();
             onAdLoadFailed?.call();
+            _completeLoad(false);
           }
         },
       ),
     );
+  }
+
+  void _completeLoad(bool success) {
+    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
+      _loadCompleter!.complete(success);
+    }
   }
 
   /// Shows the ad if available and not on a paywall screen.
@@ -170,6 +200,7 @@ class AppOpenAdManager extends ChangeNotifier {
       AdPresentationCoordinator.instance.release();
     }
     _disposed = true;
+    _completeLoad(false);
     _ad?.dispose();
     super.dispose();
   }

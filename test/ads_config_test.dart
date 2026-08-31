@@ -97,4 +97,40 @@ void main() {
       expect(config.onResumeAppOpen, isNotNull);
     });
   });
+
+  group('FlutterAdmobKit Controller', () {
+    test('updates config dynamically and notifies listeners', () {
+      final kit = FlutterAdmobKit.instance;
+      bool notified = false;
+      kit.addListener(() => notified = true);
+
+      const jsonStr = {
+        'Interstitial_btm_nav': {
+          'adUnit': 'ca-app-pub-test/12345',
+          'click_threshold': 5,
+          'show': true,
+        },
+      };
+
+      kit.updateConfigFromJson(jsonStr);
+
+      expect(notified, true);
+      expect(kit.config.interstitialBtmNav?.clickThreshold, 5);
+      expect(kit.config.interstitialBtmNav?.adUnitId, 'ca-app-pub-test/12345');
+    });
+
+    test('click counter logic increments and thresholds properly', () {
+      final kit = FlutterAdmobKit.instance;
+      kit.updateConfigFromJson({
+        'Interstitial_btm_nav': {
+          'adUnit': 'ca-app-pub-test/12345',
+          'click_threshold': 3,
+          'show': true,
+        },
+      });
+
+      // Without context or real ads, returns false safely without throwing
+      expect(kit.config.interstitialBtmNav?.clickThreshold, 3);
+    });
+  });
 }

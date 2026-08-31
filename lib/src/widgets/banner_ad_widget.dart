@@ -69,12 +69,34 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
+    if (widget.screenKey != null) {
+      FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
+    }
     _load();
+  }
+
+  void _onKitConfigChanged() {
+    final newId = _configuredAdUnitId();
+    if (newId != _activeAdUnitId) {
+      _ad?.dispose();
+      _ad = null;
+      _loaded = false;
+      _failed = false;
+      _load();
+    }
   }
 
   @override
   void didUpdateWidget(covariant BannerAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.screenKey != widget.screenKey) {
+      if (oldWidget.screenKey != null) {
+        FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
+      }
+      if (widget.screenKey != null) {
+        FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
+      }
+    }
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.screenKey != widget.screenKey ||
         oldWidget.size != widget.size) {
@@ -136,6 +158,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
+    if (widget.screenKey != null) {
+      FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
+    }
     _ad?.dispose();
     super.dispose();
   }

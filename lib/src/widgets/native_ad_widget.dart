@@ -59,14 +59,34 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void initState() {
     super.initState();
+    if (widget.screenKey != null) {
+      FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
+    }
     _configureOwnedManager();
+  }
+
+  void _onKitConfigChanged() {
+    _ownedManager?.removeListener(_onManagerChanged);
+    _ownedManager?.dispose();
+    _ownedManager = null;
+    _configureOwnedManager();
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant NativeAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.screenKey != widget.screenKey) {
+      if (oldWidget.screenKey != null) {
+        FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
+      }
+      if (widget.screenKey != null) {
+        FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
+      }
+    }
     if (oldWidget.manager != widget.manager ||
         oldWidget.screenKey != widget.screenKey) {
+      _ownedManager?.removeListener(_onManagerChanged);
       _ownedManager?.dispose();
       _ownedManager = null;
       _configureOwnedManager();
@@ -88,6 +108,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   void dispose() {
+    if (widget.screenKey != null) {
+      FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
+    }
     _ownedManager
       ?..removeListener(_onManagerChanged)
       ..dispose();

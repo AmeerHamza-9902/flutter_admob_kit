@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -56,26 +57,44 @@ class InterstitialAdManager extends ChangeNotifier {
     return DateTime.now().difference(_loadedAt!) > _adExpiry;
   }
 
+  Completer<bool>? _loadCompleter;
+
   /// Loads an interstitial ad. Safe to call multiple times.
   ///
   /// Retries up to 3 times on failure with exponential backoff.
-  Future<void> loadAd(String adUnitId) async {
-    if (_disposed) return;
+  /// Returns `true` when the ad successfully loads, or `false` on failure.
+  Future<bool> loadAd(String adUnitId) async {
+    if (_disposed) return false;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
       _isLoaded = false;
     }
-    if (_isLoading || _isLoaded) return;
+    if (_isLoaded && _ad != null) return true;
+    if (_isLoading) {
+      return _loadCompleter?.future ?? Future.value(false);
+    }
     _isLoading = true;
+    _retryCount = 0;
+    _loadCompleter = Completer<bool>();
     notifyListeners();
-    await InterstitialAd.load(
+    _fetchAd(adUnitId);
+    return _loadCompleter!.future;
+  }
+
+  void _fetchAd(String adUnitId) {
+    if (_disposed) {
+      _completeLoad(false);
+      return;
+    }
+    InterstitialAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
           if (_disposed) {
             ad.dispose();
+            _completeLoad(false);
             return;
           }
           _ad = ad;
@@ -85,27 +104,38 @@ class InterstitialAdManager extends ChangeNotifier {
           _loadedAt = DateTime.now();
           notifyListeners();
           onAdLoadComplete?.call();
+          _completeLoad(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          if (_disposed) return;
-          _isLoaded = false;
-          _isLoading = false;
-          notifyListeners();
+          if (_disposed) {
+            _completeLoad(false);
+            return;
+          }
           if (_retryCount < _maxRetries) {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
               () {
-                if (!_disposed) loadAd(adUnitId);
+                if (!_disposed) _fetchAd(adUnitId);
               },
             );
           } else {
             _retryCount = 0;
+            _isLoaded = false;
+            _isLoading = false;
+            notifyListeners();
             onAdLoadFailed?.call();
+            _completeLoad(false);
           }
         },
       ),
     );
+  }
+
+  void _completeLoad(bool success) {
+    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
+      _loadCompleter!.complete(success);
+    }
   }
 
   /// Shows the ad immediately.
@@ -167,6 +197,7 @@ class InterstitialAdManager extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _completeLoad(false);
     _ad?.dispose();
     super.dispose();
   }

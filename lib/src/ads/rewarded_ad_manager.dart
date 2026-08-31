@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -33,6 +34,7 @@ class RewardedAdManager extends ChangeNotifier {
   int _retryCount = 0;
   int _coins = 0;
   DateTime? _loadedAt;
+  Completer<bool>? _loadCompleter;
 
   /// Whether an ad is loaded and not expired.
   bool get isAdReady => _isLoaded && !_isExpired;
@@ -71,23 +73,40 @@ class RewardedAdManager extends ChangeNotifier {
   }
 
   /// Loads a rewarded ad. Safe to call multiple times.
-  Future<void> loadAd(String adUnitId) async {
-    if (_disposed) return;
+  ///
+  /// Returns `true` when the ad successfully loads, or `false` on failure.
+  Future<bool> loadAd(String adUnitId) async {
+    if (_disposed) return false;
     if (_isLoaded && _isExpired) {
       _ad?.dispose();
       _ad = null;
       _isLoaded = false;
     }
-    if (_isLoading || _isLoaded) return;
+    if (_isLoaded && _ad != null) return true;
+    if (_isLoading) {
+      return _loadCompleter?.future ?? Future.value(false);
+    }
     _isLoading = true;
+    _retryCount = 0;
+    _loadCompleter = Completer<bool>();
     notifyListeners();
-    await RewardedAd.load(
+    _fetchAd(adUnitId);
+    return _loadCompleter!.future;
+  }
+
+  void _fetchAd(String adUnitId) {
+    if (_disposed) {
+      _completeLoad(false);
+      return;
+    }
+    RewardedAd.load(
       adUnitId: adUnitId,
       request: const AdRequest(),
       rewardedAdLoadCallback: RewardedAdLoadCallback(
         onAdLoaded: (RewardedAd ad) {
           if (_disposed) {
             ad.dispose();
+            _completeLoad(false);
             return;
           }
           _ad = ad;
@@ -97,27 +116,38 @@ class RewardedAdManager extends ChangeNotifier {
           _loadedAt = DateTime.now();
           notifyListeners();
           onAdLoadComplete?.call();
+          _completeLoad(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          if (_disposed) return;
-          _isLoaded = false;
-          _isLoading = false;
-          notifyListeners();
+          if (_disposed) {
+            _completeLoad(false);
+            return;
+          }
           if (_retryCount < _maxRetries) {
             _retryCount++;
             Future.delayed(
               Duration(seconds: _retryCount * 2),
               () {
-                if (!_disposed) loadAd(adUnitId);
+                if (!_disposed) _fetchAd(adUnitId);
               },
             );
           } else {
             _retryCount = 0;
+            _isLoaded = false;
+            _isLoading = false;
+            notifyListeners();
             onAdLoadFailed?.call();
+            _completeLoad(false);
           }
         },
       ),
     );
+  }
+
+  void _completeLoad(bool success) {
+    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
+      _loadCompleter!.complete(success);
+    }
   }
 
   /// Shows the rewarded ad. Returns `true` if shown.
@@ -179,6 +209,7 @@ class RewardedAdManager extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _completeLoad(false);
     _ad?.dispose();
     super.dispose();
   }
