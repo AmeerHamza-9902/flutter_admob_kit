@@ -3,6 +3,8 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 import 'dart:convert';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('AdsConfig', () {
     late AdsConfig config;
 
@@ -112,7 +114,7 @@ void main() {
         },
       };
 
-      kit.updateConfigFromJson(jsonStr);
+      kit.updateConfigFromJson(jsonStr, preload: false);
 
       expect(notified, true);
       expect(kit.config.interstitialBtmNav?.clickThreshold, 5);
@@ -127,10 +129,39 @@ void main() {
           'click_threshold': 3,
           'show': true,
         },
-      });
+      }, preload: false);
 
       // Without context or real ads, returns false safely without throwing
       expect(kit.config.interstitialBtmNav?.clickThreshold, 3);
+    });
+
+    test('entitlement gate suppresses ads and notifies listeners', () {
+      final kit = FlutterAdmobKit.instance;
+      kit.setEntitled(false);
+      expect(kit.isEntitled, false);
+
+      bool notified = false;
+      kit.addListener(() => notified = true);
+
+      kit.setEntitled(true);
+      expect(notified, true);
+      expect(kit.isEntitled, true);
+
+      // Clean up
+      kit.setEntitled(false);
+    });
+
+    test('AdsConfig copyWith updates fields correctly', () {
+      final base = const AdsConfig(isEntitled: false);
+      final updated = base.copyWith(isEntitled: true);
+
+      expect(base.isEntitled, false);
+      expect(updated.isEntitled, true);
+    });
+
+    test('AdsConfig parses is_entitled from json', () {
+      final parsed = AdsConfig.fromJson({'is_entitled': true});
+      expect(parsed.isEntitled, true);
     });
   });
 }

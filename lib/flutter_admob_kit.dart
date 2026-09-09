@@ -1,29 +1,30 @@
 /// A production-ready AdMob library for Flutter.
 ///
-/// Flutter port of [AdMobKit](https://github.com/shahid0/AdMobKit)
-/// (Swift/SwiftUI) by Shahid Hussain.
-///
 /// ## Supported ad formats
-/// - [BannerAdWidget] — drop-in banner widget
+/// - [BannerAdWidget] — drop-in banner widget with shimmer placeholder
 /// - [InterstitialAdManager] — with click threshold support
-/// - [AppOpenAdManager] — with paywall guard
+/// - [AppOpenAdManager] — with paywall guard and resume lifecycle
 /// - [RewardedAdManager] — with coin tracking
 /// - [RewardedInterstitialAdManager] — with coin tracking
 /// - [NativeAdManager] + [NativeAdWidget] — ViewModel-driven native ads
+/// - [PaywallCloseGuard] — hardware back + close button ad guard
+/// - [AdPresentationCoordinator] — full-screen mutual exclusion
 ///
-/// ## Quick start
+/// ## Quick Start
 /// ```dart
 /// // Initialize once in main()
-/// await MobileAds.instance.initialize();
+/// await AdMobKit.instance.init(localAsset: 'assets/ads_config.json');
+/// AdMobKit.instance.enableAutoResumeAppOpen();
 ///
-/// // Then use any manager:
-/// final vm = InterstitialAdManager();
-/// vm.onAdDismissed = () => Navigator.pushNamed(context, '/home');
-/// await vm.loadAd('ca-app-pub-XXXX/XXXX');
-/// vm.showAd();
+/// // Premium user? All ads disappear:
+/// AdMobKit.instance.setEntitled(true);
+///
+/// // Firebase Remote Config:
+/// AdMobKit.instance.updateConfigFromJson(remoteJson);
 /// ```
 library;
 
+export 'src/core/ad_lifecycle_mixin.dart';
 export 'src/ads/interstitial_ad_manager.dart';
 export 'src/ads/app_open_ad_manager.dart';
 export 'src/ads/rewarded_ad_manager.dart';

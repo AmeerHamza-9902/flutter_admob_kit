@@ -11,8 +11,10 @@ Production-ready, deterministic Google AdMob package for Flutter with JSON Remot
 ## ✨ Why flutter_admob_kit?
 
 * ⚡ **1-Line Setup & Preloading:** Initialize with local JSON or Firebase Remote Config in seconds.
+* 💎 **Global Entitlement Gate (`setEntitled`):** 1-line instant suppression of all ads across the app for paid/premium users.
 * 🛡️ **Paywall Close Guard (`PaywallCloseGuard`):** Hardware back-button & close-button protection (zero ads for paid users, zero trapped users).
 * 🔒 **Presentation Mutex Coordinator:** Prevents overlapping full-screen ads across all formats.
+* 📈 **High Show Rate & Match Rate:** Non-destructive click counter preserves progression until ad is actually presented; automatic in-memory preloading prevents unserved requests.
 * 🎨 **Zero-CLS Shimmer Placeholders:** Built-in animated skeletons for Banner and Native ads.
 * 🔄 **Auto Resume App Open:** 1-line automatic foreground App Open ad listener.
 * ⏱️ **Ad Freshness & Auto-Eviction:** Automatically discards expired ads (1h/4h) to avoid low show rate.
@@ -24,7 +26,7 @@ Production-ready, deterministic Google AdMob package for Flutter with JSON Remot
 
 ```yaml
 dependencies:
-  flutter_admob_kit: ^3.0.7
+  flutter_admob_kit: ^4.0.0
 ```
 
 ---
@@ -129,6 +131,60 @@ final remoteJson = json.decode(FirebaseRemoteConfig.instance.getString('ads_conf
 AdMobKit.instance.updateConfigFromJson(remoteJson);
 ```
 All banner and native ads currently on screen will **automatically reload and adapt dynamically**!
+
+---
+
+## 💎 Global Entitlement Gate (Paid Users)
+
+When a user purchases a subscription or unlocks an ad-free tier, suppress all ads across the app in one line:
+
+```dart
+// All ads (banner, native, interstitial, app open) are suppressed instantly
+AdMobKit.instance.setEntitled(true);
+```
+Currently mounted banner and native ads will immediately collapse to zero height without leaving visual artifacts.
+
+---
+
+## 📋 Standard Remote Config JSON Format
+
+```json
+{
+  "is_entitled": false,
+  "interstitial_btm_nav": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
+    "click_threshold": 3,
+    "is_enabled": true
+  },
+  "click_interstitial": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
+    "click_threshold": 3,
+    "is_enabled": true
+  },
+  "pro_close_interstitial": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
+    "is_enabled": true
+  },
+  "splash_app_open": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/9257395921",
+    "is_enabled": true
+  },
+  "on_resume_app_open": {
+    "ad_unit_id": "ca-app-pub-3940256099942544/9257395921",
+    "is_enabled": true
+  },
+  "screens": {
+    "home_screen": {
+      "banner_id": "ca-app-pub-3940256099942544/6300978111",
+      "banner_ads": true,
+      "native_id": "ca-app-pub-3940256099942544/2247696110",
+      "native_ads": true
+    }
+  }
+}
+```
+
+*(Note: Legacy camelCase keys such as `Interstitial_btm_nav`, `SplashAppOpen`, `Screens` are also fully supported for backward compatibility).*
 
 ---
 

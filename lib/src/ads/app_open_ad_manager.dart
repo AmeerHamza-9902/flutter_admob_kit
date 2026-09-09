@@ -1,12 +1,10 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../core/ad_lifecycle_mixin.dart';
 import 'ad_presentation_coordinator.dart';
 
-/// Manages App Open ads with expiry handling and paywall guard.
-///
-/// Equivalent to Swift's `AppOpenAdManager`.
+/// Manages App Open ads with expiry handling, retry logic, and paywall guard.
 ///
 /// ```dart
 /// final vm = AppOpenAdManager();
@@ -20,23 +18,13 @@ import 'ad_presentation_coordinator.dart';
 /// AppOpenAdManager.isInProScreen = true;  // on appear
 /// AppOpenAdManager.isInProScreen = false; // on disappear
 /// ```
-class AppOpenAdManager extends ChangeNotifier {
-  static const int _maxRetries = 3;
-  static const Duration _adExpiry = Duration(hours: 4);
+class AppOpenAdManager extends ChangeNotifier with AdLifecycleMixin {
+  AppOpenAdManager() {
+    adExpiry = const Duration(hours: 4);
+  }
 
   AppOpenAd? _ad;
-  bool _isLoadingAd = false;
   bool _isShowingAd = false;
-  bool _disposed = false;
-  int _retryCount = 0;
-  DateTime? _loadedAt;
-  Completer<bool>? _loadCompleter;
-
-  /// Whether an ad is ready and not expired.
-  bool get isAdReady => _ad != null && !_isExpired;
-
-  /// Whether an ad is currently loading.
-  bool get isLoadingAd => _isLoadingAd;
 
   /// Whether an ad is currently showing.
   bool get isShowingAd => _isShowingAd;
@@ -56,8 +44,6 @@ class AppOpenAdManager extends ChangeNotifier {
   VoidCallback? onAdDismiss;
 
   /// Fires after the ad fully dismisses.
-  ///
-  /// Use this for navigation.
   VoidCallback? onAdDismissed;
 
   /// Fires when the ad is clicked.
@@ -66,35 +52,22 @@ class AppOpenAdManager extends ChangeNotifier {
   /// Fires when an impression is recorded.
   VoidCallback? onAdImpression;
 
-  bool get _isExpired {
-    if (_loadedAt == null) return true;
-    return DateTime.now().difference(_loadedAt!) > _adExpiry;
+  @override
+  @protected
+  bool get hasActiveAd => _ad != null;
+
+  @override
+  @protected
+  void disposeCurrentAd() {
+    _ad?.dispose();
+    _ad = null;
   }
 
-  /// Loads an App Open ad. Safe to call multiple times.
-  ///
-  /// Returns `true` when the ad successfully loads, or `false` on failure.
-  Future<bool> loadAd(String adUnitId) async {
-    if (_disposed) return false;
-    if (_ad != null && _isExpired) {
-      _ad?.dispose();
-      _ad = null;
-    }
-    if (_ad != null && isAdReady) return true;
-    if (_isLoadingAd) {
-      return _loadCompleter?.future ?? Future.value(false);
-    }
-    _isLoadingAd = true;
-    _retryCount = 0;
-    _loadCompleter = Completer<bool>();
-    notifyListeners();
-    _fetchAd(adUnitId);
-    return _loadCompleter!.future;
-  }
-
-  void _fetchAd(String adUnitId) {
-    if (_disposed) {
-      _completeLoad(false);
+  @override
+  @protected
+  void fetchAd(String adUnitId) {
+    if (isDisposed) {
+      completeLoad(false);
       return;
     }
     AppOpenAd.load(
@@ -102,89 +75,56 @@ class AppOpenAdManager extends ChangeNotifier {
       request: const AdRequest(),
       adLoadCallback: AppOpenAdLoadCallback(
         onAdLoaded: (AppOpenAd ad) {
-          if (_disposed) {
+          if (isDisposed) {
             ad.dispose();
-            _completeLoad(false);
+            completeLoad(false);
             return;
           }
           _ad = ad;
-          _isLoadingAd = false;
-          _retryCount = 0;
-          _loadedAt = DateTime.now();
-          notifyListeners();
+          onAdLoadSuccess();
           onAdLoadComplete?.call();
-          _completeLoad(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          if (_disposed) {
-            _completeLoad(false);
-            return;
-          }
-          if (_retryCount < _maxRetries) {
-            _retryCount++;
-            Future.delayed(
-              Duration(seconds: _retryCount * 2),
-              () {
-                if (!_disposed) _fetchAd(adUnitId);
-              },
-            );
-          } else {
-            _retryCount = 0;
-            _isLoadingAd = false;
-            notifyListeners();
+          onAdLoadFailure(adUnitId);
+          if (!isLoading) {
             onAdLoadFailed?.call();
-            _completeLoad(false);
           }
         },
       ),
     );
   }
 
-  void _completeLoad(bool success) {
-    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
-      _loadCompleter!.complete(success);
-    }
-  }
-
-  /// Shows the ad if available and not on a paywall screen.
+  /// Shows the ad if available, not expired, not on paywall, and presentation
+  /// lease is free.
   ///
   /// Returns `true` if shown.
   bool showAdIfAvailable(String adUnitId) {
-    if (_disposed) return false;
-    if (isInProScreen || _isShowingAd || !isAdReady || _ad == null) {
+    if (isDisposed) return false;
+    if (isInProScreen || _isShowingAd) return false;
+    if (!isAdReady || _ad == null) return false;
+
+    // Freshness validation — evict expired ads silently.
+    if (isExpired) {
+      disposeCurrentAd();
+      markConsumed();
       return false;
     }
-    if (!AdPresentationCoordinator.instance.tryAcquire(format: 'app_open')) {
+
+    if (!AdPresentationCoordinator.instance
+        .tryAcquire(format: 'app_open')) {
       return false;
     }
+
     _isShowingAd = true;
     notifyListeners();
     _ad!.fullScreenContentCallback = FullScreenContentCallback<AppOpenAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (AppOpenAd ad) {
-        AdPresentationCoordinator.instance.release();
-        if (_disposed) {
-          ad.dispose();
-          return;
-        }
-        ad.dispose();
-        _ad = null;
-        _isShowingAd = false;
-        _loadedAt = null;
-        notifyListeners();
+        _onAdClosed(ad);
         onAdDismissed?.call();
       },
       onAdFailedToShowFullScreenContent: (AppOpenAd ad, AdError error) {
-        AdPresentationCoordinator.instance.release();
-        if (_disposed) {
-          ad.dispose();
-          return;
-        }
-        ad.dispose();
-        _ad = null;
-        _isShowingAd = false;
-        _loadedAt = null;
-        notifyListeners();
+        _onAdClosed(ad);
         onAdDismissed?.call();
       },
       onAdClicked: (_) => onAdClicked?.call(),
@@ -194,13 +134,24 @@ class AppOpenAdManager extends ChangeNotifier {
     return true;
   }
 
+  void _onAdClosed(AppOpenAd ad) {
+    AdPresentationCoordinator.instance.release();
+    if (isDisposed) {
+      ad.dispose();
+      return;
+    }
+    ad.dispose();
+    _ad = null;
+    _isShowingAd = false;
+    markConsumed();
+  }
+
   @override
   void dispose() {
     if (_isShowingAd) {
       AdPresentationCoordinator.instance.release();
     }
-    _disposed = true;
-    _completeLoad(false);
+    disposeLifecycle();
     _ad?.dispose();
     super.dispose();
   }

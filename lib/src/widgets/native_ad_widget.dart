@@ -6,16 +6,14 @@ import 'ad_shimmer_placeholder.dart';
 
 /// Displays a native ad managed by [NativeAdManager].
 ///
-/// Equivalent to Swift's `GoogleNativeAdView`.
+/// Automatically collapses when ads are disabled for the screen or when
+/// the user is entitled (premium).
 ///
 /// ```dart
-/// ListenableBuilder(
-///   listenable: nativeVM,
-///   builder: (context, _) => NativeAdWidget(
-///     manager: nativeVM,
-///     height: 300,
-///     showShimmer: true,
-///   ),
+/// NativeAdWidget(
+///   screenKey: 'home_screen',
+///   height: 300,
+///   showShimmer: true,
 /// )
 /// ```
 class NativeAdWidget extends StatefulWidget {
@@ -54,21 +52,36 @@ class NativeAdWidget extends StatefulWidget {
 class _NativeAdWidgetState extends State<NativeAdWidget> {
   NativeAdManager? _ownedManager;
 
+  /// Generation counter — guards against out-of-order async completions.
+  int _generation = 0;
+
   NativeAdManager? get _manager => widget.manager ?? _ownedManager;
 
   @override
   void initState() {
     super.initState();
-    if (widget.screenKey != null) {
-      FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
-    }
+    FlutterAdmobKit.instance.addListener(_onKitChanged);
     _configureOwnedManager();
   }
 
-  void _onKitConfigChanged() {
+  void _onKitChanged() {
+    // Entitlement changed — dispose owned manager.
+    if (FlutterAdmobKit.instance.isEntitled) {
+      if (_ownedManager != null) {
+        _ownedManager!.removeListener(_onManagerChanged);
+        _ownedManager!.dispose();
+        _ownedManager = null;
+        _generation++;
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+
+    // Config changed — rebuild owned manager.
     _ownedManager?.removeListener(_onManagerChanged);
     _ownedManager?.dispose();
     _ownedManager = null;
+    _generation++;
     _configureOwnedManager();
     if (mounted) setState(() {});
   }
@@ -76,29 +89,26 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void didUpdateWidget(covariant NativeAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.screenKey != widget.screenKey) {
-      if (oldWidget.screenKey != null) {
-        FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
-      }
-      if (widget.screenKey != null) {
-        FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
-      }
-    }
     if (oldWidget.manager != widget.manager ||
         oldWidget.screenKey != widget.screenKey) {
       _ownedManager?.removeListener(_onManagerChanged);
       _ownedManager?.dispose();
       _ownedManager = null;
+      _generation++;
       _configureOwnedManager();
     }
   }
 
   void _configureOwnedManager() {
     if (widget.manager != null || widget.screenKey == null) return;
+    if (FlutterAdmobKit.instance.isEntitled) return;
     final screen = FlutterAdmobKit.instance.screenConfig(widget.screenKey!);
     if (!screen.nativeAds || screen.nativeId == null) return;
+    final gen = ++_generation;
     _ownedManager = NativeAdManager(adUnitId: screen.nativeId!)
-      ..addListener(_onManagerChanged)
+      ..addListener(() {
+        if (gen == _generation) _onManagerChanged();
+      })
       ..refreshAd();
   }
 
@@ -108,9 +118,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   void dispose() {
-    if (widget.screenKey != null) {
-      FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
-    }
+    FlutterAdmobKit.instance.removeListener(_onKitChanged);
+    _generation++;
     _ownedManager
       ?..removeListener(_onManagerChanged)
       ..dispose();
@@ -119,20 +128,26 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // Entitled users see nothing.
+    if (FlutterAdmobKit.instance.isEntitled) return const SizedBox.shrink();
+
     final manager = _manager;
     if (manager == null) return widget.placeholder ?? const SizedBox.shrink();
+
+    // Loading or not ready — show placeholder or shimmer.
     if (!manager.isAdReady || manager.ad == null) {
       if (widget.placeholder != null) return widget.placeholder!;
       if (widget.showShimmer && manager.isLoading) {
         return AdShimmerPlaceholder(
           height: widget.height,
-          variant: widget.height > 160
-              ? AdShimmerVariant.nativeMedium
-              : AdShimmerVariant.nativeSmall,
+          variant: AdShimmerVariant.nativeMedium,
         );
       }
-      return SizedBox(height: manager.isLoading ? widget.height : 0);
+      // Graceful collapse on failure (not loading and not loaded).
+      return const SizedBox.shrink();
     }
+
+    // Loaded — render in fixed bounds (zero CLS).
     return SizedBox(
       height: widget.height,
       child: AdWidget(ad: manager.ad!),

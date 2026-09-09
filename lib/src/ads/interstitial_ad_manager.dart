@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
+import '../core/ad_lifecycle_mixin.dart';
 import 'ad_presentation_coordinator.dart';
 
-/// Manages interstitial ads with expiry handling and retry logic.
-///
-/// Equivalent to Swift's `InterstitialViewModel`.
+/// Manages interstitial ads with expiry handling, retry logic, and
+/// click-threshold support.
 ///
 /// ```dart
 /// final vm = InterstitialAdManager();
@@ -14,23 +13,9 @@ import 'ad_presentation_coordinator.dart';
 /// await vm.loadAd('ca-app-pub-XXXX/XXXX');
 /// vm.showAd();
 /// ```
-class InterstitialAdManager extends ChangeNotifier {
-  static const int _maxRetries = 3;
-  static const Duration _adExpiry = Duration(hours: 1);
-
+class InterstitialAdManager extends ChangeNotifier with AdLifecycleMixin {
   InterstitialAd? _ad;
-  bool _isLoading = false;
-  bool _isLoaded = false;
-  bool _disposed = false;
-  int _retryCount = 0;
   int _clickCount = 0;
-  DateTime? _loadedAt;
-
-  /// Whether an ad is loaded and not expired.
-  bool get isAdReady => _isLoaded && !_isExpired;
-
-  /// Whether an ad is currently loading.
-  bool get isLoading => _isLoading;
 
   /// Fires when the ad loads successfully.
   VoidCallback? onAdLoadComplete;
@@ -42,8 +27,6 @@ class InterstitialAdManager extends ChangeNotifier {
   VoidCallback? onAdDismiss;
 
   /// Fires after the ad fully dismisses.
-  ///
-  /// Use this for navigation or post-ad logic.
   VoidCallback? onAdDismissed;
 
   /// Fires when the ad is clicked.
@@ -52,39 +35,22 @@ class InterstitialAdManager extends ChangeNotifier {
   /// Fires when an impression is recorded.
   VoidCallback? onAdImpression;
 
-  bool get _isExpired {
-    if (_loadedAt == null) return true;
-    return DateTime.now().difference(_loadedAt!) > _adExpiry;
+  @override
+  @protected
+  bool get hasActiveAd => _ad != null;
+
+  @override
+  @protected
+  void disposeCurrentAd() {
+    _ad?.dispose();
+    _ad = null;
   }
 
-  Completer<bool>? _loadCompleter;
-
-  /// Loads an interstitial ad. Safe to call multiple times.
-  ///
-  /// Retries up to 3 times on failure with exponential backoff.
-  /// Returns `true` when the ad successfully loads, or `false` on failure.
-  Future<bool> loadAd(String adUnitId) async {
-    if (_disposed) return false;
-    if (_isLoaded && _isExpired) {
-      _ad?.dispose();
-      _ad = null;
-      _isLoaded = false;
-    }
-    if (_isLoaded && _ad != null) return true;
-    if (_isLoading) {
-      return _loadCompleter?.future ?? Future.value(false);
-    }
-    _isLoading = true;
-    _retryCount = 0;
-    _loadCompleter = Completer<bool>();
-    notifyListeners();
-    _fetchAd(adUnitId);
-    return _loadCompleter!.future;
-  }
-
-  void _fetchAd(String adUnitId) {
-    if (_disposed) {
-      _completeLoad(false);
+  @override
+  @protected
+  void fetchAd(String adUnitId) {
+    if (isDisposed) {
+      completeLoad(false);
       return;
     }
     InterstitialAd.load(
@@ -92,62 +58,38 @@ class InterstitialAdManager extends ChangeNotifier {
       request: const AdRequest(),
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (InterstitialAd ad) {
-          if (_disposed) {
+          if (isDisposed) {
             ad.dispose();
-            _completeLoad(false);
+            completeLoad(false);
             return;
           }
           _ad = ad;
-          _isLoaded = true;
-          _isLoading = false;
-          _retryCount = 0;
-          _loadedAt = DateTime.now();
-          notifyListeners();
+          onAdLoadSuccess();
           onAdLoadComplete?.call();
-          _completeLoad(true);
         },
         onAdFailedToLoad: (LoadAdError error) {
-          if (_disposed) {
-            _completeLoad(false);
-            return;
-          }
-          if (_retryCount < _maxRetries) {
-            _retryCount++;
-            Future.delayed(
-              Duration(seconds: _retryCount * 2),
-              () {
-                if (!_disposed) _fetchAd(adUnitId);
-              },
-            );
-          } else {
-            _retryCount = 0;
-            _isLoaded = false;
-            _isLoading = false;
-            notifyListeners();
+          onAdLoadFailure(adUnitId);
+          if (!isLoading) {
             onAdLoadFailed?.call();
-            _completeLoad(false);
           }
         },
       ),
     );
   }
 
-  void _completeLoad(bool success) {
-    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
-      _loadCompleter!.complete(success);
-    }
-  }
-
   /// Shows the ad immediately.
   ///
-  /// Returns `true` if shown, `false` if not ready or presentation lease is occupied.
+  /// Returns `true` if shown, `false` if not ready or presentation lease
+  /// is occupied.
   bool showAd() {
-    if (_disposed) return false;
+    if (isDisposed) return false;
     if (!isAdReady || _ad == null) return false;
-    if (!AdPresentationCoordinator.instance.tryAcquire(format: 'interstitial')) {
+    if (!AdPresentationCoordinator.instance
+        .tryAcquire(format: 'interstitial')) {
       return false;
     }
-    _ad!.fullScreenContentCallback = FullScreenContentCallback<InterstitialAd>(
+    _ad!.fullScreenContentCallback =
+        FullScreenContentCallback<InterstitialAd>(
       onAdWillDismissFullScreenContent: (_) => onAdDismiss?.call(),
       onAdDismissedFullScreenContent: (InterstitialAd ad) {
         _onAdClosed(ad);
@@ -164,17 +106,29 @@ class InterstitialAdManager extends ChangeNotifier {
     return true;
   }
 
-  /// Shows after [threshold] taps — for bottom nav or general click events.
+  /// Shows the ad after [threshold] taps — for bottom nav or general click
+  /// events.
   ///
   /// Returns `true` when the ad is actually shown.
+  ///
+  /// **Important**: When the threshold is reached but the ad is not ready,
+  /// the counter is **not** reset. This prevents wasted impression requests
+  /// (load fires but user has already navigated away). The next click will
+  /// re-check and show the ad if it becomes ready.
   bool onClickEvent(String adUnitId, {int threshold = 3}) {
-    if (_disposed) return false;
+    if (isDisposed) return false;
     _clickCount++;
+
     if (_clickCount >= threshold) {
-      if (showAd()) return true;
-      _clickCount = 0;
-      loadAd(adUnitId);
-    } else if (!isAdReady && !_isLoading) {
+      if (isAdReady) {
+        if (showAd()) return true;
+      }
+      // Ad not ready: do NOT reset counter. Preload in background.
+      if (!isAdReady && !isLoading) {
+        loadAd(adUnitId);
+      }
+    } else if (!isAdReady && !isLoading) {
+      // Eager preload: action buffer — load early so ad is ready by threshold.
       loadAd(adUnitId);
     }
     return false;
@@ -182,22 +136,19 @@ class InterstitialAdManager extends ChangeNotifier {
 
   void _onAdClosed(InterstitialAd ad) {
     AdPresentationCoordinator.instance.release();
-    if (_disposed) {
+    if (isDisposed) {
       ad.dispose();
       return;
     }
     ad.dispose();
     _ad = null;
-    _isLoaded = false;
     _clickCount = 0;
-    _loadedAt = null;
-    notifyListeners();
+    markConsumed();
   }
 
   @override
   void dispose() {
-    _disposed = true;
-    _completeLoad(false);
+    disposeLifecycle();
     _ad?.dispose();
     super.dispose();
   }

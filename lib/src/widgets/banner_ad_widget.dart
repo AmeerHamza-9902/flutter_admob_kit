@@ -6,13 +6,13 @@ import 'ad_shimmer_placeholder.dart';
 
 /// A drop-in banner ad widget with optional shimmer placeholder support.
 ///
-/// Equivalent to Swift's `BannerAdView`.
+/// Automatically collapses when ads are disabled for the screen or when
+/// the user is entitled (premium).
 ///
 /// ```dart
 /// BannerAdWidget(
-///   adUnitId: 'ca-app-pub-XXXX/XXXX',
+///   screenKey: 'home_screen',
 ///   showShimmer: true,
-///   onAdLoadFailed: () => setState(() => _showBanner = false),
 /// )
 /// ```
 class BannerAdWidget extends StatefulWidget {
@@ -66,22 +66,38 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   bool _failed = false;
   String? _activeAdUnitId;
 
+  /// Generation counter — guards against out-of-order async completions.
+  int _generation = 0;
+
   @override
   void initState() {
     super.initState();
-    if (widget.screenKey != null) {
-      FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
-    }
+    FlutterAdmobKit.instance.addListener(_onKitChanged);
     _load();
   }
 
-  void _onKitConfigChanged() {
-    final newId = _configuredAdUnitId();
+  void _onKitChanged() {
+    // Entitlement changed — collapse or reload.
+    if (FlutterAdmobKit.instance.isEntitled) {
+      if (_ad != null || _loaded) {
+        _ad?.dispose();
+        _ad = null;
+        _loaded = false;
+        _failed = false;
+        _generation++;
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+
+    // Config changed — check if ad unit ID changed.
+    final newId = widget.adUnitId ?? _configuredAdUnitId();
     if (newId != _activeAdUnitId) {
       _ad?.dispose();
       _ad = null;
       _loaded = false;
       _failed = false;
+      _generation++;
       _load();
     }
   }
@@ -89,14 +105,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void didUpdateWidget(covariant BannerAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.screenKey != widget.screenKey) {
-      if (oldWidget.screenKey != null) {
-        FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
-      }
-      if (widget.screenKey != null) {
-        FlutterAdmobKit.instance.addListener(_onKitConfigChanged);
-      }
-    }
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.screenKey != widget.screenKey ||
         oldWidget.size != widget.size) {
@@ -104,11 +112,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       _ad = null;
       _loaded = false;
       _failed = false;
+      _generation++;
       _load();
     }
   }
 
   void _load() {
+    // Entitlement gate — zero ad requests for premium users.
+    if (FlutterAdmobKit.instance.isEntitled) {
+      _failed = false;
+      return;
+    }
+
     final adUnitId = widget.adUnitId ?? _configuredAdUnitId();
     if (adUnitId == null) {
       _failed = true;
@@ -117,13 +132,16 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
     _activeAdUnitId = adUnitId;
     _failed = false;
+    final gen = ++_generation;
     _ad = BannerAd(
       adUnitId: adUnitId,
       size: widget.size,
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (_) {
-          if (mounted && _activeAdUnitId == adUnitId) {
+          // Generation guard: discard stale completions.
+          if (gen != _generation) return;
+          if (mounted) {
             setState(() {
               _loaded = true;
               _failed = false;
@@ -133,14 +151,13 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         },
         onAdFailedToLoad: (Ad ad, LoadAdError error) {
           ad.dispose();
-          if (_activeAdUnitId == adUnitId) {
-            _ad = null;
-            if (mounted) {
-              setState(() {
-                _loaded = false;
-                _failed = true;
-              });
-            }
+          if (gen != _generation) return;
+          _ad = null;
+          if (mounted) {
+            setState(() {
+              _loaded = false;
+              _failed = true;
+            });
           }
           widget.onAdLoadFailed?.call();
         },
@@ -158,16 +175,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
-    if (widget.screenKey != null) {
-      FlutterAdmobKit.instance.removeListener(_onKitConfigChanged);
-    }
+    FlutterAdmobKit.instance.removeListener(_onKitChanged);
+    _generation++;
     _ad?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Entitled users see nothing.
+    if (FlutterAdmobKit.instance.isEntitled) return const SizedBox.shrink();
+
+    // Graceful collapse on failure.
     if (_failed) return const SizedBox.shrink();
+
+    // Loading state — show placeholder or shimmer.
     if (!_loaded || _ad == null) {
       if (widget.placeholder != null) return widget.placeholder!;
       if (widget.showShimmer) {
@@ -181,6 +203,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       }
       return const SizedBox.shrink();
     }
+
+    // Loaded — render ad in fixed bounds (zero CLS).
     return SizedBox(
       width: _ad!.size.width.toDouble(),
       height: _ad!.size.height.toDouble(),
