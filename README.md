@@ -146,48 +146,6 @@ Currently mounted banner and native ads will immediately collapse to zero height
 
 ---
 
-## 📋 Standard Remote Config JSON Format
-
-```json
-{
-  "is_entitled": false,
-  "interstitial_btm_nav": {
-    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
-    "click_threshold": 3,
-    "is_enabled": true
-  },
-  "click_interstitial": {
-    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
-    "click_threshold": 3,
-    "is_enabled": true
-  },
-  "pro_close_interstitial": {
-    "ad_unit_id": "ca-app-pub-3940256099942544/1033173712",
-    "is_enabled": true
-  },
-  "splash_app_open": {
-    "ad_unit_id": "ca-app-pub-3940256099942544/9257395921",
-    "is_enabled": true
-  },
-  "on_resume_app_open": {
-    "ad_unit_id": "ca-app-pub-3940256099942544/9257395921",
-    "is_enabled": true
-  },
-  "screens": {
-    "home_screen": {
-      "banner_id": "ca-app-pub-3940256099942544/6300978111",
-      "banner_ads": true,
-      "native_id": "ca-app-pub-3940256099942544/2247696110",
-      "native_ads": true
-    }
-  }
-}
-```
-
-*(Note: Legacy camelCase keys such as `Interstitial_btm_nav`, `SplashAppOpen`, `Screens` are also fully supported for backward compatibility).*
-
----
-
 ## 📄 License
 
 MIT © [Ameerhamza-tech](https://github.com/Ameerhamza-tech)
