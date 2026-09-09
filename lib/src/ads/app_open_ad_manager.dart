@@ -98,7 +98,7 @@ class AppOpenAdManager extends ChangeNotifier with AdLifecycleMixin {
   /// lease is free.
   ///
   /// Returns `true` if shown.
-  bool showAdIfAvailable(String adUnitId) {
+  bool showAdIfAvailable([String? adUnitId]) {
     if (isDisposed) return false;
     if (isInProScreen || _isShowingAd) return false;
     if (!isAdReady || _ad == null) return false;

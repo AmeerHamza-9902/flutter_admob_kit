@@ -137,7 +137,7 @@ class FlutterAdmobKit extends ChangeNotifier {
   }
 
   /// Shows Splash Interstitial ad.
-  Future<bool> showSplashInterstitial(BuildContext context) async {
+  Future<bool> showSplashInterstitial([BuildContext? context]) async {
     final slot = _config.splashInterstitial;
     if (!_canShow(slot)) return false;
     if (!_splashInterstitial.isAdReady) {
@@ -161,7 +161,7 @@ class FlutterAdmobKit extends ChangeNotifier {
   /// Automatically tracks clicks and shows interstitial when threshold
   /// is reached. If ad is not ready when threshold fires, the counter
   /// is **not** reset to prevent wasted impressions.
-  bool onBottomNavClick(BuildContext context) {
+  bool onBottomNavClick([BuildContext? context]) {
     final slot = _config.interstitialBtmNav;
     if (!_canShow(slot)) return false;
     return _bottomNavInterstitial.onClickEvent(
@@ -178,7 +178,7 @@ class FlutterAdmobKit extends ChangeNotifier {
   }
 
   /// Handles general button click events against configured click threshold.
-  bool onGeneralClick(BuildContext context) {
+  bool onGeneralClick([BuildContext? context]) {
     final slot = _config.clickInterstitial;
     if (!_canShow(slot)) return false;
     return _generalClickInterstitial.onClickEvent(
@@ -197,7 +197,7 @@ class FlutterAdmobKit extends ChangeNotifier {
   // ─── Pro Close Interstitial ────────────────────────────────────────────
 
   /// Shows Pro Close Interstitial ad.
-  Future<bool> showProCloseInterstitial(BuildContext context) async {
+  Future<bool> showProCloseInterstitial([BuildContext? context]) async {
     final slot = _config.proCloseInterstitial;
     if (!_canShow(slot)) return false;
     if (!_proCloseInterstitial.isAdReady) {

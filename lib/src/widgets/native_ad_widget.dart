@@ -52,9 +52,6 @@ class NativeAdWidget extends StatefulWidget {
 class _NativeAdWidgetState extends State<NativeAdWidget> {
   NativeAdManager? _ownedManager;
 
-  /// Generation counter — guards against out-of-order async completions.
-  int _generation = 0;
-
   NativeAdManager? get _manager => widget.manager ?? _ownedManager;
 
   @override
@@ -71,7 +68,6 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         _ownedManager!.removeListener(_onManagerChanged);
         _ownedManager!.dispose();
         _ownedManager = null;
-        _generation++;
         if (mounted) setState(() {});
       }
       return;
@@ -81,7 +77,6 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     _ownedManager?.removeListener(_onManagerChanged);
     _ownedManager?.dispose();
     _ownedManager = null;
-    _generation++;
     _configureOwnedManager();
     if (mounted) setState(() {});
   }
@@ -94,7 +89,6 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       _ownedManager?.removeListener(_onManagerChanged);
       _ownedManager?.dispose();
       _ownedManager = null;
-      _generation++;
       _configureOwnedManager();
     }
   }
@@ -104,11 +98,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     if (FlutterAdmobKit.instance.isEntitled) return;
     final screen = FlutterAdmobKit.instance.screenConfig(widget.screenKey!);
     if (!screen.nativeAds || screen.nativeId == null) return;
-    final gen = ++_generation;
     _ownedManager = NativeAdManager(adUnitId: screen.nativeId!)
-      ..addListener(() {
-        if (gen == _generation) _onManagerChanged();
-      })
+      ..addListener(_onManagerChanged)
       ..refreshAd();
   }
 
@@ -119,7 +110,6 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void dispose() {
     FlutterAdmobKit.instance.removeListener(_onKitChanged);
-    _generation++;
     _ownedManager
       ?..removeListener(_onManagerChanged)
       ..dispose();

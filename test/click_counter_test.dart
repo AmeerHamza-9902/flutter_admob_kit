@@ -1,12 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 
+class _TestInterstitialManager extends InterstitialAdManager {
+  @override
+  void fetchAd(String adUnitId) {
+    // Pure unit test override: no native platform channel calls
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Click Counter Show Rate Fix', () {
     test('onClickEvent does not reset click count if ad is not ready', () {
-      final manager = InterstitialAdManager();
+      final manager = _TestInterstitialManager();
 
       // Click 1: threshold 3, count becomes 1
       expect(manager.onClickEvent('test-ad-unit', threshold: 3), false);

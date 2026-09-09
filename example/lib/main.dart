@@ -87,12 +87,12 @@ class HomeScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 24),
                 // Native ad
-                NativeAdWidget(screenKey: 'home_screen'),
+                const NativeAdWidget(screenKey: 'home_screen'),
               ],
             ),
           ),
           // Banner at bottom
-          BannerAdWidget(screenKey: 'home_screen'),
+          const BannerAdWidget(screenKey: 'home_screen'),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
