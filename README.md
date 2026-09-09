@@ -11,6 +11,7 @@ Production-ready, deterministic Google AdMob package for Flutter with JSON Remot
 ## ✨ Why flutter_admob_kit?
 
 * ⚡ **1-Line Setup & Preloading:** Initialize with local JSON or Firebase Remote Config in seconds.
+* 🎛️ **Firebase Remote Config Driven:** Manage Ad IDs and `true`/`false` toggles dynamically from the cloud without updating the app.
 * 💎 **Global Entitlement Gate (`setEntitled`):** 1-line instant suppression of all ads across the app for paid/premium users.
 * 🛡️ **Paywall Close Guard (`PaywallCloseGuard`):** Hardware back-button & close-button protection (zero ads for paid users, zero trapped users).
 * 🔒 **Presentation Mutex Coordinator:** Prevents overlapping full-screen ads across all formats.
@@ -19,6 +20,15 @@ Production-ready, deterministic Google AdMob package for Flutter with JSON Remot
 * 🔄 **Auto Resume App Open:** 1-line automatic foreground App Open ad listener.
 * ⏱️ **Ad Freshness & Auto-Eviction:** Automatically discards expired ads (1h/4h) to avoid low show rate.
 * 🪙 **Rewarded Ads & Coin Tracking:** Simple coin management with `ListenableBuilder`.
+
+---
+
+## 💡 How It Works (Core Mechanics)
+
+1. **Ad On/Off via Remote Config**: When a slot's flag is `false`, **zero network calls** are sent to Google AdMob. No unneeded requests = clean match rate.
+2. **Preloaded In-Memory Ads**: Full-screen ads are preloaded at startup so they show instantly when triggered without lag or black screens.
+3. **Non-Destructive Click Counters**: When using click thresholds (e.g. show interstitial every 3 clicks), if the ad is not ready on click #3, the counter **does not reset**. It waits until the ad is primed, guaranteeing high show rates.
+4. **Instant Premium Dismissal**: Calling `AdMobKit.instance.setEntitled(true)` instantly shuts off all ads and collapses banner/native widgets to zero height across the entire app.
 
 ---
 
