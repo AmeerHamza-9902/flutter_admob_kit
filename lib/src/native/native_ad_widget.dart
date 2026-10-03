@@ -247,6 +247,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       return AdShimmerPlaceholder(
         height: height,
         variant: variant,
+        borderRadius: widget.style != null
+            ? BorderRadius.circular(widget.style!.cornerRadius)
+            : null,
       );
     }
 
