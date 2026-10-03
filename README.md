@@ -4,31 +4,22 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-android%20%7C%20ios-green.svg)]()
 
-Production-ready, deterministic Google AdMob package for Flutter with JSON Remote Config, zero Cumulative Layout Shift (CLS) shimmer placeholders, Paywall close guards, automatic App Open resume lifecycles, and concurrency leasing.
+A lightweight, production-ready internal AdMob SDK for Flutter. Built on Google Mobile Ads, designed for minimal configuration, zero boilerplate, and optimal ad fill, show, and match rates.
 
 ---
 
-## ✨ Why flutter_admob_kit?
+## 💡 Why `flutter_admob_kit`?
 
-* ⚡ **1-Line Setup & Preloading:** Initialize with local JSON or Firebase Remote Config in seconds.
-* 🎛️ **Firebase Remote Config Driven:** Manage Ad IDs and `true`/`false` toggles dynamically from the cloud without updating the app.
-* 💎 **Global Entitlement Gate (`setEntitled`):** 1-line instant suppression of all ads across the app for paid/premium users.
-* 🛡️ **Paywall Close Guard (`PaywallCloseGuard`):** Hardware back-button & close-button protection (zero ads for paid users, zero trapped users).
-* 🔒 **Presentation Mutex Coordinator:** Prevents overlapping full-screen ads across all formats.
-* 📈 **High Show Rate & Match Rate:** Non-destructive click counter preserves progression until ad is actually presented; automatic in-memory preloading prevents unserved requests.
-* 🎨 **Zero-CLS Shimmer Placeholders:** Built-in animated skeletons for Banner and Native ads.
-* 🔄 **Auto Resume App Open:** 1-line automatic foreground App Open ad listener.
-* ⏱️ **Ad Freshness & Auto-Eviction:** Automatically discards expired ads (1h/4h) to avoid low show rate.
-* 🪙 **Rewarded Ads & Coin Tracking:** Simple coin management with `ListenableBuilder`.
-
----
-
-## 💡 How It Works (Core Mechanics)
-
-1. **Ad On/Off via Remote Config**: When a slot's flag is `false`, **zero network calls** are sent to Google AdMob. No unneeded requests = clean match rate.
-2. **Preloaded In-Memory Ads**: Full-screen ads are preloaded at startup so they show instantly when triggered without lag or black screens.
-3. **Non-Destructive Click Counters**: When using click thresholds (e.g. show interstitial every 3 clicks), if the ad is not ready on click #3, the counter **does not reset**. It waits until the ad is primed, guaranteeing high show rates.
-4. **Instant Premium Dismissal**: Calling `AdMobKit.instance.setEntitled(true)` instantly shuts off all ads and collapses banner/native widgets to zero height across the entire app.
+* ⚡ **Zero-Boilerplate API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)` (from remote config boolean flags).
+* 🛡️ **Zero Waste / Spam Protection:** Calling `show(false)` makes zero ad requests and avoids hidden loops, protecting your AdMob account and match rate.
+* 📦 **Minimal Dependencies:** Zero bloated dependencies. Only `google_mobile_ads` is required.
+* 🔄 **Automatic Background Preloading:** Automatically preloads the next fullscreen ad upon dismissal or initialization.
+* ⏱️ **Ad Freshness & Expiry Guard:** Auto-evicts expired ads (1 hr for App Open, 4 hrs for Interstitial/Rewarded) so unfill or stale impressions never occur.
+* 🔒 **Fullscreen Presentation Mutex:** Guarantees that only one fullscreen ad (App Open, Interstitial, or Rewarded) presents at any given moment.
+* 📱 **Native App Lifecycle Observer:** Automatically handles App Open ads on resume transitions without manual `WidgetsBindingObserver` boilerplate.
+* 💎 **Instant Global Entitlement Gate (`setEntitled`):** Instantly suppresses all fullscreen ads and collapses banner/native widgets to zero height for premium users.
+* 🛡️ **Paywall Close Guard:** Protects back gestures and close buttons during paywalls without trapping users or triggering unexpected App Open ads.
+* 🎨 **Out-of-the-Box Native Templates:** Built-in small and medium Native templates—no native Android XML or iOS XIB files needed.
 
 ---
 
@@ -43,7 +34,9 @@ dependencies:
 
 ## 🚀 Quick Start in 3 Easy Steps
 
-### 1. Initialize in `main.dart`
+### 1. Initialize Once in `main.dart`
+
+Configure your Ad Unit IDs once. The SDK automatically selects the appropriate Android or iOS ID at runtime:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -51,40 +44,77 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize with JSON asset or Firebase Remote Config
-  await AdMobKit.instance.init(localAsset: 'assets/ads_config.json');
 
-  // (Optional) Enable 1-line automatic App Open ad on app resume
-  AdMobKit.instance.enableAutoResumeAppOpen();
+  await AdMobKit.initialize(
+    config: const AdMobConfig(
+      testMode: true, // Automatically uses Google's official test IDs
+      android: AdPlatformConfig(
+        interstitial: 'ca-app-pub-XXXX/XXXX',
+        rewarded: 'ca-app-pub-XXXX/XXXX',
+        appOpen: 'ca-app-pub-XXXX/XXXX',
+        banner: 'ca-app-pub-XXXX/XXXX',
+        native: 'ca-app-pub-XXXX/XXXX',
+      ),
+      ios: AdPlatformConfig(
+        interstitial: 'ca-app-pub-XXXX/XXXX',
+        rewarded: 'ca-app-pub-XXXX/XXXX',
+        appOpen: 'ca-app-pub-XXXX/XXXX',
+        banner: 'ca-app-pub-XXXX/XXXX',
+        native: 'ca-app-pub-XXXX/XXXX',
+      ),
+      autoResumeAppOpen: true, // Shows App Open ad on app resume automatically
+    ),
+  );
 
   runApp(const MyApp());
 }
 ```
 
-### 2. Drop-in Banner & Native Ads with Shimmer
+### 2. Show Fullscreen Ads (Controlled via Boolean / Remote Config)
+
+Pass your feature toggle or remote config flag directly to `show()`:
 
 ```dart
-// Zero setup — resolves automatically from your screen JSON config!
-BannerAdWidget(
-  screenKey: 'home_screen',
-  showShimmer: true, // Smooth zero-shift placeholder
-)
+// Interstitial
+final bool showAd = remoteConfig.getBool('show_interstitial');
+final bool wasShown = await AdMobKit.interstitial.show(showAd);
 
-// Or Native ad card
-NativeAdWidget(
-  screenKey: 'home_screen',
-  height: 300,
-  showShimmer: true,
-)
+// Rewarded
+await AdMobKit.rewarded.show(
+  true,
+  onReward: (reward) {
+    print('User earned: ${reward.amount} ${reward.type}');
+  },
+);
+
+// App Open (if manual presentation is needed)
+await AdMobKit.appOpen.show(true);
 ```
 
-### 3. Bulletproof Paywall Close Guard
+> **Note:** If `false` is passed, no ad is presented and no new ad request is triggered. If `true` is passed, the preloaded ad is displayed immediately, and the next ad is preloaded in the background.
+
+### 3. Add Banner & Native Widgets to UI
+
+```dart
+// 1. Adaptive Banner with built-in zero-CLS shimmer placeholder
+const BannerAdWidget();
+
+// 2. Medium Native Ad Card
+const NativeAdWidget.medium();
+
+// 3. Small Compact Native Ad
+const NativeAdWidget.small();
+```
+
+---
+
+## 🛡️ Paywall Close Guard
+
+Intercepts back navigation and close buttons on subscription/paywall screens. Displays an interstitial ad upon closing (if available), but **never traps the user** if ad loading fails or times out:
 
 ```dart
 PaywallCloseGuard(
-  adUnitId: 'ca-app-pub-XXXX/XXXX',
-  isEntitled: user.isPremium, // Bypasses ads if user purchased
+  isEntitled: user.isPremium, // Bypasses ads completely for paid users
   onDismiss: () => Navigator.of(context).pop(),
   child: Scaffold(
     appBar: AppBar(
@@ -93,66 +123,23 @@ PaywallCloseGuard(
         onPressed: () => PaywallCloseGuard.dismiss(context),
       ),
     ),
-    body: PaywallBody(),
+    body: const PaywallBody(),
   ),
 )
 ```
 
 ---
 
-## 📱 Fullscreen Ads & Click Counter
+## 💎 Instant Premium Suppression
 
-### Interstitial on Button or Tab Click (Every N taps)
-```dart
-// Automatically counts clicks and shows ad when threshold is reached
-AdMobKit.instance.onBottomNavClick(context);
-AdMobKit.instance.onGeneralClick(context);
-```
-
-### Direct Interstitial Ad
-```dart
-final vm = InterstitialAdManager();
-await vm.loadAd('ca-app-pub-XXXX/XXXX');
-vm.showAd();
-```
-
-### Rewarded Ad (With Coins)
-```dart
-final vm = RewardedAdManager();
-vm.onCoinsEarned = (coins) => print('Total coins: $coins');
-await vm.loadAd('ca-app-pub-XXXX/XXXX');
-vm.showAd();
-
-// In UI:
-ListenableBuilder(
-  listenable: vm,
-  builder: (_, __) => Text('Coins: ${vm.coins}'),
-);
-```
-
----
-
-## ☁️ Firebase Remote Config Integration
-
-When new remote config is fetched from Firebase, simply update AdMobKit:
+When a user purchases an in-app purchase or subscription:
 
 ```dart
-final remoteJson = json.decode(FirebaseRemoteConfig.instance.getString('ads_config'));
-AdMobKit.instance.updateConfigFromJson(remoteJson);
+// Instantly silences all ads across the entire app:
+AdMobKit.setEntitled(true);
 ```
-All banner and native ads currently on screen will **automatically reload and adapt dynamically**!
 
----
-
-## 💎 Global Entitlement Gate (Paid Users)
-
-When a user purchases a subscription or unlocks an ad-free tier, suppress all ads across the app in one line:
-
-```dart
-// All ads (banner, native, interstitial, app open) are suppressed instantly
-AdMobKit.instance.setEntitled(true);
-```
-Currently mounted banner and native ads will immediately collapse to zero height without leaving visual artifacts.
+Banners and native widgets will automatically collapse to `SizedBox.shrink()` without leaving blank spaces or artifacts.
 
 ---
 

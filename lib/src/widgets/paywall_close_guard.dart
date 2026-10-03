@@ -1,118 +1,87 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import '../ads/app_open_ad_manager.dart';
-import '../ads/interstitial_ad_manager.dart';
+import '../ad_state.dart';
+import '../admob_kit.dart';
+import '../interstitial/interstitial_manager.dart';
 
-/// A comprehensive Paywall Close Guard widget that intercepts both the on-screen
+/// A Paywall Close Guard widget that intercepts both the on-screen
 /// close button and Android/iOS back navigation gestures.
 ///
 /// Features:
 /// - Skips ad requests entirely if the user is already entitled/subscribed ([isEntitled]).
-/// - Preloads a single scoped interstitial ad on mount.
+/// - Preloads a scoped interstitial ad on mount.
 /// - Suppresses App Open ads while on the paywall screen.
 /// - Never traps the user: if ad loading times out or fails, allows immediate dismissal.
 ///
-/// ### Simple Usage with `child`:
 /// ```dart
 /// PaywallCloseGuard(
-///   adUnitId: 'ca-app-pub-XXXX/XXXX',
-///   isEntitled: user.isPremium,
 ///   onDismiss: () => Navigator.of(context).pop(),
-///   child: Scaffold(
-///     appBar: AppBar(
-///       leading: IconButton(
-///         icon: const Icon(Icons.close),
-///         onPressed: () => PaywallCloseGuard.dismiss(context),
-///       ),
-///     ),
-///     body: PaywallBody(),
-///   ),
-/// )
-/// ```
-///
-/// ### Usage with `builder`:
-/// ```dart
-/// PaywallCloseGuard.builder(
-///   adUnitId: 'ca-app-pub-XXXX/XXXX',
-///   isEntitled: user.isPremium,
-///   onDismiss: () => Navigator.of(context).pop(),
-///   builder: (context, attemptDismiss, isAdLoading) {
-///     return Scaffold(
-///       appBar: AppBar(
-///         leading: IconButton(
-///           icon: const Icon(Icons.close),
-///           onPressed: attemptDismiss,
-///         ),
-///       ),
-///       body: PaywallBody(),
-///     );
-///   },
+///   child: Scaffold(...),
 /// )
 /// ```
 class PaywallCloseGuard extends StatefulWidget {
   /// The AdMob Interstitial ad unit ID for the close guard.
+  /// If omitted, uses [AdMobKit.config.interstitialId].
   final String? adUnitId;
 
   /// Whether the user has an active entitlement / subscription.
   /// If `true`, no ad will ever be loaded or shown.
   final bool isEntitled;
 
-  /// Maximum time to wait for the ad to load before allowing fallback dismissal.
+  /// Maximum time to wait for the interstitial to load before allowing
+  /// immediate dismissal. Defaults to 5 seconds.
   final Duration timeout;
 
-  /// Callback invoked when the paywall screen is allowed to dismiss.
+  /// Called when the paywall should be dismissed.
   final VoidCallback onDismiss;
 
-  /// Optional callback when close ad loads.
-  final VoidCallback? onAdLoaded;
-
-  /// Optional callback when close ad fails.
-  final VoidCallback? onAdFailed;
-
-  /// Direct child widget.
+  /// Child widget wrapped by this close guard.
   final Widget? child;
 
-  /// Optional builder that receives the dismiss trigger callback and ad loading status.
+  /// Alternative builder constructor providing dismissal triggers.
   final Widget Function(
     BuildContext context,
     VoidCallback attemptDismiss,
     bool isAdLoading,
   )? builder;
 
-  /// Creates a [PaywallCloseGuard] with either a direct [child] or custom [builder].
+  /// Called when the scoped close ad loads successfully.
+  final VoidCallback? onAdLoaded;
+
+  /// Called when the scoped close ad fails to load.
+  final VoidCallback? onAdFailed;
+
+  /// Creates a [PaywallCloseGuard] wrapping either a [child] widget or a [builder] callback.
   const PaywallCloseGuard({
     super.key,
-    this.child,
-    this.builder,
-    required this.onDismiss,
     this.adUnitId,
     this.isEntitled = false,
     this.timeout = const Duration(seconds: 5),
+    required this.onDismiss,
+    this.child,
+    this.builder,
     this.onAdLoaded,
     this.onAdFailed,
-  }) : assert(
-          child != null || builder != null,
-          'Provide either child or builder.',
-        );
+  }) : assert(child != null || builder != null, 'Either child or builder must be provided.');
 
-  /// Creates a [PaywallCloseGuard] with a custom [builder].
+  /// Creates a [PaywallCloseGuard] using a [builder] callback.
   const PaywallCloseGuard.builder({
     super.key,
+    this.adUnitId,
+    this.isEntitled = false,
+    this.timeout = const Duration(seconds: 5),
+    required this.onDismiss,
     required Widget Function(
       BuildContext context,
       VoidCallback attemptDismiss,
       bool isAdLoading,
     ) this.builder,
-    required this.onDismiss,
-    this.adUnitId,
-    this.isEntitled = false,
-    this.timeout = const Duration(seconds: 5),
     this.onAdLoaded,
     this.onAdFailed,
   }) : child = null;
 
-  /// Triggers dismissal on the nearest enclosing [PaywallCloseGuard].
+  /// Attempts to dismiss the closest [PaywallCloseGuard] ancestor in the widget tree.
   static void dismiss(BuildContext context) {
     final scope =
         context.dependOnInheritedWidgetOfExactType<_PaywallCloseGuardScope>();
@@ -144,44 +113,47 @@ class _PaywallCloseGuardScope extends InheritedWidget {
 }
 
 class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
-  InterstitialAdManager? _manager;
+  InterstitialManager? _manager;
   bool _isTimedOut = false;
   bool _isDismissing = false;
   Timer? _timeoutTimer;
 
+  bool get _effectiveEntitled => widget.isEntitled || AdMobKit.isEntitled;
+
   @override
   void initState() {
     super.initState();
-    AppOpenAdManager.isInProScreen = true;
+    try {
+      AdMobKit.appOpen.isInPaywall = true;
+    } catch (_) {}
 
-    if (!widget.isEntitled && widget.adUnitId != null) {
-      _initAdManager();
+    final unitId = widget.adUnitId ?? AdMobKit.config.interstitialId;
+    if (!_effectiveEntitled && unitId != null && unitId.isNotEmpty) {
+      _initAdManager(unitId);
     }
   }
 
-  void _initAdManager() {
-    final manager = InterstitialAdManager();
+  void _initAdManager(String unitId) {
+    final manager = InterstitialManager(
+      adUnitIdProvider: () => unitId,
+      cooldown: Duration.zero,
+    );
     _manager = manager;
 
-    manager.onAdLoadComplete = () {
-      if (mounted) {
+    manager.onEvent = (event) {
+      if (!mounted) return;
+      if (event.type == AdEventType.loaded) {
         setState(() {});
         widget.onAdLoaded?.call();
-      }
-    };
-
-    manager.onAdLoadFailed = () {
-      if (mounted) {
+      } else if (event.type == AdEventType.loadFailed) {
         setState(() {});
         widget.onAdFailed?.call();
+      } else if (event.type == AdEventType.dismissed) {
+        _executeDismiss();
       }
     };
 
-    manager.onAdDismissed = () {
-      _executeDismiss();
-    };
-
-    manager.loadAd(widget.adUnitId!);
+    manager.preload(unitId);
 
     _timeoutTimer = Timer(widget.timeout, () {
       if (mounted) {
@@ -193,26 +165,26 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
   @override
   void didUpdateWidget(covariant PaywallCloseGuard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.isEntitled != widget.isEntitled && widget.isEntitled) {
+    if (oldWidget.isEntitled != widget.isEntitled && _effectiveEntitled) {
       _manager?.dispose();
       _manager = null;
       _timeoutTimer?.cancel();
     }
   }
 
-  void _attemptDismiss() {
+  Future<void> _attemptDismiss() async {
     if (_isDismissing) return;
 
-    // 1. Entitled users exit immediately with 0 ads
-    if (widget.isEntitled || widget.adUnitId == null || _manager == null) {
+    // 1. Entitled users exit immediately with zero ads
+    if (_effectiveEntitled || _manager == null) {
       _executeDismiss();
       return;
     }
 
     // 2. If ad is ready, show it
-    if (_manager!.isAdReady) {
+    if (_manager!.isReady) {
       _isDismissing = true;
-      final shown = _manager!.showAd();
+      final shown = await _manager!.show(true);
       if (!shown) {
         _executeDismiss();
       }
@@ -220,12 +192,6 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
     }
 
     // 3. If ad failed, timed out, or not ready, never trap the user
-    if (_isTimedOut || !_manager!.isLoading || !_manager!.isAdReady) {
-      _executeDismiss();
-      return;
-    }
-
-    // 4. If still loading within timeout, dismiss gracefully
     _executeDismiss();
   }
 
@@ -237,7 +203,9 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
 
   @override
   void dispose() {
-    AppOpenAdManager.isInProScreen = false;
+    try {
+      AdMobKit.appOpen.isInPaywall = false;
+    } catch (_) {}
     _timeoutTimer?.cancel();
     _manager?.dispose();
     super.dispose();
@@ -245,7 +213,7 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = !widget.isEntitled &&
+    final isLoading = !_effectiveEntitled &&
         _manager != null &&
         _manager!.isLoading &&
         !_isTimedOut;
