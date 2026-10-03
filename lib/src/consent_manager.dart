@@ -78,15 +78,20 @@ class ConsentManager {
     return completer.future;
   }
 
-  /// Checks if user consent has been obtained or is not required.
+  /// Checks if Google Mobile Ads reports that ads can be requested.
+  ///
+  /// Uses official [ConsentInformation.instance.canRequestAds()].
   Future<bool> canRequestAds() async {
     try {
-      final status = await ConsentInformation.instance.getConsentStatus();
-      return status == ConsentStatus.obtained ||
-          status == ConsentStatus.notRequired;
+      return await ConsentInformation.instance.canRequestAds();
     } catch (_) {
-      // Default to allowing ad requests if consent status is unknown
-      return true;
+      try {
+        final status = await ConsentInformation.instance.getConsentStatus();
+        return status == ConsentStatus.obtained ||
+            status == ConsentStatus.notRequired;
+      } catch (_) {
+        return false;
+      }
     }
   }
 

@@ -110,9 +110,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 1. Interstitial Ad Trigger
                 ElevatedButton.icon(
                   icon: const Icon(Icons.fullscreen),
-                  label: const Text('Show Interstitial (Remote Config: true)'),
+                  label: const Text('Show Interstitial (show: true)'),
                   onPressed: () async {
-                    // In real apps, pass your remote config boolean flag:
                     const bool shouldShow = true;
                     final shown = await AdMobKit.interstitial.show(shouldShow);
                     debugPrint('Interstitial was shown: $shown');
@@ -123,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 2. Interstitial Ad with false (No ad shown, zero spam)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.block),
-                  label: const Text('Show Interstitial (Remote Config: false)'),
+                  label: const Text('Show Interstitial (show: false)'),
                   onPressed: () async {
                     final shown = await AdMobKit.interstitial.show(false);
                     debugPrint('Interstitial was shown: $shown');

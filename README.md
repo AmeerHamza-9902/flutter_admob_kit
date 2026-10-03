@@ -10,11 +10,11 @@ A lightweight, production-ready internal AdMob SDK for Flutter. Built on Google 
 
 ## 💡 Why `flutter_admob_kit`?
 
-* ⚡ **Zero-Boilerplate API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)` (from remote config boolean flags).
+* ⚡ **Zero-Boilerplate API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)` (clean boolean flag pass-through).
 * 🛡️ **Zero Waste / Spam Protection:** Calling `show(false)` makes zero ad requests and avoids hidden loops, protecting your AdMob account and match rate.
 * 📦 **Minimal Dependencies:** Zero bloated dependencies. Only `google_mobile_ads` is required.
 * 🔄 **Automatic Background Preloading:** Automatically preloads the next fullscreen ad upon dismissal or initialization.
-* ⏱️ **Ad Freshness & Expiry Guard:** Auto-evicts expired ads (1 hr for App Open, 4 hrs for Interstitial/Rewarded) so unfill or stale impressions never occur.
+* ⏱️ **Ad Freshness & Expiry Guard:** Auto-evicts expired ads (4 hrs for App Open, Interstitial, and Rewarded) so stale impressions never occur.
 * 🔒 **Fullscreen Presentation Mutex:** Guarantees that only one fullscreen ad (App Open, Interstitial, or Rewarded) presents at any given moment.
 * 📱 **Native App Lifecycle Observer:** Automatically handles App Open ads on resume transitions without manual `WidgetsBindingObserver` boilerplate.
 * 💎 **Instant Global Entitlement Gate (`setEntitled`):** Instantly suppresses all fullscreen ads and collapses banner/native widgets to zero height for premium users.
@@ -69,13 +69,13 @@ void main() async {
 }
 ```
 
-### 2. Show Fullscreen Ads (Controlled via Boolean / Remote Config)
+### 2. Show Fullscreen Ads (Controlled via Boolean Flag)
 
-Pass your feature toggle or remote config flag directly to `show()`:
+Pass your boolean flag directly to `show()`:
 
 ```dart
 // Interstitial
-final bool showAd = remoteConfig.getBool('show_interstitial');
+final bool showAd = true; // or your app's logic/toggle
 final bool wasShown = await AdMobKit.interstitial.show(showAd);
 
 // Rewarded
