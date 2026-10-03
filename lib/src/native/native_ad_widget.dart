@@ -53,6 +53,20 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : template = NativeTemplate.medium;
 
+  /// Factory constructor for a fullscreen immersive native ad (media view + overlay details + CTA).
+  ///
+  /// Height defaults to `double.infinity`.
+  const NativeAdWidget.fullScreen({
+    super.key,
+    this.adUnitId,
+    this.style,
+    this.height = double.infinity,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.fullScreen;
+
   /// Factory constructor for a compact small native ad row (icon + headline + CTA).
   const NativeAdWidget.small({
     super.key,
@@ -99,8 +113,17 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _hasFailed = false;
   int _loadGeneration = 0;
 
-  double get _targetHeight =>
-      widget.height ?? (widget.template == NativeTemplate.small ? 90.0 : 280.0);
+  double get _targetHeight {
+    if (widget.height != null) return widget.height!;
+    switch (widget.template) {
+      case NativeTemplate.small:
+        return 90.0;
+      case NativeTemplate.medium:
+        return 280.0;
+      case NativeTemplate.fullScreen:
+        return double.infinity;
+    }
+  }
 
   @override
   void initState() {
@@ -205,11 +228,19 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     }
 
     if (widget.showShimmer) {
+      final AdShimmerVariant variant;
+      switch (widget.template) {
+        case NativeTemplate.small:
+          variant = AdShimmerVariant.nativeSmall;
+        case NativeTemplate.medium:
+          variant = AdShimmerVariant.nativeMedium;
+        case NativeTemplate.fullScreen:
+          variant = AdShimmerVariant.nativeFullScreen;
+      }
+
       return AdShimmerPlaceholder(
         height: height,
-        variant: widget.template == NativeTemplate.small
-            ? AdShimmerVariant.nativeSmall
-            : AdShimmerVariant.nativeMedium,
+        variant: variant,
       );
     }
 

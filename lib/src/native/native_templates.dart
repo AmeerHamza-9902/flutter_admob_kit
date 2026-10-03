@@ -9,6 +9,10 @@ enum NativeTemplate {
   /// Medium / Big native card (media view + icon + headline + body + CTA button).
   /// Matches standard 280-320dp native layouts.
   medium,
+
+  /// Fullscreen immersive native ad (fullscreen media view + bottom header/details + CTA).
+  /// Perfect for story/reel feeds, interstitial replacement, or standalone screens.
+  fullScreen,
 }
 
 /// Custom visual styling for Native Ad templates.
@@ -59,21 +63,21 @@ class NativeAdStyle {
               backgroundColor: callToActionColor,
               textColor: callToActionTextColor,
               style: NativeTemplateFontStyle.bold,
-              size: 15.0,
+              size: template == NativeTemplate.fullScreen ? 16.0 : 15.0,
             )
           : null,
       primaryTextStyle: primaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: primaryTextColor,
               style: NativeTemplateFontStyle.bold,
-              size: 14.0,
+              size: template == NativeTemplate.fullScreen ? 18.0 : 14.0,
             )
           : null,
       secondaryTextStyle: secondaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: secondaryTextColor,
               style: NativeTemplateFontStyle.normal,
-              size: 12.0,
+              size: template == NativeTemplate.fullScreen ? 14.0 : 12.0,
             )
           : null,
     );

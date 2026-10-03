@@ -13,6 +13,9 @@ enum AdShimmerVariant {
 
   /// Medium/Large native card with media container, icon, text, and button.
   nativeMedium,
+
+  /// Fullscreen immersive native card with media container and bottom details.
+  nativeFullScreen,
 }
 
 /// A lightweight, zero-dependency shimmer placeholder widget designed to
@@ -103,8 +106,100 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             return _buildNativeSmallPlaceholder(gradient, base);
           case AdShimmerVariant.nativeMedium:
             return _buildNativeMediumPlaceholder(gradient, base);
+          case AdShimmerVariant.nativeFullScreen:
+            return _buildNativeFullScreenPlaceholder(gradient, base);
         }
       },
+    );
+  }
+
+  Widget _buildNativeFullScreenPlaceholder(Gradient gradient, Color bg) {
+    return Container(
+      width: widget.width ?? double.infinity,
+      height: widget.height ?? double.infinity,
+      color: Colors.black,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fullscreen media shimmer
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(gradient: gradient),
+          ),
+          // Top header badge
+          Positioned(
+            top: 16,
+            left: 16,
+            child: Container(
+              width: 32,
+              height: 18,
+              decoration: BoxDecoration(
+                color: Colors.black45,
+                borderRadius: BorderRadius.circular(4.0),
+              ),
+            ),
+          ),
+          // Bottom content (Icon + Headline + CTA)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 24,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(8.0),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            height: 16,
+                            width: 160,
+                            decoration: BoxDecoration(
+                              color: Colors.white30,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            height: 12,
+                            width: 220,
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white38,
+                    borderRadius: BorderRadius.circular(24.0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
