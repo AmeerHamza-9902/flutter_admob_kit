@@ -27,12 +27,26 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   });
 
-  /// Factory constructor for a medium native ad card (media view + headline + CTA).
+  /// Factory constructor for a big/medium native ad card (media view + headline + CTA).
+  ///
+  /// Height defaults to `280.0` matching standard big native cards.
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
     this.style,
-    this.height = 320.0,
+    this.height = 280.0,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.medium;
+
+  /// Alias for [NativeAdWidget.medium] with a default height of `280.0`.
+  const NativeAdWidget.big({
+    super.key,
+    this.adUnitId,
+    this.style,
+    this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -86,7 +100,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   int _loadGeneration = 0;
 
   double get _targetHeight =>
-      widget.height ?? (widget.template == NativeTemplate.small ? 90.0 : 320.0);
+      widget.height ?? (widget.template == NativeTemplate.small ? 90.0 : 280.0);
 
   @override
   void initState() {
