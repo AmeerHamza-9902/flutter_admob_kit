@@ -7,7 +7,6 @@ void main() async {
   // 1. Initialize AdMobKit once with centralized configuration.
   await AdMobKit.initialize(
     config: const AdMobConfig(
-      testMode: true, // Uses Google official test IDs automatically
       android: AdPlatformConfig(
         interstitial: 'ca-app-pub-3940256099942544/1033173712',
         rewarded: 'ca-app-pub-3940256099942544/5224354917',
@@ -97,7 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? 'Premium Member: Ads are suppressed'
                               : 'Free User: Ads enabled',
                           style: TextStyle(
-                            color: _isEntitled ? Colors.green : Colors.grey[700],
+                            color:
+                                _isEntitled ? Colors.green : Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
                         ),

@@ -3,49 +3,40 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 
 void main() {
   group('AdMobConfig', () {
-    test('resolves configured production ad units', () {
+    test('resolves configured ad units explicitly from code', () {
       const config = AdMobConfig(
         android: AdPlatformConfig(
-          interstitial: 'android-interstitial-prod',
-          rewarded: 'android-rewarded-prod',
-          appOpen: 'android-appopen-prod',
-          banner: 'android-banner-prod',
-          native: 'android-native-prod',
+          interstitial: 'android-interstitial-id',
+          rewarded: 'android-rewarded-id',
+          appOpen: 'android-appopen-id',
+          banner: 'android-banner-id',
+          native: 'android-native-id',
         ),
-        testMode: false,
       );
 
       // On macOS/tests, Platform.isIOS is false, resolves android config
-      expect(config.interstitialId, 'android-interstitial-prod');
-      expect(config.rewardedId, 'android-rewarded-prod');
-      expect(config.appOpenId, 'android-appopen-prod');
-      expect(config.bannerId, 'android-banner-prod');
-      expect(config.nativeId, 'android-native-prod');
+      expect(config.interstitialId, 'android-interstitial-id');
+      expect(config.rewardedId, 'android-rewarded-id');
+      expect(config.appOpenId, 'android-appopen-id');
+      expect(config.bannerId, 'android-banner-id');
+      expect(config.nativeId, 'android-native-id');
     });
 
-    test('resolves official Google test ad units when testMode is true', () {
-      const config = AdMobConfig(
-        android: AdPlatformConfig(
-          interstitial: 'custom-id',
-        ),
-        testMode: true,
-      );
+    test('returns null when ad unit is not configured', () {
+      const config = AdMobConfig();
 
-      // Automatically uses official Google test IDs instead of custom production IDs
-      expect(config.interstitialId, AdMobTestIds.androidInterstitial);
-      expect(config.rewardedId, AdMobTestIds.androidRewarded);
-      expect(config.appOpenId, AdMobTestIds.androidAppOpen);
-      expect(config.bannerId, AdMobTestIds.androidBanner);
-      expect(config.nativeId, AdMobTestIds.androidNative);
+      expect(config.interstitialId, isNull);
+      expect(config.rewardedId, isNull);
+      expect(config.appOpenId, isNull);
+      expect(config.bannerId, isNull);
+      expect(config.nativeId, isNull);
     });
 
     test('copyWith updates specified fields cleanly', () {
-      const config = AdMobConfig(testMode: false, isEntitled: false);
-      final updated = config.copyWith(testMode: true, isEntitled: true);
+      const config = AdMobConfig(isEntitled: false);
+      final updated = config.copyWith(isEntitled: true);
 
-      expect(config.testMode, isFalse);
       expect(config.isEntitled, isFalse);
-      expect(updated.testMode, isTrue);
       expect(updated.isEntitled, isTrue);
     });
   });

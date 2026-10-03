@@ -12,7 +12,6 @@
 ///       banner: 'ca-app-pub-XXXX/XXXX',
 ///       native: 'ca-app-pub-XXXX/XXXX',
 ///     ),
-///     testMode: false,
 ///   ),
 /// );
 ///

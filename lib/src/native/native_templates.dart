@@ -6,15 +6,9 @@ enum NativeTemplate {
   /// Small compact native card (icon + headline + CTA button). Ideal for list rows (height ~90dp).
   small,
 
-  /// Medium native banner card (left 120x120 media + right text & CTA). Height defaults to ~120dp.
+  /// Medium native ad card (full-width media on top + icon + headline + body + CTA).
+  /// Google Mobile Ads official medium template (height 300-340dp, defaults to 320dp).
   medium,
-
-  /// Big native ad card (full-width media on top + icon + headline + body + CTA). Height defaults to ~280dp.
-  big,
-
-  /// Fullscreen immersive native ad (fullscreen media view + bottom header/details + CTA).
-  /// Perfect for story/reel feeds, interstitial replacement, or standalone screens.
-  fullScreen,
 }
 
 /// Custom visual styling for Native Ad templates.
@@ -54,38 +48,32 @@ class NativeAdStyle {
 
   /// Converts this style to the official [NativeTemplateStyle] used by Google Mobile Ads.
   NativeTemplateStyle toGoogleTemplateStyle(NativeTemplate template) {
+    final isSmall = template == NativeTemplate.small;
     return NativeTemplateStyle(
-      templateType: (template == NativeTemplate.small || template == NativeTemplate.medium)
-          ? TemplateType.small
-          : TemplateType.medium,
+      templateType: isSmall ? TemplateType.small : TemplateType.medium,
       mainBackgroundColor: backgroundColor,
       cornerRadius: cornerRadius,
-      callToActionTextStyle: callToActionColor != null || callToActionTextColor != Colors.white
-          ? NativeTemplateTextStyle(
-              backgroundColor: callToActionColor,
-              textColor: callToActionTextColor,
-              style: NativeTemplateFontStyle.bold,
-              size: template == NativeTemplate.fullScreen
-                  ? 16.0
-                  : (template == NativeTemplate.medium ? 13.0 : 15.0),
-            )
-          : null,
+      callToActionTextStyle:
+          callToActionColor != null || callToActionTextColor != Colors.white
+              ? NativeTemplateTextStyle(
+                  backgroundColor: callToActionColor,
+                  textColor: callToActionTextColor,
+                  style: NativeTemplateFontStyle.bold,
+                  size: isSmall ? 14.0 : 16.0,
+                )
+              : null,
       primaryTextStyle: primaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: primaryTextColor,
               style: NativeTemplateFontStyle.bold,
-              size: template == NativeTemplate.fullScreen
-                  ? 18.0
-                  : (template == NativeTemplate.medium ? 13.0 : 15.0),
+              size: isSmall ? 15.0 : 16.0,
             )
           : null,
       secondaryTextStyle: secondaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: secondaryTextColor,
               style: NativeTemplateFontStyle.normal,
-              size: template == NativeTemplate.fullScreen
-                  ? 14.0
-                  : (template == NativeTemplate.medium ? 11.0 : 12.0),
+              size: isSmall ? 12.0 : 14.0,
             )
           : null,
     );

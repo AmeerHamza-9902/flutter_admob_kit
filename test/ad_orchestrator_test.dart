@@ -43,5 +43,26 @@ void main() {
       expect(AdOrchestrator.instance.tryAcquire('app_open'), isTrue);
       expect(AdOrchestrator.instance.activeFormat, 'app_open');
     });
+
+    test('token-based acquire and release prevents stale release collisions',
+        () {
+      final token1 = AdOrchestrator.instance.acquireToken('interstitial');
+      expect(token1, isNotNull);
+      expect(AdOrchestrator.instance.activeFormat, 'interstitial');
+
+      // Second acquire fails
+      final token2 = AdOrchestrator.instance.acquireToken('rewarded');
+      expect(token2, isNull);
+
+      // Stale token cannot release
+      final releasedStale = AdOrchestrator.instance.releaseWithToken(9999);
+      expect(releasedStale, isFalse);
+      expect(AdOrchestrator.instance.isAnyFullscreenShowing, isTrue);
+
+      // Valid token releases cleanly
+      final releasedValid = AdOrchestrator.instance.releaseWithToken(token1!);
+      expect(releasedValid, isTrue);
+      expect(AdOrchestrator.instance.isAnyFullscreenShowing, isFalse);
+    });
   });
 }

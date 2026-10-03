@@ -31,7 +31,10 @@ class RewardedManager extends ChangeNotifier {
   RewardedAd? _ad;
   AdState _state = AdState.idle;
   DateTime? _loadedAt;
+  String? _loadedAdUnitId;
   int _retryAttempt = 0;
+  int _generation = 0;
+  int? _leaseToken;
   Timer? _retryTimer;
   Completer<bool>? _loadCompleter;
 
@@ -87,7 +90,7 @@ class RewardedManager extends ChangeNotifier {
     _loadCompleter = Completer<bool>();
     notifyListeners();
 
-    _fetch(adUnitId);
+    _fetch(adUnitId, _generation);
     return _loadCompleter!.future;
   }
 
@@ -100,8 +103,8 @@ class RewardedManager extends ChangeNotifier {
     );
   }
 
-  void _fetch(String adUnitId) {
-    if (_state == AdState.disposed) {
+  void _fetch(String adUnitId, int gen) {
+    if (_state == AdState.disposed || gen != _generation) {
       _completeLoad(false);
       return;
     }
@@ -110,12 +113,13 @@ class RewardedManager extends ChangeNotifier {
       adUnitId,
       RewardedAdLoadCallback(
         onAdLoaded: (ad) {
-          if (_state == AdState.disposed) {
+          if (_state == AdState.disposed || gen != _generation) {
             ad.dispose();
             _completeLoad(false);
             return;
           }
           _ad = ad;
+          _loadedAdUnitId = adUnitId;
           _state = AdState.ready;
           _loadedAt = DateTime.now();
           _retryAttempt = 0;
@@ -124,7 +128,7 @@ class RewardedManager extends ChangeNotifier {
           _completeLoad(true);
         },
         onAdFailedToLoad: (error) {
-          if (_state == AdState.disposed) {
+          if (_state == AdState.disposed || gen != _generation) {
             _completeLoad(false);
             return;
           }
@@ -133,20 +137,27 @@ class RewardedManager extends ChangeNotifier {
             adUnitId: adUnitId,
             errorMessage: error.message,
           );
-          _handleLoadFailure(adUnitId);
+          _handleLoadFailure(adUnitId, gen);
         },
       ),
     );
   }
 
-  void _handleLoadFailure(String adUnitId) {
+  void _handleLoadFailure(String adUnitId, int gen) {
+    if (_state == AdState.disposed || gen != _generation) {
+      _completeLoad(false);
+      return;
+    }
+
     _retryAttempt++;
     if (retryPolicy.shouldRetry(_retryAttempt)) {
       final delay = retryPolicy.delayFor(_retryAttempt);
       _retryTimer?.cancel();
       _retryTimer = Timer(delay, () {
-        if (_state != AdState.disposed && _state != AdState.ready) {
-          _fetch(adUnitId);
+        if (_state != AdState.disposed &&
+            _state != AdState.ready &&
+            gen == _generation) {
+          _fetch(adUnitId, gen);
         }
       });
     } else {
@@ -185,24 +196,26 @@ class RewardedManager extends ChangeNotifier {
       return false;
     }
 
-    // Mutual exclusion: acquire fullscreen presentation lock
-    if (!AdOrchestrator.instance.tryAcquire('rewarded')) {
+    // Mutual exclusion: acquire fullscreen presentation lock with token
+    final token = AdOrchestrator.instance.acquireToken('rewarded');
+    if (token == null) {
       return false;
     }
+    _leaseToken = token;
 
     _state = AdState.showing;
     notifyListeners();
 
     final activeAd = _ad!;
-    activeAd.fullScreenContentCallback =
-        FullScreenContentCallback<RewardedAd>(
+    final currentGen = _generation;
+    activeAd.fullScreenContentCallback = FullScreenContentCallback<RewardedAd>(
       onAdShowedFullScreenContent: (_) => _emitEvent(AdEventType.shown),
       onAdDismissedFullScreenContent: (ad) {
-        _onAdClosed(ad);
+        _onAdClosed(ad, currentGen);
         _emitEvent(AdEventType.dismissed);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        _onAdClosed(ad);
+        _onAdClosed(ad, currentGen);
         _emitEvent(AdEventType.dismissed, errorMessage: error.message);
       },
       onAdClicked: (_) => _emitEvent(AdEventType.clicked),
@@ -222,17 +235,27 @@ class RewardedManager extends ChangeNotifier {
     return true;
   }
 
-  void _onAdClosed(RewardedAd ad) {
-    AdOrchestrator.instance.release('rewarded');
+  void _onAdClosed(RewardedAd ad, int gen) {
+    if (_leaseToken != null) {
+      AdOrchestrator.instance.releaseWithToken(_leaseToken!);
+      _leaseToken = null;
+    } else {
+      AdOrchestrator.instance.release('rewarded');
+    }
+
     ad.dispose();
     _ad = null;
-    _state = AdState.idle;
+    _loadedAdUnitId = null;
     _loadedAt = null;
-    notifyListeners();
 
-    // Auto-preload the next rewarded ad
-    if (_state != AdState.disposed && isEntitledProvider?.call() != true) {
-      preload();
+    if (_state != AdState.disposed && gen == _generation) {
+      _state = AdState.idle;
+      notifyListeners();
+
+      // Auto-preload the next rewarded ad
+      if (isEntitledProvider?.call() != true) {
+        preload();
+      }
     }
   }
 
@@ -242,9 +265,27 @@ class RewardedManager extends ChangeNotifier {
     }
   }
 
+  /// Disposes currently cached ad and resets state to idle.
+  /// If [newAdUnitId] is provided, verifies if the cached ad matches it.
+  void invalidate({String? newAdUnitId}) {
+    if (_state == AdState.disposed) return;
+    if (newAdUnitId != null && _loadedAdUnitId == newAdUnitId && _ad != null) {
+      return; // Still matching
+    }
+    _generation++;
+    _retryTimer?.cancel();
+    _completeLoad(false);
+    _disposeCurrentAd();
+    if (_state != AdState.showing) {
+      _state = AdState.idle;
+      notifyListeners();
+    }
+  }
+
   void _disposeCurrentAd() {
     _ad?.dispose();
     _ad = null;
+    _loadedAdUnitId = null;
     _loadedAt = null;
   }
 
@@ -270,9 +311,14 @@ class RewardedManager extends ChangeNotifier {
 
   @override
   void dispose() {
+    _generation++;
     _state = AdState.disposed;
     _retryTimer?.cancel();
     _completeLoad(false);
+    if (_leaseToken != null) {
+      AdOrchestrator.instance.releaseWithToken(_leaseToken!);
+      _leaseToken = null;
+    }
     _disposeCurrentAd();
     super.dispose();
   }

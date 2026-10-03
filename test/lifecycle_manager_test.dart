@@ -23,9 +23,29 @@ void main() {
       AdOrchestrator.instance.reset();
     });
 
-    test('resumed state triggers App Open when clear', () {
+    test(
+        'first launch resumed state does NOT trigger App Open (cold start guard)',
+        () {
       final appOpen = _FakeAppOpenManager();
-      final lifecycle = LifecycleManager(appOpenManager: appOpen, isEnabled: true);
+      final lifecycle =
+          LifecycleManager(appOpenManager: appOpen, isEnabled: true);
+
+      // On initial app mount, lifecycle state can transition to resumed
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      // App Open must NOT be shown on cold start!
+      expect(appOpen.showCallCount, 0);
+
+      lifecycle.dispose();
+      appOpen.dispose();
+    });
+
+    test('resumed state triggers App Open after returning from background', () {
+      final appOpen = _FakeAppOpenManager();
+      final lifecycle =
+          LifecycleManager(appOpenManager: appOpen, isEnabled: true);
+
+      // App transitions to background
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
 
       // Transition to resumed
       lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
@@ -35,9 +55,11 @@ void main() {
       appOpen.dispose();
     });
 
-    test('resumed state skips App Open when another fullscreen ad is showing', () {
+    test('resumed state skips App Open when another fullscreen ad is showing',
+        () {
       final appOpen = _FakeAppOpenManager();
-      final lifecycle = LifecycleManager(appOpenManager: appOpen, isEnabled: true);
+      final lifecycle =
+          LifecycleManager(appOpenManager: appOpen, isEnabled: true);
 
       // Lock acquired by Interstitial
       AdOrchestrator.instance.tryAcquire('interstitial');
@@ -55,7 +77,8 @@ void main() {
       final appOpen = _FakeAppOpenManager();
       appOpen.isInPaywall = true;
 
-      final lifecycle = LifecycleManager(appOpenManager: appOpen, isEnabled: true);
+      final lifecycle =
+          LifecycleManager(appOpenManager: appOpen, isEnabled: true);
 
       // Transition to resumed
       lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);

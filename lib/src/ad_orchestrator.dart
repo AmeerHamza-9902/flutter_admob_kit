@@ -12,6 +12,9 @@ class AdOrchestrator extends ChangeNotifier {
   bool _isLeaseHeld = false;
   String? _activeFormat;
 
+  int _leaseCounter = 0;
+  int? _activeToken;
+
   /// Whether any fullscreen ad is currently active on screen.
   bool get isAnyFullscreenShowing => _isLeaseHeld;
 
@@ -25,6 +28,30 @@ class AdOrchestrator extends ChangeNotifier {
     if (_isLeaseHeld) return false;
     _isLeaseHeld = true;
     _activeFormat = format;
+    _activeToken = ++_leaseCounter;
+    notifyListeners();
+    return true;
+  }
+
+  /// Attempts to acquire the presentation lock and returns an ownership token,
+  /// or `null` if the lock is already held.
+  int? acquireToken(String format) {
+    if (_isLeaseHeld) return null;
+    _isLeaseHeld = true;
+    _activeFormat = format;
+    _activeToken = ++_leaseCounter;
+    notifyListeners();
+    return _activeToken;
+  }
+
+  /// Releases the presentation lock using the [token] obtained from [acquireToken].
+  /// Only the true owner of the current lease can release it.
+  /// Returns `true` if successfully released, `false` otherwise.
+  bool releaseWithToken(int token) {
+    if (!_isLeaseHeld || _activeToken != token) return false;
+    _isLeaseHeld = false;
+    _activeFormat = null;
+    _activeToken = null;
     notifyListeners();
     return true;
   }
@@ -37,6 +64,7 @@ class AdOrchestrator extends ChangeNotifier {
     }
     _isLeaseHeld = false;
     _activeFormat = null;
+    _activeToken = null;
     notifyListeners();
   }
 
@@ -45,5 +73,6 @@ class AdOrchestrator extends ChangeNotifier {
   void reset() {
     _isLeaseHeld = false;
     _activeFormat = null;
+    _activeToken = null;
   }
 }

@@ -27,49 +27,23 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   });
 
-  /// Factory constructor for a medium horizontal native ad card (120x120 media + headline + body + CTA).
+  /// Factory constructor for a medium native ad card (media view + headline + body + CTA).
   ///
-  /// Height defaults to `120.0` matching standard medium banner native cards.
+  /// Height defaults to `320.0` matching Google Mobile Ads official medium template.
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
     this.style,
-    this.height = 120.0,
+    this.height = 320.0,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.medium;
 
-  /// Factory constructor for a big native ad card (full-width media on top + icon + headline + body + CTA).
-  ///
-  /// Height defaults to `280.0` matching standard big native cards.
-  const NativeAdWidget.big({
-    super.key,
-    this.adUnitId,
-    this.style,
-    this.height = 280.0,
-    this.showShimmer = true,
-    this.placeholder,
-    this.onAdLoaded,
-    this.onAdFailed,
-  }) : template = NativeTemplate.big;
-
-  /// Factory constructor for a fullscreen immersive native ad (media view + overlay details + CTA).
-  ///
-  /// Height defaults to `double.infinity`.
-  const NativeAdWidget.fullScreen({
-    super.key,
-    this.adUnitId,
-    this.style,
-    this.height = double.infinity,
-    this.showShimmer = true,
-    this.placeholder,
-    this.onAdLoaded,
-    this.onAdFailed,
-  }) : template = NativeTemplate.fullScreen;
-
   /// Factory constructor for a compact small native ad row (icon + headline + CTA).
+  ///
+  /// Height defaults to `90.0` matching Google Mobile Ads official small template.
   const NativeAdWidget.small({
     super.key,
     this.adUnitId,
@@ -80,6 +54,50 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.small;
+
+  /// Deprecated alias for [NativeAdWidget.medium].
+  @Deprecated('Use NativeAdWidget.medium() instead')
+  const NativeAdWidget.big({
+    Key? key,
+    String? adUnitId,
+    NativeAdStyle? style,
+    double height = 320.0,
+    bool showShimmer = true,
+    Widget? placeholder,
+    VoidCallback? onAdLoaded,
+    VoidCallback? onAdFailed,
+  }) : this.medium(
+          key: key,
+          adUnitId: adUnitId,
+          style: style,
+          height: height,
+          showShimmer: showShimmer,
+          placeholder: placeholder,
+          onAdLoaded: onAdLoaded,
+          onAdFailed: onAdFailed,
+        );
+
+  /// Deprecated alias for [NativeAdWidget.medium].
+  @Deprecated('Use NativeAdWidget.medium() instead')
+  const NativeAdWidget.fullScreen({
+    Key? key,
+    String? adUnitId,
+    NativeAdStyle? style,
+    double height = 320.0,
+    bool showShimmer = true,
+    Widget? placeholder,
+    VoidCallback? onAdLoaded,
+    VoidCallback? onAdFailed,
+  }) : this.medium(
+          key: key,
+          adUnitId: adUnitId,
+          style: style,
+          height: height,
+          showShimmer: showShimmer,
+          placeholder: placeholder,
+          onAdLoaded: onAdLoaded,
+          onAdFailed: onAdFailed,
+        );
 
   /// Optional override for the Native Ad Unit ID. If omitted, uses [AdMobKit.config.nativeId].
   final String? adUnitId;
@@ -121,11 +139,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       case NativeTemplate.small:
         return 90.0;
       case NativeTemplate.medium:
-        return 120.0;
-      case NativeTemplate.big:
-        return 280.0;
-      case NativeTemplate.fullScreen:
-        return double.infinity;
+        return 320.0;
     }
   }
 
@@ -166,8 +180,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     _isLoaded = false;
     _hasFailed = false;
 
-    final templateStyle =
-        (widget.style ?? const NativeAdStyle()).toGoogleTemplateStyle(widget.template);
+    final templateStyle = (widget.style ?? const NativeAdStyle())
+        .toGoogleTemplateStyle(widget.template);
 
     final nativeAd = NativeAd(
       adUnitId: unitId,
@@ -232,17 +246,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     }
 
     if (widget.showShimmer) {
-      final AdShimmerVariant variant;
-      switch (widget.template) {
-        case NativeTemplate.small:
-          variant = AdShimmerVariant.nativeSmall;
-        case NativeTemplate.medium:
-          variant = AdShimmerVariant.nativeMedium;
-        case NativeTemplate.big:
-          variant = AdShimmerVariant.nativeBig;
-        case NativeTemplate.fullScreen:
-          variant = AdShimmerVariant.nativeFullScreen;
-      }
+      final AdShimmerVariant variant = widget.template == NativeTemplate.small
+          ? AdShimmerVariant.nativeSmall
+          : AdShimmerVariant.nativeMedium;
 
       return AdShimmerPlaceholder(
         height: height,

@@ -8,17 +8,11 @@ enum AdShimmerVariant {
   /// Large banner / medium rectangle (300x250).
   mediumRectangle,
 
-  /// Small native card with icon, title, and button.
+  /// Small native card with icon, title, and button (~90dp).
   nativeSmall,
 
-  /// Medium horizontal native card (120x120 media + right text & CTA).
+  /// Medium native ad card with media view, icon, text, and button (~320dp).
   nativeMedium,
-
-  /// Big vertical native card with media container on top, icon, text, and button (280dp).
-  nativeBig,
-
-  /// Fullscreen immersive native card with media container and bottom details.
-  nativeFullScreen,
 }
 
 /// A lightweight, zero-dependency shimmer placeholder widget designed to
@@ -109,102 +103,8 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             return _buildNativeSmallPlaceholder(gradient, base);
           case AdShimmerVariant.nativeMedium:
             return _buildNativeMediumPlaceholder(gradient, base);
-          case AdShimmerVariant.nativeBig:
-            return _buildNativeBigPlaceholder(gradient, base);
-          case AdShimmerVariant.nativeFullScreen:
-            return _buildNativeFullScreenPlaceholder(gradient, base);
         }
       },
-    );
-  }
-
-  Widget _buildNativeFullScreenPlaceholder(Gradient gradient, Color bg) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? double.infinity,
-      color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Fullscreen media shimmer
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: BoxDecoration(gradient: gradient),
-          ),
-          // Top header badge
-          Positioned(
-            top: 16,
-            left: 16,
-            child: Container(
-              width: 32,
-              height: 18,
-              decoration: BoxDecoration(
-                color: Colors.black45,
-                borderRadius: BorderRadius.circular(4.0),
-              ),
-            ),
-          ),
-          // Bottom content (Icon + Headline + CTA)
-          Positioned(
-            left: 16,
-            right: 16,
-            bottom: 24,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white24,
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            height: 16,
-                            width: 160,
-                            decoration: BoxDecoration(
-                              color: Colors.white30,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            height: 12,
-                            width: 220,
-                            decoration: BoxDecoration(
-                              color: Colors.white24,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white38,
-                    borderRadius: BorderRadius.circular(24.0),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -311,92 +211,7 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
   Widget _buildNativeMediumPlaceholder(Gradient gradient, Color bg) {
     return Container(
       width: widget.width ?? double.infinity,
-      height: widget.height ?? 120.0,
-      padding: const EdgeInsets.all(8.0),
-      decoration: BoxDecoration(
-        color: bg.withValues(alpha: 0.3),
-        borderRadius: widget.borderRadius ?? BorderRadius.circular(8.0),
-        border: Border.all(color: bg.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Left 120x120 media view container (fitted in height)
-          Container(
-            width: 104,
-            height: double.infinity,
-            decoration: BoxDecoration(
-              gradient: gradient,
-              borderRadius: BorderRadius.circular(6.0),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Right content (Header, Advertiser, Body, CTA)
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 24,
-                      height: 16,
-                      decoration: BoxDecoration(
-                        color: bg.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(3.0),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Container(
-                        height: 14,
-                        decoration: BoxDecoration(
-                          gradient: gradient,
-                          borderRadius: BorderRadius.circular(3.0),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  height: 10,
-                  width: 90,
-                  decoration: BoxDecoration(
-                    gradient: gradient,
-                    borderRadius: BorderRadius.circular(3.0),
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Container(
-                  height: 10,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    gradient: gradient,
-                    borderRadius: BorderRadius.circular(3.0),
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  width: double.infinity,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: gradient,
-                    borderRadius: BorderRadius.circular(6.0),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNativeBigPlaceholder(Gradient gradient, Color bg) {
-    return Container(
-      width: widget.width ?? double.infinity,
-      height: widget.height ?? 280.0,
+      height: widget.height ?? 320.0,
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: bg.withValues(alpha: 0.3),
@@ -406,6 +221,7 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Media view container on top
           Expanded(
             child: Container(
               width: double.infinity,
@@ -416,6 +232,7 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ),
           ),
           const SizedBox(height: 12),
+          // App icon + Headline + Body
           Row(
             children: [
               Container(
@@ -454,6 +271,7 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ],
           ),
           const SizedBox(height: 10),
+          // Full-width CTA button
           Container(
             width: double.infinity,
             height: 44,

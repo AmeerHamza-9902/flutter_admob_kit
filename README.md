@@ -47,7 +47,6 @@ void main() async {
 
   await AdMobKit.initialize(
     config: const AdMobConfig(
-      testMode: true, // Automatically uses Google's official test IDs
       android: AdPlatformConfig(
         interstitial: 'ca-app-pub-XXXX/XXXX',
         rewarded: 'ca-app-pub-XXXX/XXXX',
@@ -95,28 +94,20 @@ await AdMobKit.appOpen.show(true);
 
 ### 3. Add Banner & Native Widgets to UI
 
+```dart
 // 1. Small Adaptive Banner (Full width on Android & iOS):
 const BannerAdWidget.small();
 
 // 2. Medium Rectangle Banner (300x250) fitted seamlessly to full width:
 const BannerAdWidget.mediumRectangle();
 
-// 3. Standard Banner:
-const BannerAdWidget();
-
-// 2. Big Native Card (280dp) — Top Media + Icon + Headline + Body + CTA
-const NativeAdWidget.big();
-
-// 3. Medium Native Card (120dp) — Left 120x120 Media + Right Details & CTA
-const NativeAdWidget.medium();
-
-// 4. Small Compact Native Ad (90dp) — Icon + Headline + CTA
+// 3. Compact Small Native Ad (90dp) — Icon + Headline + CTA:
 const NativeAdWidget.small();
 
-// 5. Fullscreen Immersive Native Ad — Story / Reels style
-const NativeAdWidget.fullScreen();
+// 4. Medium Native Card (320dp) — Top Media + Icon + Headline + Body + CTA:
+const NativeAdWidget.medium();
 
-// 6. Fully Customizable Styling (Colors, CTA button, Background):
+// 5. Fully Customizable Styling (Colors, CTA button, Background):
 NativeAdWidget.medium(
   style: const NativeAdStyle(
     backgroundColor: Colors.white,

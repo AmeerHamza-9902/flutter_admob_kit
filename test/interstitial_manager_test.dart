@@ -48,7 +48,9 @@ void main() {
       manager.dispose();
     });
 
-    test('duplicate preload calls while loading do not trigger multiple requests', () async {
+    test(
+        'duplicate preload calls while loading do not trigger multiple requests',
+        () async {
       final manager = _FakeInterstitialManager(
         adUnitIdProvider: () => 'test-id',
       );
@@ -87,6 +89,47 @@ void main() {
 
       // If no ad has been loaded yet, isExpired is true
       expect(manager.isExpired, isTrue);
+
+      manager.dispose();
+    });
+
+    test('callbacks after disposal are safely ignored and do not revive state',
+        () {
+      final manager = _FakeInterstitialManager(
+        adUnitIdProvider: () => 'test-id',
+      );
+
+      manager.preload();
+      expect(manager.state, AdState.loading);
+      final callback = manager.lastCallback;
+      expect(callback, isNotNull);
+
+      // Dispose manager while fetch is in-flight
+      manager.dispose();
+      expect(manager.state, AdState.disposed);
+
+      // Stale load failure callback arrives
+      callback!.onAdFailedToLoad(
+        LoadAdError(1, 'domain', 'Network failure', null),
+      );
+      // Manager must remain disposed and not transition to idle or retry
+      expect(manager.state, AdState.disposed);
+    });
+
+    test('invalidate cancels state and updates to new ad unit id', () {
+      String currentId = 'id-1';
+      final manager = _FakeInterstitialManager(
+        adUnitIdProvider: () => currentId,
+      );
+
+      manager.preload();
+      expect(manager.fetchCallCount, 1);
+
+      // Invalidate with new id
+      currentId = 'id-2';
+      manager.invalidate(newAdUnitId: 'id-2');
+      expect(manager.state, AdState.idle);
+      expect(manager.isReady, isFalse);
 
       manager.dispose();
     });

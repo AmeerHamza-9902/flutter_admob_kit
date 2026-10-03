@@ -8,14 +8,19 @@ class ConsentManager {
 
   static final ConsentManager instance = ConsentManager._();
 
+  Future<bool>? _inFlightConsent;
+
   /// Requests a consent information update and presents the form if required.
   ///
-  /// Safe to call on every app launch. Completes without throwing even if
-  /// consent request fails or network is absent.
+  /// Safe to call on every app launch and concurrent invocations are deduplicated.
+  /// Completes without throwing even if consent request fails or network is absent.
   Future<bool> requestConsent({
     ConsentRequestParameters? parameters,
   }) async {
+    if (_inFlightConsent != null) return _inFlightConsent!;
+
     final completer = Completer<bool>();
+    _inFlightConsent = completer.future;
     final params = parameters ?? ConsentRequestParameters();
 
     try {
@@ -24,6 +29,7 @@ class ConsentManager {
         () async {
           ConsentForm.loadAndShowConsentFormIfRequired(
             (formError) {
+              _inFlightConsent = null;
               if (formError != null) {
                 debugPrint(
                   'flutter_admob_kit: UMP consent form error: ${formError.message}',
@@ -36,6 +42,7 @@ class ConsentManager {
           );
         },
         (formError) {
+          _inFlightConsent = null;
           debugPrint(
             'flutter_admob_kit: UMP consent info update failed: ${formError.message}',
           );
@@ -43,6 +50,7 @@ class ConsentManager {
         },
       );
     } catch (e) {
+      _inFlightConsent = null;
       debugPrint('flutter_admob_kit: UMP initialization error: $e');
       return false;
     }
@@ -56,7 +64,8 @@ class ConsentManager {
     try {
       await ConsentForm.showPrivacyOptionsForm((formError) {
         if (formError != null) {
-          debugPrint('flutter_admob_kit: Privacy options error: ${formError.message}');
+          debugPrint(
+              'flutter_admob_kit: Privacy options error: ${formError.message}');
           completer.complete(false);
         } else {
           completer.complete(true);

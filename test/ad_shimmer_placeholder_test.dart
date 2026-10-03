@@ -19,13 +19,13 @@ void main() {
       expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     });
 
-    testWidgets('renders native variant without errors', (tester) async {
+    testWidgets('renders nativeMedium variant without errors', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: AdShimmerPlaceholder(
               variant: AdShimmerVariant.nativeMedium,
-              height: 300,
+              height: 320,
             ),
           ),
         ),
@@ -34,13 +34,13 @@ void main() {
       expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     });
 
-    testWidgets('renders nativeBig variant without errors', (tester) async {
+    testWidgets('renders nativeSmall variant without errors', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: AdShimmerPlaceholder(
-              variant: AdShimmerVariant.nativeBig,
-              height: 280,
+              variant: AdShimmerVariant.nativeSmall,
+              height: 90,
             ),
           ),
         ),
@@ -49,12 +49,13 @@ void main() {
       expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     });
 
-    testWidgets('renders nativeFullScreen variant without errors', (tester) async {
+    testWidgets('renders mediumRectangle variant without errors',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
             body: AdShimmerPlaceholder(
-              variant: AdShimmerVariant.nativeFullScreen,
+              variant: AdShimmerVariant.mediumRectangle,
             ),
           ),
         ),

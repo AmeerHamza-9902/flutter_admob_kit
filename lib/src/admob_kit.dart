@@ -22,7 +22,6 @@ import 'rewarded/rewarded_manager.dart';
 ///   config: AdMobConfig(
 ///     android: AdPlatformConfig(interstitial: '...'),
 ///     ios: AdPlatformConfig(interstitial: '...'),
-///     testMode: false,
 ///   ),
 /// );
 /// ```
@@ -72,16 +71,32 @@ class AdMobKit {
     return _appOpen!;
   }
 
+  static Future<void>? _initFuture;
+
   /// Initializes the AdMob SDK and internal managers.
   ///
-  /// This method is strictly idempotent: calling it multiple times will not
-  /// duplicate SDK initialization, lifecycle observers, or network requests.
+  /// This method is strictly idempotent: concurrent or repeated calls will share
+  /// the same initialization future and will not duplicate SDK initialization,
+  /// lifecycle observers, or network requests.
   static Future<void> initialize({
     AdMobConfig? config,
     bool autoPreload = true,
-  }) async {
-    if (_isInitialized) return;
+  }) {
+    if (_isInitialized) return Future.value();
+    if (_initFuture != null) return _initFuture!;
 
+    _initFuture = _doInitialize(
+      config: config,
+      autoPreload: autoPreload,
+    );
+
+    return _initFuture!;
+  }
+
+  static Future<void> _doInitialize({
+    AdMobConfig? config,
+    bool autoPreload = true,
+  }) async {
     WidgetsFlutterBinding.ensureInitialized();
 
     if (config != null) {
@@ -130,43 +145,80 @@ class AdMobKit {
 
     _isInitialized = true;
 
-    // 5. Initial eager preloads
+    // 5. Initial eager preloads (only if permitted by consent and entitlement)
     if (autoPreload && !isEntitled) {
-      if (_config.interstitialId != null) {
-        _interstitial!.preload();
-      }
-      if (_config.appOpenId != null) {
-        _appOpen!.preload();
+      final canRequest = await ConsentManager.instance.canRequestAds();
+      if (canRequest && !isEntitled) {
+        if (_config.interstitialId != null) {
+          _interstitial!.preload();
+        }
+        if (_config.appOpenId != null) {
+          _appOpen!.preload();
+        }
       }
     }
   }
 
   /// Sets the user's entitlement status.
   ///
-  /// When `true`, all ad requests and presentations are suppressed, and
-  /// active banner and native widgets automatically collapse to zero height.
+  /// When `true`, all ad requests and presentations are suppressed, cached ads
+  /// are immediately invalidated, and active banner/native widgets collapse.
+  /// When `false`, preloading resumes if consent permits.
   static void setEntitled(bool entitled) {
+    final wasEntitled = _isEntitled;
     _isEntitled = entitled;
     _config = _config.copyWith(isEntitled: entitled);
+
+    if (entitled) {
+      // Evict all preloaded cached ads and cancel timers
+      _interstitial?.invalidate();
+      _rewarded?.invalidate();
+      _appOpen?.invalidate();
+    } else if (wasEntitled && _isInitialized) {
+      // Re-prime preloaded ads if allowed
+      ConsentManager.instance.canRequestAds().then((canRequest) {
+        if (canRequest && !isEntitled) {
+          if (_config.interstitialId != null) _interstitial?.preload();
+          if (_config.appOpenId != null) _appOpen?.preload();
+        }
+      });
+    }
   }
 
   /// Updates runtime configuration dynamically.
   static void updateConfig(AdMobConfig newConfig) {
+    final oldConfig = _config;
     _config = newConfig;
     _isEntitled = newConfig.isEntitled;
+
+    if (newConfig.isEntitled) {
+      setEntitled(true);
+      return;
+    }
+
     if (_lifecycleManager != null) {
       _lifecycleManager!.isEnabled = newConfig.autoResumeAppOpen;
     }
+
     if (_interstitial != null) {
       _interstitial!.cooldown = newConfig.interstitialCooldown;
       _interstitial!.adExpiry = newConfig.interstitialExpiry;
+      if (oldConfig.interstitialId != newConfig.interstitialId) {
+        _interstitial!.invalidate(newAdUnitId: newConfig.interstitialId);
+      }
     }
     if (_rewarded != null) {
       _rewarded!.adExpiry = newConfig.rewardedExpiry;
+      if (oldConfig.rewardedId != newConfig.rewardedId) {
+        _rewarded!.invalidate(newAdUnitId: newConfig.rewardedId);
+      }
     }
     if (_appOpen != null) {
       _appOpen!.cooldown = newConfig.appOpenCooldown;
       _appOpen!.adExpiry = newConfig.appOpenExpiry;
+      if (oldConfig.appOpenId != newConfig.appOpenId) {
+        _appOpen!.invalidate(newAdUnitId: newConfig.appOpenId);
+      }
     }
   }
 
@@ -224,45 +276,7 @@ class AdMobKit {
     _eventListeners.clear();
     _isInitialized = false;
     _isEntitled = false;
+    _initFuture = null;
     _config = const AdMobConfig();
   }
-
-  // ─── Backward Compatibility Helpers ─────────────────────────────────────
-
-  /// Deprecated convenience method for backward compatibility.
-  /// Prefer `AdMobKit.initialize(config: ...)`.
-  Future<void> init({
-    String? localAsset,
-    AdMobConfig? config,
-    Map<String, dynamic>? rawJson,
-    String? remoteKey,
-  }) async {
-    await AdMobKit.initialize(config: config);
-  }
-
-  /// Deprecated: Shows Interstitial ad. Prefer `AdMobKit.interstitial.show(true)`.
-  Future<bool> showSplashInterstitial([BuildContext? context]) =>
-      AdMobKit.interstitial.show(true);
-
-  /// Deprecated: Shows App Open ad. Prefer `AdMobKit.appOpen.show(true)`.
-  Future<bool> showSplashAppOpen() => AdMobKit.appOpen.show(true);
-
-  /// Deprecated: Shows App Open ad on resume.
-  Future<bool> showOnResumeAppOpen() => AdMobKit.appOpen.show(true);
-
-  /// Deprecated: Handles click threshold. Prefer `AdMobKit.interstitial.show(true)`.
-  bool onBottomNavClick([BuildContext? context]) {
-    AdMobKit.interstitial.show(true);
-    return true;
-  }
-
-  /// Deprecated: Handles click threshold. Prefer `AdMobKit.interstitial.show(true)`.
-  bool onGeneralClick([BuildContext? context]) {
-    AdMobKit.interstitial.show(true);
-    return true;
-  }
-
-  /// Deprecated: Shows Pro Close Interstitial. Prefer `AdMobKit.interstitial.show(true)`.
-  Future<bool> showProCloseInterstitial([BuildContext? context]) =>
-      AdMobKit.interstitial.show(true);
 }

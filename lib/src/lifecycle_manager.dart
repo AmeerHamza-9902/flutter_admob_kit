@@ -30,18 +30,27 @@ class LifecycleManager with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
   }
 
+  bool _wasInBackground = false;
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!isEnabled) return;
 
-    if (state == AppLifecycleState.resumed) {
-      // 1. Skip if another fullscreen ad is already presenting
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasInBackground = true;
+    } else if (state == AppLifecycleState.resumed) {
+      // 1. Only present if the app actually transitioned from background (not first launch)
+      if (!_wasInBackground) return;
+      _wasInBackground = false;
+
+      // 2. Skip if another fullscreen ad is already presenting
       if (AdOrchestrator.instance.isAnyFullscreenShowing) return;
 
-      // 2. Skip if currently in a paywall/purchase screen
+      // 3. Skip if currently in a paywall/purchase screen
       if (appOpenManager.isInPaywall) return;
 
-      // 3. Attempt to present the primed App Open ad
+      // 4. Attempt to present the primed App Open ad
       appOpenManager.show(true);
     }
   }

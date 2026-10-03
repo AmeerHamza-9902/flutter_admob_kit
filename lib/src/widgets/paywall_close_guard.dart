@@ -63,7 +63,8 @@ class PaywallCloseGuard extends StatefulWidget {
     this.builder,
     this.onAdLoaded,
     this.onAdFailed,
-  }) : assert(child != null || builder != null, 'Either child or builder must be provided.');
+  }) : assert(child != null || builder != null,
+            'Either child or builder must be provided.');
 
   /// Creates a [PaywallCloseGuard] using a [builder] callback.
   const PaywallCloseGuard.builder({
