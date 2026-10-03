@@ -99,24 +99,27 @@ await AdMobKit.appOpen.show(true);
 // 1. Adaptive Banner with built-in zero-CLS shimmer placeholder
 const BannerAdWidget();
 
-// 2. Big / Medium Native Ad Card (280dp)
+// 2. Big Native Card (280dp) — Top Media + Icon + Headline + Body + CTA
 const NativeAdWidget.big();
 
-// 3. Fullscreen Immersive Native Ad
-const NativeAdWidget.fullScreen();
+// 3. Medium Native Card (120dp) — Left 120x120 Media + Right Details & CTA
+const NativeAdWidget.medium();
 
-// 4. Small Compact Native Ad (90dp)
+// 4. Small Compact Native Ad (90dp) — Icon + Headline + CTA
 const NativeAdWidget.small();
 
-// 5. Fully Customizable Styling (Colors, CTA, Background):
-NativeAdWidget.big(
+// 5. Fullscreen Immersive Native Ad — Story / Reels style
+const NativeAdWidget.fullScreen();
+
+// 6. Fully Customizable Styling (Colors, CTA button, Background):
+NativeAdWidget.medium(
   style: const NativeAdStyle(
-    backgroundColor: Color(0xFFF8F9FA),
+    backgroundColor: Colors.white,
     callToActionColor: Color(0xFF066136),
     callToActionTextColor: Colors.white,
     primaryTextColor: Color(0xFF0E1A14),
     secondaryTextColor: Color(0xFF55655D),
-    cornerRadius: 12.0,
+    cornerRadius: 8.0,
   ),
 );
 ```

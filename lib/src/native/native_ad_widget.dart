@@ -27,21 +27,23 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   });
 
-  /// Factory constructor for a big/medium native ad card (media view + headline + CTA).
+  /// Factory constructor for a medium horizontal native ad card (120x120 media + headline + body + CTA).
   ///
-  /// Height defaults to `280.0` matching standard big native cards.
+  /// Height defaults to `120.0` matching standard medium banner native cards.
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
     this.style,
-    this.height = 280.0,
+    this.height = 120.0,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.medium;
 
-  /// Alias for [NativeAdWidget.medium] with a default height of `280.0`.
+  /// Factory constructor for a big native ad card (full-width media on top + icon + headline + body + CTA).
+  ///
+  /// Height defaults to `280.0` matching standard big native cards.
   const NativeAdWidget.big({
     super.key,
     this.adUnitId,
@@ -51,7 +53,7 @@ class NativeAdWidget extends StatefulWidget {
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
-  }) : template = NativeTemplate.medium;
+  }) : template = NativeTemplate.big;
 
   /// Factory constructor for a fullscreen immersive native ad (media view + overlay details + CTA).
   ///
@@ -119,6 +121,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       case NativeTemplate.small:
         return 90.0;
       case NativeTemplate.medium:
+        return 120.0;
+      case NativeTemplate.big:
         return 280.0;
       case NativeTemplate.fullScreen:
         return double.infinity;
@@ -234,6 +238,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
           variant = AdShimmerVariant.nativeSmall;
         case NativeTemplate.medium:
           variant = AdShimmerVariant.nativeMedium;
+        case NativeTemplate.big:
+          variant = AdShimmerVariant.nativeBig;
         case NativeTemplate.fullScreen:
           variant = AdShimmerVariant.nativeFullScreen;
       }

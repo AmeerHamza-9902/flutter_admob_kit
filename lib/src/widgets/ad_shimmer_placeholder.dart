@@ -11,8 +11,11 @@ enum AdShimmerVariant {
   /// Small native card with icon, title, and button.
   nativeSmall,
 
-  /// Medium/Large native card with media container, icon, text, and button.
+  /// Medium horizontal native card (120x120 media + right text & CTA).
   nativeMedium,
+
+  /// Big vertical native card with media container on top, icon, text, and button (280dp).
+  nativeBig,
 
   /// Fullscreen immersive native card with media container and bottom details.
   nativeFullScreen,
@@ -106,6 +109,8 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             return _buildNativeSmallPlaceholder(gradient, base);
           case AdShimmerVariant.nativeMedium:
             return _buildNativeMediumPlaceholder(gradient, base);
+          case AdShimmerVariant.nativeBig:
+            return _buildNativeBigPlaceholder(gradient, base);
           case AdShimmerVariant.nativeFullScreen:
             return _buildNativeFullScreenPlaceholder(gradient, base);
         }
@@ -288,7 +293,92 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
   Widget _buildNativeMediumPlaceholder(Gradient gradient, Color bg) {
     return Container(
       width: widget.width ?? double.infinity,
-      height: widget.height ?? 300.0,
+      height: widget.height ?? 120.0,
+      padding: const EdgeInsets.all(8.0),
+      decoration: BoxDecoration(
+        color: bg.withValues(alpha: 0.3),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(8.0),
+        border: Border.all(color: bg.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Left 120x120 media view container (fitted in height)
+          Container(
+            width: 104,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(6.0),
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Right content (Header, Advertiser, Body, CTA)
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: bg.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(3.0),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Container(
+                        height: 14,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          borderRadius: BorderRadius.circular(3.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  height: 10,
+                  width: 90,
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(3.0),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  height: 10,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(3.0),
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  width: double.infinity,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(6.0),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNativeBigPlaceholder(Gradient gradient, Color bg) {
+    return Container(
+      width: widget.width ?? double.infinity,
+      height: widget.height ?? 280.0,
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
         color: bg.withValues(alpha: 0.3),
@@ -311,8 +401,8 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 decoration: BoxDecoration(
                   gradient: gradient,
                   borderRadius: BorderRadius.circular(8.0),
@@ -324,7 +414,7 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      height: 12,
+                      height: 14,
                       width: double.infinity,
                       decoration: BoxDecoration(
                         gradient: gradient,
@@ -343,16 +433,16 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
-              Container(
-                width: 80,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: gradient,
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: gradient,
+              borderRadius: BorderRadius.circular(8.0),
+            ),
           ),
         ],
       ),

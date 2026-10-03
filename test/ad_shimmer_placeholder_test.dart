@@ -34,6 +34,21 @@ void main() {
       expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     });
 
+    testWidgets('renders nativeBig variant without errors', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: AdShimmerPlaceholder(
+              variant: AdShimmerVariant.nativeBig,
+              height: 280,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
+    });
+
     testWidgets('renders nativeFullScreen variant without errors', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(

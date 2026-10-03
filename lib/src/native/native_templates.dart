@@ -3,12 +3,14 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 /// Pre-built template sizes for Native Ads.
 enum NativeTemplate {
-  /// Small compact native card (icon + headline + CTA button). Ideal for feeds (height ~90).
+  /// Small compact native card (icon + headline + CTA button). Ideal for list rows (height ~90dp).
   small,
 
-  /// Medium / Big native card (media view + icon + headline + body + CTA button).
-  /// Matches standard 280-320dp native layouts.
+  /// Medium native banner card (left 120x120 media + right text & CTA). Height defaults to ~120dp.
   medium,
+
+  /// Big native ad card (full-width media on top + icon + headline + body + CTA). Height defaults to ~280dp.
+  big,
 
   /// Fullscreen immersive native ad (fullscreen media view + bottom header/details + CTA).
   /// Perfect for story/reel feeds, interstitial replacement, or standalone screens.
@@ -53,7 +55,7 @@ class NativeAdStyle {
   /// Converts this style to the official [NativeTemplateStyle] used by Google Mobile Ads.
   NativeTemplateStyle toGoogleTemplateStyle(NativeTemplate template) {
     return NativeTemplateStyle(
-      templateType: template == NativeTemplate.small
+      templateType: (template == NativeTemplate.small || template == NativeTemplate.medium)
           ? TemplateType.small
           : TemplateType.medium,
       mainBackgroundColor: backgroundColor,
@@ -63,21 +65,27 @@ class NativeAdStyle {
               backgroundColor: callToActionColor,
               textColor: callToActionTextColor,
               style: NativeTemplateFontStyle.bold,
-              size: template == NativeTemplate.fullScreen ? 16.0 : 15.0,
+              size: template == NativeTemplate.fullScreen
+                  ? 16.0
+                  : (template == NativeTemplate.medium ? 13.0 : 15.0),
             )
           : null,
       primaryTextStyle: primaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: primaryTextColor,
               style: NativeTemplateFontStyle.bold,
-              size: template == NativeTemplate.fullScreen ? 18.0 : 14.0,
+              size: template == NativeTemplate.fullScreen
+                  ? 18.0
+                  : (template == NativeTemplate.medium ? 13.0 : 15.0),
             )
           : null,
       secondaryTextStyle: secondaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: secondaryTextColor,
               style: NativeTemplateFontStyle.normal,
-              size: template == NativeTemplate.fullScreen ? 14.0 : 12.0,
+              size: template == NativeTemplate.fullScreen
+                  ? 14.0
+                  : (template == NativeTemplate.medium ? 11.0 : 12.0),
             )
           : null,
     );
