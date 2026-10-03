@@ -71,7 +71,10 @@ class AdMobConfig {
     this.testMode = false,
     this.enableUmpConsent = false,
     this.interstitialCooldown = const Duration(seconds: 30),
+    this.interstitialExpiry = const Duration(hours: 1),
     this.appOpenCooldown = const Duration(seconds: 10),
+    this.appOpenExpiry = const Duration(hours: 4),
+    this.rewardedExpiry = const Duration(hours: 1),
     this.autoResumeAppOpen = true,
     this.isEntitled = false,
   });
@@ -91,8 +94,17 @@ class AdMobConfig {
   /// Minimum duration between consecutive interstitial impressions.
   final Duration interstitialCooldown;
 
+  /// Maximum lifespan before a cached interstitial ad is considered stale and evicted.
+  final Duration interstitialExpiry;
+
   /// Minimum duration between consecutive App Open impressions on resume.
   final Duration appOpenCooldown;
+
+  /// Maximum lifespan before a cached App Open ad is considered stale (Google advises 4 hours).
+  final Duration appOpenExpiry;
+
+  /// Maximum lifespan before a cached Rewarded ad is considered stale.
+  final Duration rewardedExpiry;
 
   /// Automatically presents App Open ads when returning from background.
   final bool autoResumeAppOpen;
@@ -168,7 +180,10 @@ class AdMobConfig {
     bool? testMode,
     bool? enableUmpConsent,
     Duration? interstitialCooldown,
+    Duration? interstitialExpiry,
     Duration? appOpenCooldown,
+    Duration? appOpenExpiry,
+    Duration? rewardedExpiry,
     bool? autoResumeAppOpen,
     bool? isEntitled,
   }) {
@@ -179,7 +194,10 @@ class AdMobConfig {
       enableUmpConsent: enableUmpConsent ?? this.enableUmpConsent,
       interstitialCooldown:
           interstitialCooldown ?? this.interstitialCooldown,
+      interstitialExpiry: interstitialExpiry ?? this.interstitialExpiry,
       appOpenCooldown: appOpenCooldown ?? this.appOpenCooldown,
+      appOpenExpiry: appOpenExpiry ?? this.appOpenExpiry,
+      rewardedExpiry: rewardedExpiry ?? this.rewardedExpiry,
       autoResumeAppOpen: autoResumeAppOpen ?? this.autoResumeAppOpen,
       isEntitled: isEntitled ?? this.isEntitled,
     );

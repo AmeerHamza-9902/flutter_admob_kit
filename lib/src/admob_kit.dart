@@ -105,17 +105,20 @@ class AdMobKit {
     _interstitial = InterstitialManager(
       adUnitIdProvider: () => _config.interstitialId,
       cooldown: _config.interstitialCooldown,
+      adExpiry: _config.interstitialExpiry,
       isEntitledProvider: () => isEntitled,
     )..onEvent = _handleEvent;
 
     _rewarded = RewardedManager(
       adUnitIdProvider: () => _config.rewardedId,
+      adExpiry: _config.rewardedExpiry,
       isEntitledProvider: () => isEntitled,
     )..onEvent = _handleEvent;
 
     _appOpen = AppOpenManager(
       adUnitIdProvider: () => _config.appOpenId,
       cooldown: _config.appOpenCooldown,
+      adExpiry: _config.appOpenExpiry,
       isEntitledProvider: () => isEntitled,
     )..onEvent = _handleEvent;
 
@@ -156,9 +159,14 @@ class AdMobKit {
     }
     if (_interstitial != null) {
       _interstitial!.cooldown = newConfig.interstitialCooldown;
+      _interstitial!.adExpiry = newConfig.interstitialExpiry;
+    }
+    if (_rewarded != null) {
+      _rewarded!.adExpiry = newConfig.rewardedExpiry;
     }
     if (_appOpen != null) {
       _appOpen!.cooldown = newConfig.appOpenCooldown;
+      _appOpen!.adExpiry = newConfig.appOpenExpiry;
     }
   }
 

@@ -19,11 +19,37 @@ class BannerAdWidget extends StatefulWidget {
     this.adUnitId,
     this.size = AdSize.banner,
     this.isAdaptive = false,
+    this.fitToWidth = false,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
   });
+
+  /// Factory constructor for a standard small banner that adapts to full screen width.
+  const BannerAdWidget.small({
+    super.key,
+    this.adUnitId,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  })  : size = AdSize.banner,
+        isAdaptive = true,
+        fitToWidth = false;
+
+  /// Factory constructor for a standard 300x250 Medium Rectangle banner
+  /// scaled with [FittedBox] to fit full container/screen width.
+  const BannerAdWidget.mediumRectangle({
+    super.key,
+    this.adUnitId,
+    this.fitToWidth = true,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  })  : size = AdSize.mediumRectangle,
+        isAdaptive = false;
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
   final String? adUnitId;
@@ -33,6 +59,10 @@ class BannerAdWidget extends StatefulWidget {
 
   /// Whether to use anchored adaptive banner sizing based on device screen width.
   final bool isAdaptive;
+
+  /// Whether to wrap the banner in a [FittedBox] so it scales seamlessly to full width.
+  /// Especially ideal for 300x250 medium rectangles on full-width feeds.
+  final bool fitToWidth;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
   final bool showShimmer;
@@ -154,29 +184,38 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     final width = (_resolvedSize ?? widget.size).width.toDouble();
     final height = (_resolvedSize ?? widget.size).height.toDouble();
 
+    Widget content;
     if (_isLoaded && _ad != null) {
-      return SizedBox(
+      content = SizedBox(
         width: width,
         height: height,
         child: AdWidget(ad: _ad!),
       );
-    }
-
-    // Loading state: placeholder or zero-CLS shimmer
-    if (widget.placeholder != null) {
-      return widget.placeholder!;
-    }
-
-    if (widget.showShimmer) {
-      return AdShimmerPlaceholder(
+    } else if (widget.placeholder != null) {
+      content = widget.placeholder!;
+    } else if (widget.showShimmer) {
+      content = AdShimmerPlaceholder(
         width: width,
         height: height,
         variant: height >= 200
             ? AdShimmerVariant.mediumRectangle
             : AdShimmerVariant.banner,
       );
+    } else {
+      content = SizedBox(width: width, height: height);
     }
 
-    return SizedBox(width: width, height: height);
+    if (widget.fitToWidth) {
+      return SizedBox(
+        width: double.infinity,
+        child: FittedBox(
+          fit: BoxFit.fitWidth,
+          alignment: Alignment.center,
+          child: content,
+        ),
+      );
+    }
+
+    return content;
   }
 }

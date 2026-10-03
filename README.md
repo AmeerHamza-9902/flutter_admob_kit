@@ -95,8 +95,13 @@ await AdMobKit.appOpen.show(true);
 
 ### 3. Add Banner & Native Widgets to UI
 
-```dart
-// 1. Adaptive Banner with built-in zero-CLS shimmer placeholder
+// 1. Small Adaptive Banner (Full width on Android & iOS):
+const BannerAdWidget.small();
+
+// 2. Medium Rectangle Banner (300x250) fitted seamlessly to full width:
+const BannerAdWidget.mediumRectangle();
+
+// 3. Standard Banner:
 const BannerAdWidget();
 
 // 2. Big Native Card (280dp) — Top Media + Icon + Headline + Body + CTA
