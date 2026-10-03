@@ -233,56 +233,74 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
   Widget _buildNativeSmallPlaceholder(Gradient gradient, Color bg) {
     return Container(
       width: widget.width ?? double.infinity,
-      height: widget.height ?? 100.0,
-      padding: const EdgeInsets.all(12.0),
+      height: widget.height ?? 90.0,
+      padding: const EdgeInsets.all(5.0),
       decoration: BoxDecoration(
         color: bg.withValues(alpha: 0.3),
-        borderRadius: widget.borderRadius ?? BorderRadius.circular(12.0),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(8.0),
         border: Border.all(color: bg.withValues(alpha: 0.5)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // 50x50 Ad App Icon
           Container(
-            width: 48,
-            height: 48,
+            width: 50,
+            height: 50,
             decoration: BoxDecoration(
               gradient: gradient,
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.circular(6.0),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          // Headline + Badge + Body
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 18,
+                      decoration: BoxDecoration(
+                        color: bg.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(3.0),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Container(
+                        height: 15,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          borderRadius: BorderRadius.circular(3.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
                 Container(
-                  height: 14,
+                  height: 12,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: gradient,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  height: 10,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    gradient: gradient,
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(3.0),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
+          // 90x40 CTA Button
           Container(
-            width: 70,
-            height: 32,
+            width: 90,
+            height: 40,
             decoration: BoxDecoration(
               gradient: gradient,
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.circular(6.0),
             ),
           ),
         ],
