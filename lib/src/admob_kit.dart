@@ -71,6 +71,15 @@ class AdMobKit {
     return _appOpen!;
   }
 
+  /// The active [ConsentManager] instance for GDPR and privacy consent.
+  static ConsentManager get consent => ConsentManager.instance;
+
+  /// Shows the Google Privacy Options consent form (e.g. from app settings or privacy policy screen).
+  ///
+  /// Returns `true` if the form was successfully shown, `false` otherwise.
+  static Future<bool> showPrivacyConsentForm() =>
+      ConsentManager.instance.showPrivacyOptionsForm();
+
   static Future<void>? _initFuture;
 
   /// Initializes the AdMob SDK and internal managers.

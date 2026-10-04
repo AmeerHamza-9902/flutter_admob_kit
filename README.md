@@ -157,6 +157,19 @@ Banners and native widgets will automatically collapse to `SizedBox.shrink()` wi
 
 ---
 
+## 🔒 GDPR / UMP Consent & Privacy Options
+
+Google UMP (User Messaging Platform) consent is handled automatically during initialization when `enableUmpConsent: true` is configured.
+
+To allow users to change their privacy / consent choices later (e.g. from your App Settings screen):
+
+```dart
+// Opens Google's Privacy Options form:
+final bool updated = await AdMobKit.showPrivacyConsentForm();
+```
+
+---
+
 ## 📄 License
 
 MIT © [Ameerhamza-tech](https://github.com/Ameerhamza-tech)
