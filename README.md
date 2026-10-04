@@ -4,26 +4,29 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-android%20%7C%20ios-green.svg)]()
 
-A lightweight, production-ready internal AdMob SDK for Flutter. Built on Google Mobile Ads, designed for minimal configuration, zero boilerplate, and optimal ad fill, show, and match rates.
+A lightweight, robust, production-ready Google Mobile Ads wrapper for Flutter. Designed to behave like a small internal AdMob SDK: minimal setup, zero boilerplate, optimal Match/Show rates, and zero unnecessary ad requests.
 
 ---
 
-## 💡 Why `flutter_admob_kit`?
+## 🌟 Key Features
 
-* ⚡ **Zero-Boilerplate API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)` (clean boolean flag pass-through).
-* 🛡️ **Zero Waste / Spam Protection:** Calling `show(false)` makes zero ad requests and avoids hidden loops, protecting your AdMob account and match rate.
-* 📦 **Minimal Dependencies:** Zero bloated dependencies. Only `google_mobile_ads` is required.
-* 🔄 **Automatic Background Preloading:** Automatically preloads the next fullscreen ad upon dismissal or initialization.
-* ⏱️ **Ad Freshness & Expiry Guard:** Auto-evicts expired ads (4 hrs for App Open, Interstitial, and Rewarded) so stale impressions never occur.
-* 🔒 **Fullscreen Presentation Mutex:** Guarantees that only one fullscreen ad (App Open, Interstitial, or Rewarded) presents at any given moment.
-* 📱 **Native App Lifecycle Observer:** Automatically handles App Open ads on resume transitions without manual `WidgetsBindingObserver` boilerplate.
-* 💎 **Instant Global Entitlement Gate (`setEntitled`):** Instantly suppresses all fullscreen ads and collapses banner/native widgets to zero height for premium users.
-* 🛡️ **Paywall Close Guard:** Protects back gestures and close buttons during paywalls without trapping users or triggering unexpected App Open ads.
-* 🎨 **Out-of-the-Box Native Templates:** Built-in small and medium Native templates—no native Android XML or iOS XIB files needed.
+* ⚡ **Simple & Declarative API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)`.
+* 🛡️ **Zero-Spam & Zero-Waste:** Calling `show(false)` is a 100% no-op. It triggers zero network requests and does not reset or reload ads.
+* 📦 **Zero External Bloat:** No Firebase, no Remote Config, and no external networking dependencies. Only `google_mobile_ads` is used.
+* 🔒 **GDPR & UMP Consent Gating:** Integrated Google User Messaging Platform (UMP). Ads are gated and will **never** request or preload until `canRequestAds()` reports safe consent.
+* 🔄 **Automatic Single-Pool Preload:** Automatically preloads the next fullscreen ad in the background after dismissal.
+* ⏱️ **Ad Freshness & Expiry (4 Hours):** Stale ads are automatically evicted and refreshed so invalid impressions never occur.
+* 🛡️ **Token-Based Fullscreen Mutex:** Strict mutual exclusion ensures Interstitial, Rewarded, and App Open ads never overlap or collide.
+* 📱 **Native App Open Lifecycle:** Automatically shows App Open ads when returning from background, with cold-start / first-launch protection and cooldown checks.
+* 💎 **Instant Global Entitlement Gate (`setEntitled`):** Instantly suppresses all ads and collapses Banner and Native widgets to zero height when users purchase premium.
+* 🎨 **Google Official Native Templates:** Out-of-the-box support for `small` (90dp) and `medium` (320dp) native ads without touching Android XML or iOS XIB files.
+* 📐 **Zero-CLS Responsive Banners:** Full-width Anchored Adaptive Banners and 300x250 Medium Rectangles with built-in zero Cumulative Layout Shift (CLS) shimmer skeletons.
 
 ---
 
 ## 📦 Installation
+
+Add `flutter_admob_kit` to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
@@ -32,11 +35,11 @@ dependencies:
 
 ---
 
-## 🚀 Quick Start in 3 Easy Steps
+## 🚀 Complete Usage Guide
 
-### 1. Initialize Once in `main.dart`
+### 1. Initialize in `main.dart`
 
-Configure your Ad Unit IDs once. The SDK automatically selects the appropriate Android or iOS ID at runtime:
+Configure your Ad Unit IDs once during app launch. The SDK automatically selects the appropriate Android or iOS ID:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -47,21 +50,26 @@ void main() async {
 
   await AdMobKit.initialize(
     config: const AdMobConfig(
+      // Android Ad Unit IDs
       android: AdPlatformConfig(
-        interstitial: 'ca-app-pub-XXXX/XXXX',
-        rewarded: 'ca-app-pub-XXXX/XXXX',
-        appOpen: 'ca-app-pub-XXXX/XXXX',
-        banner: 'ca-app-pub-XXXX/XXXX',
-        native: 'ca-app-pub-XXXX/XXXX',
+        interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+        rewarded: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+        appOpen: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+        banner: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
+        native: 'ca-app-pub-XXXXXXXXXXXXXXXX/YYYYYYYYYY',
       ),
+      // iOS Ad Unit IDs
       ios: AdPlatformConfig(
-        interstitial: 'ca-app-pub-XXXX/XXXX',
-        rewarded: 'ca-app-pub-XXXX/XXXX',
-        appOpen: 'ca-app-pub-XXXX/XXXX',
-        banner: 'ca-app-pub-XXXX/XXXX',
-        native: 'ca-app-pub-XXXX/XXXX',
+        interstitial: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
+        rewarded: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
+        appOpen: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
+        banner: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
+        native: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
       ),
-      autoResumeAppOpen: true, // Shows App Open ad on app resume automatically
+      enableUmpConsent: true,    // Checks and presents Google UMP GDPR consent form
+      autoResumeAppOpen: true,   // Automatically shows App Open ad when returning from background
+      interstitialCooldown: Duration(seconds: 30), // Minimum interval between interstitials
+      appOpenCooldown: Duration(seconds: 15),       // Minimum interval between App Open ads
     ),
   );
 
@@ -69,66 +77,142 @@ void main() async {
 }
 ```
 
-### 2. Show Fullscreen Ads (Controlled via Boolean Flag)
+---
 
-Pass your boolean flag directly to `show()`:
+### 2. Interstitial Ads
+
+Trigger interstitial ads during screen transitions or button clicks:
 
 ```dart
-// Interstitial
-final bool showAd = true; // or your app's logic/toggle
-final bool wasShown = await AdMobKit.interstitial.show(showAd);
+// To show an ad (e.g. user completes a level or navigates):
+final bool wasShown = await AdMobKit.interstitial.show(true);
 
-// Rewarded
+// If user is non-ad or condition is not met (pass false):
+// Complete NO-OP: No ad is shown and zero network requests are made.
+await AdMobKit.interstitial.show(false);
+```
+
+---
+
+### 3. Rewarded Ads
+
+Present rewarded video ads and grant rewards safely (reward callback is guaranteed to fire at most once):
+
+```dart
 await AdMobKit.rewarded.show(
   true,
-  onReward: (reward) {
+  onReward: (RewardItem reward) {
+    // Grant coins, gems, or unlock features for the user:
     print('User earned: ${reward.amount} ${reward.type}');
   },
 );
-
-// App Open (if manual presentation is needed)
-await AdMobKit.appOpen.show(true);
 ```
 
-> **Note:** If `false` is passed, no ad is presented and no new ad request is triggered. If `true` is passed, the preloaded ad is displayed immediately, and the next ad is preloaded in the background.
+---
 
-### 3. Add Banner & Native Widgets to UI
+### 4. App Open Ads
+
+* **Automatic Lifecycle:** If `autoResumeAppOpen: true` is configured in `AdMobKit.initialize()`, App Open ads display automatically when the app resumes from the background.
+* **Manual Display:** If you need to trigger an App Open ad manually at a custom point:
+  ```dart
+  await AdMobKit.appOpen.show(true);
+  ```
+
+---
+
+### 5. Banner Ads
+
+Drop-in banner widgets with zero Cumulative Layout Shift (CLS):
 
 ```dart
-// 1. Small Adaptive Banner (Full width on Android & iOS):
-const BannerAdWidget.small();
+// 1. Small Anchored Adaptive Banner (Automatically matches device width):
+const BannerAdWidget.small()
 
-// 2. Medium Rectangle Banner (300x250) fitted seamlessly to full width:
-const BannerAdWidget.mediumRectangle();
+// 2. Medium Rectangle Banner (300x250 - ideal for feeds and scroll views):
+const BannerAdWidget.mediumRectangle()
+```
 
-// 3. Compact Small Native Ad (90dp) — Icon + Headline + CTA:
-const NativeAdWidget.small();
-
-// 4. Medium Native Card (320dp) — Top Media + Icon + Headline + Body + CTA:
-const NativeAdWidget.medium();
-
-// 5. Fully Customizable Styling (Colors, CTA button, Background):
-NativeAdWidget.medium(
-  style: const NativeAdStyle(
-    backgroundColor: Colors.white,
-    callToActionColor: Color(0xFF066136),
-    callToActionTextColor: Colors.white,
-    primaryTextColor: Color(0xFF0E1A14),
-    secondaryTextColor: Color(0xFF55655D),
-    cornerRadius: 8.0,
+#### Example inside a Scaffold:
+```dart
+Scaffold(
+  appBar: AppBar(title: const Text('My App')),
+  body: const Center(child: Text('Content')),
+  bottomNavigationBar: const SafeArea(
+    child: BannerAdWidget.small(),
   ),
 );
 ```
 
 ---
 
-## 🛡️ Paywall Close Guard
+### 6. Native Ads
 
-Intercepts back navigation and close buttons on subscription/paywall screens. Displays an interstitial ad upon closing (if available), but **never traps the user** if ad loading fails or times out:
+Pre-built, policy-compliant native ad layouts that blend seamlessly with Flutter widgets:
+
+```dart
+// 1. Small Compact Native Row (Height: 90dp - perfect for ListView rows):
+const NativeAdWidget.small()
+
+// 2. Medium Native Card (Height: 320dp - full media view + headline + body + CTA):
+const NativeAdWidget.medium()
+
+// 3. Fully Customized Visual Styling:
+NativeAdWidget.medium(
+  style: const NativeAdStyle(
+    backgroundColor: Colors.white,
+    cornerRadius: 12.0,
+    callToActionColor: Color(0xFF1E88E5),
+    callToActionTextColor: Colors.white,
+    primaryTextColor: Color(0xFF212121),
+    secondaryTextColor: Color(0xFF757575),
+  ),
+)
+```
+
+---
+
+### 7. GDPR / UMP Consent & Privacy Options
+
+* **Automatic Flow:** Set `enableUmpConsent: true` during initialization. If the user is in the EU/UK/EEA, the consent dialog will automatically appear on startup.
+* **Privacy Options Form:** Allow users to update their consent choices anytime from your App Settings screen:
+
+```dart
+ListTile(
+  leading: const Icon(Icons.privacy_tip_outlined),
+  title: const Text('Privacy & Consent Choices'),
+  onTap: () async {
+    final bool updated = await AdMobKit.showPrivacyConsentForm();
+    if (updated) {
+      debugPrint('Consent preferences updated by user');
+    }
+  },
+);
+```
+
+---
+
+### 8. Premium / In-App Purchases (`setEntitled`)
+
+When a user purchases a subscription or ad removal in-app purchase:
+
+```dart
+// Suppress all ads across the app immediately:
+AdMobKit.setEntitled(true);
+```
+
+* All cached fullscreen ads are immediately evicted from memory.
+* Any active Banner and Native widgets automatically collapse to `SizedBox.shrink()`.
+* All future ad requests and preloads are cancelled.
+
+---
+
+### 9. Paywall Close Guard
+
+Prevent users from accidentally triggering App Open ads or getting trapped by ads when dismissing a paywall or subscription screen:
 
 ```dart
 PaywallCloseGuard(
-  isEntitled: user.isPremium, // Bypasses ads completely for paid users
+  isEntitled: user.isPremium,
   onDismiss: () => Navigator.of(context).pop(),
   child: Scaffold(
     appBar: AppBar(
@@ -144,29 +228,14 @@ PaywallCloseGuard(
 
 ---
 
-## 💎 Instant Premium Suppression
+## 📈 Match Rate & Show Rate Optimization
 
-When a user purchases an in-app purchase or subscription:
-
-```dart
-// Instantly silences all ads across the entire app:
-AdMobKit.setEntitled(true);
-```
-
-Banners and native widgets will automatically collapse to `SizedBox.shrink()` without leaving blank spaces or artifacts.
-
----
-
-## 🔒 GDPR / UMP Consent & Privacy Options
-
-Google UMP (User Messaging Platform) consent is handled automatically during initialization when `enableUmpConsent: true` is configured.
-
-To allow users to change their privacy / consent choices later (e.g. from your App Settings screen):
-
-```dart
-// Opens Google's Privacy Options form:
-final bool updated = await AdMobKit.showPrivacyConsentForm();
-```
+| Feature | How It Protects Your Account & Metrics |
+|---|---|
+| **Deduplicated Preloads** | Preloads exactly 1 ad per format. Rapid clicks or rebuilds will never trigger duplicate ad requests. |
+| **Idempotent `show(false)`** | Zero requests are made when `false` is passed, keeping your Match Rate clean. |
+| **Freshness Protection** | Discards stale ads after 4 hours to comply with Google AdMob policy and ensure impressions count. |
+| **Ownership Mutex** | Guarantees that Interstitial, Rewarded, and App Open ads never collide. |
 
 ---
 
