@@ -14,6 +14,7 @@ class RewardedManager extends ChangeNotifier {
     this.adExpiry = const Duration(hours: 1),
     this.retryPolicy = const RetryPolicy(),
     this.isEntitledProvider,
+    this.canRequestAdsProvider,
   });
 
   /// Function that returns the active ad unit ID.
@@ -21,6 +22,9 @@ class RewardedManager extends ChangeNotifier {
 
   /// Function that returns whether the user is entitled (ad-free).
   final ValueGetter<bool>? isEntitledProvider;
+
+  /// Function that returns whether consent allows ad requests.
+  final ValueGetter<bool>? canRequestAdsProvider;
 
   /// Maximum freshness lifespan of a loaded ad.
   Duration adExpiry;
@@ -66,6 +70,7 @@ class RewardedManager extends ChangeNotifier {
   Future<bool> preload([String? overrideAdUnitId]) async {
     if (_state == AdState.disposed) return false;
     if (isEntitledProvider?.call() == true) return false;
+    if (canRequestAdsProvider?.call() == false) return false;
 
     // Evict expired ad
     if (_state == AdState.ready && isExpired) {
@@ -222,8 +227,11 @@ class RewardedManager extends ChangeNotifier {
       onAdImpression: (_) => _emitEvent(AdEventType.impression),
     );
 
+    var rewardGranted = false;
     activeAd.show(
       onUserEarnedReward: (adWithoutView, reward) {
+        if (rewardGranted) return;
+        rewardGranted = true;
         _emitEvent(
           AdEventType.rewardEarned,
           rewardAmount: reward.amount,

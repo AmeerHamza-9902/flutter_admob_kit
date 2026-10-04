@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
+import '../consent_manager.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
 import 'native_templates.dart';
 
@@ -159,12 +160,18 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     }
   }
 
-  void _load() {
+  Future<void> _load() async {
     final gen = ++_loadGeneration;
 
     // Check entitlement (premium users see no ads)
     if (AdMobKit.isEntitled) {
       if (mounted) setState(() {});
+      return;
+    }
+
+    // Check consent state
+    final canRequest = await ConsentManager.instance.canRequestAds();
+    if (!canRequest || gen != _loadGeneration || !mounted) {
       return;
     }
 

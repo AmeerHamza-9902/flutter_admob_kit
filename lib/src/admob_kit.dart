@@ -117,17 +117,22 @@ class AdMobKit {
     } catch (_) {}
 
     // 3. Setup internal managers
+    bool canRequest() =>
+        !_config.enableUmpConsent || ConsentManager.instance.isConsentSafe;
+
     _interstitial = InterstitialManager(
       adUnitIdProvider: () => _config.interstitialId,
       cooldown: _config.interstitialCooldown,
       adExpiry: _config.interstitialExpiry,
       isEntitledProvider: () => isEntitled,
+      canRequestAdsProvider: canRequest,
     )..onEvent = _handleEvent;
 
     _rewarded = RewardedManager(
       adUnitIdProvider: () => _config.rewardedId,
       adExpiry: _config.rewardedExpiry,
       isEntitledProvider: () => isEntitled,
+      canRequestAdsProvider: canRequest,
     )..onEvent = _handleEvent;
 
     _appOpen = AppOpenManager(
@@ -135,6 +140,7 @@ class AdMobKit {
       cooldown: _config.appOpenCooldown,
       adExpiry: _config.appOpenExpiry,
       isEntitledProvider: () => isEntitled,
+      canRequestAdsProvider: canRequest,
     )..onEvent = _handleEvent;
 
     // 4. Setup automatic App Open lifecycle observer

@@ -14,5 +14,4 @@ dependencies:
     path: ../
 
 flutter:
-  assets:
-    - assets/ads_config.json
+  uses-material-design: true

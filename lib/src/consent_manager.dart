@@ -78,18 +78,28 @@ class ConsentManager {
     return completer.future;
   }
 
+  bool _cachedCanRequestAds = false;
+
+  /// Synchronous fast check whether ads are safe to request according to UMP consent.
+  bool get isConsentSafe => _cachedCanRequestAds;
+
   /// Checks if Google Mobile Ads reports that ads can be requested.
   ///
   /// Uses official [ConsentInformation.instance.canRequestAds()].
   Future<bool> canRequestAds() async {
     try {
-      return await ConsentInformation.instance.canRequestAds();
+      final allowed = await ConsentInformation.instance.canRequestAds();
+      _cachedCanRequestAds = allowed;
+      return allowed;
     } catch (_) {
       try {
         final status = await ConsentInformation.instance.getConsentStatus();
-        return status == ConsentStatus.obtained ||
+        final allowed = status == ConsentStatus.obtained ||
             status == ConsentStatus.notRequired;
+        _cachedCanRequestAds = allowed;
+        return allowed;
       } catch (_) {
+        _cachedCanRequestAds = false;
         return false;
       }
     }
@@ -98,6 +108,7 @@ class ConsentManager {
   /// Resets consent status (useful during testing).
   @visibleForTesting
   Future<void> reset() async {
+    _cachedCanRequestAds = false;
     try {
       await ConsentInformation.instance.reset();
     } catch (_) {}

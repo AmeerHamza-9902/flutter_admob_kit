@@ -15,6 +15,7 @@ class InterstitialManager extends ChangeNotifier {
     this.adExpiry = const Duration(hours: 1),
     this.retryPolicy = const RetryPolicy(),
     this.isEntitledProvider,
+    this.canRequestAdsProvider,
   });
 
   /// Function that returns the active ad unit ID.
@@ -22,6 +23,9 @@ class InterstitialManager extends ChangeNotifier {
 
   /// Function that returns whether the user is entitled (ad-free).
   final ValueGetter<bool>? isEntitledProvider;
+
+  /// Function that returns whether consent allows ad requests.
+  final ValueGetter<bool>? canRequestAdsProvider;
 
   /// Cooldown between consecutive interstitial presentations.
   Duration cooldown;
@@ -77,6 +81,7 @@ class InterstitialManager extends ChangeNotifier {
   Future<bool> preload([String? overrideAdUnitId]) async {
     if (_state == AdState.disposed) return false;
     if (isEntitledProvider?.call() == true) return false;
+    if (canRequestAdsProvider?.call() == false) return false;
 
     // Evict expired ad
     if (_state == AdState.ready && isExpired) {

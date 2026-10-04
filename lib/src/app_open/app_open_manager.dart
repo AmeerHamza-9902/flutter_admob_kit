@@ -14,6 +14,7 @@ class AppOpenManager extends ChangeNotifier {
     this.cooldown = const Duration(seconds: 10),
     this.retryPolicy = const RetryPolicy(),
     this.isEntitledProvider,
+    this.canRequestAdsProvider,
   });
 
   /// Function that returns the active ad unit ID.
@@ -21,6 +22,9 @@ class AppOpenManager extends ChangeNotifier {
 
   /// Function that returns whether the user is entitled (ad-free).
   final ValueGetter<bool>? isEntitledProvider;
+
+  /// Function that returns whether consent allows ad requests.
+  final ValueGetter<bool>? canRequestAdsProvider;
 
   /// Maximum freshness lifespan of a loaded App Open ad (Google advises 4 hours).
   Duration adExpiry;
@@ -77,6 +81,7 @@ class AppOpenManager extends ChangeNotifier {
   Future<bool> preload([String? overrideAdUnitId]) async {
     if (_state == AdState.disposed) return false;
     if (isEntitledProvider?.call() == true) return false;
+    if (canRequestAdsProvider?.call() == false) return false;
 
     // Evict expired ad
     if (_state == AdState.ready && isExpired) {
