@@ -233,11 +233,11 @@ class InterstitialManager extends ChangeNotifier {
         _emitEvent(AdEventType.shown);
       },
       onAdDismissedFullScreenContent: (ad) {
-        _onAdClosed(ad, currentGen);
+        _onAdClosed(ad, currentGen, token);
         _emitEvent(AdEventType.dismissed);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        _onAdClosed(ad, currentGen);
+        _onAdClosed(ad, currentGen, token);
         _emitEvent(AdEventType.dismissed, errorMessage: error.message);
       },
       onAdClicked: (_) => _emitEvent(AdEventType.clicked),
@@ -248,12 +248,13 @@ class InterstitialManager extends ChangeNotifier {
     return true;
   }
 
-  void _onAdClosed(InterstitialAd ad, int gen) {
-    if (_leaseToken != null) {
-      AdOrchestrator.instance.releaseWithToken(_leaseToken!);
-      _leaseToken = null;
-    } else {
-      AdOrchestrator.instance.release('interstitial');
+  void _onAdClosed(InterstitialAd ad, int gen, [int? token]) {
+    final tokenToRelease = token ?? _leaseToken;
+    if (tokenToRelease != null) {
+      AdOrchestrator.instance.releaseWithToken(tokenToRelease);
+      if (_leaseToken == tokenToRelease) {
+        _leaseToken = null;
+      }
     }
 
     ad.dispose();
@@ -333,5 +334,15 @@ class InterstitialManager extends ChangeNotifier {
     }
     _disposeCurrentAd();
     super.dispose();
+  }
+
+  @visibleForTesting
+  int? get leaseToken => _leaseToken;
+
+  @visibleForTesting
+  void setAdForTesting(InterstitialAd ad) {
+    _ad = ad;
+    _state = AdState.ready;
+    _loadedAt = DateTime.now();
   }
 }

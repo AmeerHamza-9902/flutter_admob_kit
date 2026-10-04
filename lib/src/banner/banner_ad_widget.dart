@@ -87,10 +87,13 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   bool _isLoaded = false;
   bool _hasFailed = false;
   int _loadGeneration = 0;
+  String? _activeAdUnitId;
+  bool? _activeTestMode;
 
   @override
   void initState() {
     super.initState();
+    AdMobKit.configNotifier.addListener(_onConfigChanged);
     _load();
   }
 
@@ -104,22 +107,53 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
   }
 
+  void _onConfigChanged() {
+    if (!mounted) return;
+
+    if (AdMobKit.isEntitled) {
+      _loadGeneration++;
+      _ad?.dispose();
+      _ad = null;
+      _isLoaded = false;
+      _activeAdUnitId = null;
+      _activeTestMode = null;
+      setState(() {});
+      return;
+    }
+
+    final targetUnitId = widget.adUnitId ?? AdMobKit.config.bannerId;
+    final targetTestMode = AdMobKit.config.testMode;
+
+    if (_activeAdUnitId != targetUnitId || _activeTestMode != targetTestMode) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final gen = ++_loadGeneration;
 
     // Check entitlement (premium users see no ads)
     if (AdMobKit.isEntitled) {
+      _ad?.dispose();
+      _ad = null;
+      _isLoaded = false;
+      _activeAdUnitId = null;
+      _activeTestMode = null;
       if (mounted) setState(() {});
       return;
     }
 
     // Check consent state
     final canRequest = await ConsentManager.instance.canRequestAds();
-    if (!canRequest || gen != _loadGeneration || !mounted) {
+    if (!canRequest ||
+        gen != _loadGeneration ||
+        !mounted ||
+        AdMobKit.isEntitled) {
       return;
     }
 
     final unitId = widget.adUnitId ?? AdMobKit.config.bannerId;
+    final testMode = AdMobKit.config.testMode;
     if (unitId == null || unitId.isEmpty) {
       _hasFailed = true;
       widget.onAdFailed?.call();
@@ -131,13 +165,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     _ad = null;
     _isLoaded = false;
     _hasFailed = false;
+    _activeAdUnitId = unitId;
+    _activeTestMode = testMode;
 
     // Resolve adaptive size if requested
     AdSize targetSize = widget.size;
     if (widget.isAdaptive && mounted) {
       final width = MediaQuery.of(context).size.width.truncate();
       targetSize = await BannerManager.getAdaptiveSize(width);
-      if (gen != _loadGeneration) return;
+      if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
     }
     _resolvedSize = targetSize;
 
@@ -147,7 +183,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) {
-          if (gen != _loadGeneration || !mounted) {
+          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) {
             ad.dispose();
             return;
           }
@@ -160,7 +196,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          if (gen != _loadGeneration || !mounted) return;
+          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
           setState(() {
             _ad = null;
             _isLoaded = false;
@@ -176,6 +212,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
+    AdMobKit.configNotifier.removeListener(_onConfigChanged);
     _loadGeneration++;
     _ad?.dispose();
     _ad = null;

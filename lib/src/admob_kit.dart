@@ -25,6 +25,10 @@ import 'rewarded/rewarded_manager.dart';
 ///   ),
 /// );
 /// ```
+class _ConfigChangeNotifier extends ChangeNotifier {
+  void notify() => notifyListeners();
+}
+
 class AdMobKit {
   AdMobKit._();
 
@@ -41,6 +45,11 @@ class AdMobKit {
   static RewardedManager? _rewarded;
   static AppOpenManager? _appOpen;
   static LifecycleManager? _lifecycleManager;
+
+  static final _ConfigChangeNotifier _configNotifier = _ConfigChangeNotifier();
+
+  /// Listenable that notifies when configuration or entitlement changes at runtime.
+  static Listenable get configNotifier => _configNotifier;
 
   static final List<void Function(AdEvent event)> _eventListeners = [];
 
@@ -206,6 +215,8 @@ class AdMobKit {
     _isEntitled = entitled;
     _config = _config.copyWith(isEntitled: entitled);
 
+    _configNotifier.notify();
+
     if (entitled) {
       // Evict all preloaded cached ads and cancel timers
       _interstitial?.invalidate();
@@ -228,6 +239,8 @@ class AdMobKit {
     final oldConfig = _config;
     _config = newConfig;
     _isEntitled = newConfig.isEntitled;
+
+    _configNotifier.notify();
 
     if (newConfig.isEntitled) {
       setEntitled(true);
@@ -351,5 +364,6 @@ class AdMobKit {
     _initFuture = null;
     testHookBeforeInit = null;
     _config = const AdMobConfig();
+    _configNotifier.notify();
   }
 }

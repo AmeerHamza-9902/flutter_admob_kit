@@ -231,11 +231,11 @@ class AppOpenManager extends ChangeNotifier {
         _emitEvent(AdEventType.shown);
       },
       onAdDismissedFullScreenContent: (ad) {
-        _onAdClosed(ad, currentGen);
+        _onAdClosed(ad, currentGen, token);
         _emitEvent(AdEventType.dismissed);
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
-        _onAdClosed(ad, currentGen);
+        _onAdClosed(ad, currentGen, token);
         _emitEvent(AdEventType.dismissed, errorMessage: error.message);
       },
       onAdClicked: (_) => _emitEvent(AdEventType.clicked),
@@ -246,12 +246,13 @@ class AppOpenManager extends ChangeNotifier {
     return true;
   }
 
-  void _onAdClosed(AppOpenAd ad, int gen) {
-    if (_leaseToken != null) {
-      AdOrchestrator.instance.releaseWithToken(_leaseToken!);
-      _leaseToken = null;
-    } else {
-      AdOrchestrator.instance.release('app_open');
+  void _onAdClosed(AppOpenAd ad, int gen, [int? token]) {
+    final tokenToRelease = token ?? _leaseToken;
+    if (tokenToRelease != null) {
+      AdOrchestrator.instance.releaseWithToken(tokenToRelease);
+      if (_leaseToken == tokenToRelease) {
+        _leaseToken = null;
+      }
     }
 
     ad.dispose();
@@ -331,5 +332,15 @@ class AppOpenManager extends ChangeNotifier {
     }
     _disposeCurrentAd();
     super.dispose();
+  }
+
+  @visibleForTesting
+  int? get leaseToken => _leaseToken;
+
+  @visibleForTesting
+  void setAdForTesting(AppOpenAd ad) {
+    _ad = ad;
+    _state = AdState.ready;
+    _loadedAt = DateTime.now();
   }
 }

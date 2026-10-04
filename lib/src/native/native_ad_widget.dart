@@ -89,6 +89,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool _isLoaded = false;
   bool _hasFailed = false;
   int _loadGeneration = 0;
+  String? _activeAdUnitId;
+  bool? _activeTestMode;
 
   double get _targetHeight {
     if (widget.height != null) return widget.height!;
@@ -103,6 +105,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   @override
   void initState() {
     super.initState();
+    AdMobKit.configNotifier.addListener(_onConfigChanged);
     _load();
   }
 
@@ -116,22 +119,53 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     }
   }
 
+  void _onConfigChanged() {
+    if (!mounted) return;
+
+    if (AdMobKit.isEntitled) {
+      _loadGeneration++;
+      _ad?.dispose();
+      _ad = null;
+      _isLoaded = false;
+      _activeAdUnitId = null;
+      _activeTestMode = null;
+      setState(() {});
+      return;
+    }
+
+    final targetUnitId = widget.adUnitId ?? AdMobKit.config.nativeId;
+    final targetTestMode = AdMobKit.config.testMode;
+
+    if (_activeAdUnitId != targetUnitId || _activeTestMode != targetTestMode) {
+      _load();
+    }
+  }
+
   Future<void> _load() async {
     final gen = ++_loadGeneration;
 
     // Check entitlement (premium users see no ads)
     if (AdMobKit.isEntitled) {
+      _ad?.dispose();
+      _ad = null;
+      _isLoaded = false;
+      _activeAdUnitId = null;
+      _activeTestMode = null;
       if (mounted) setState(() {});
       return;
     }
 
     // Check consent state
     final canRequest = await ConsentManager.instance.canRequestAds();
-    if (!canRequest || gen != _loadGeneration || !mounted) {
+    if (!canRequest ||
+        gen != _loadGeneration ||
+        !mounted ||
+        AdMobKit.isEntitled) {
       return;
     }
 
     final unitId = widget.adUnitId ?? AdMobKit.config.nativeId;
+    final testMode = AdMobKit.config.testMode;
     if (unitId == null || unitId.isEmpty) {
       _hasFailed = true;
       widget.onAdFailed?.call();
@@ -142,6 +176,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     _ad = null;
     _isLoaded = false;
     _hasFailed = false;
+    _activeAdUnitId = unitId;
+    _activeTestMode = testMode;
 
     final templateStyle = (widget.style ?? const NativeAdStyle())
         .toGoogleTemplateStyle(widget.template);
@@ -152,7 +188,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
-          if (gen != _loadGeneration || !mounted) {
+          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) {
             ad.dispose();
             return;
           }
@@ -165,7 +201,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          if (gen != _loadGeneration || !mounted) return;
+          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
           setState(() {
             _ad = null;
             _isLoaded = false;
@@ -181,6 +217,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   void dispose() {
+    AdMobKit.configNotifier.removeListener(_onConfigChanged);
     _loadGeneration++;
     _ad?.dispose();
     _ad = null;
