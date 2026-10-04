@@ -129,7 +129,9 @@ class AppOpenManager extends ChangeNotifier {
       adUnitId,
       AppOpenAdLoadCallback(
         onAdLoaded: (ad) {
-          if (_state == AdState.disposed || gen != _generation) {
+          if (_state == AdState.disposed ||
+              gen != _generation ||
+              isEntitledProvider?.call() == true) {
             ad.dispose();
             _completeLoad(false);
             return;
@@ -144,7 +146,9 @@ class AppOpenManager extends ChangeNotifier {
           _completeLoad(true);
         },
         onAdFailedToLoad: (error) {
-          if (_state == AdState.disposed || gen != _generation) {
+          if (_state == AdState.disposed ||
+              gen != _generation ||
+              isEntitledProvider?.call() == true) {
             _completeLoad(false);
             return;
           }
@@ -160,7 +164,9 @@ class AppOpenManager extends ChangeNotifier {
   }
 
   void _handleLoadFailure(String adUnitId, int gen) {
-    if (_state == AdState.disposed || gen != _generation) {
+    if (_state == AdState.disposed ||
+        gen != _generation ||
+        isEntitledProvider?.call() == true) {
       _completeLoad(false);
       return;
     }
@@ -172,7 +178,8 @@ class AppOpenManager extends ChangeNotifier {
       _retryTimer = Timer(delay, () {
         if (_state != AdState.disposed &&
             _state != AdState.ready &&
-            gen == _generation) {
+            gen == _generation &&
+            isEntitledProvider?.call() != true) {
           _fetch(adUnitId, gen);
         }
       });

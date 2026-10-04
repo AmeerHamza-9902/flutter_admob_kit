@@ -132,8 +132,9 @@ class AdMobKit {
       WidgetsFlutterBinding.ensureInitialized();
 
       if (config != null) {
-        _config = config;
-        _isEntitled = config.isEntitled;
+        final entitled = _isEntitled || config.isEntitled;
+        _config = config.copyWith(isEntitled: entitled);
+        _isEntitled = entitled;
       }
 
       // 1. Google UMP Consent flow (if enabled)
@@ -219,9 +220,9 @@ class AdMobKit {
 
     if (entitled) {
       // Evict all preloaded cached ads and cancel timers
-      _interstitial?.invalidate();
-      _rewarded?.invalidate();
-      _appOpen?.invalidate();
+      _interstitial?.invalidate(force: true);
+      _rewarded?.invalidate(force: true);
+      _appOpen?.invalidate(force: true);
     } else if (wasEntitled && _isInitialized) {
       // Re-prime preloaded ads if allowed
       ConsentManager.instance.canRequestAds().then((canRequest) {

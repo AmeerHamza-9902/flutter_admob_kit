@@ -114,47 +114,38 @@ class _PaywallCloseGuardScope extends InheritedWidget {
 }
 
 class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
-  InterstitialManager? _manager;
   bool _isTimedOut = false;
   bool _isDismissing = false;
+  bool _isShowingCloseAd = false;
   Timer? _timeoutTimer;
 
   bool get _effectiveEntitled => widget.isEntitled || AdMobKit.isEntitled;
+
+  InterstitialManager? get _centralManager {
+    if (!AdMobKit.isInitialized) return null;
+    return AdMobKit.interstitial;
+  }
 
   @override
   void initState() {
     super.initState();
     try {
-      AdMobKit.appOpen.isInPaywall = true;
+      if (AdMobKit.isInitialized) {
+        AdMobKit.appOpen.isInPaywall = true;
+      }
     } catch (_) {}
 
-    final unitId = widget.adUnitId ?? AdMobKit.config.interstitialId;
-    if (!_effectiveEntitled && unitId != null && unitId.isNotEmpty) {
-      _initAdManager(unitId);
-    }
-  }
+    AdMobKit.configNotifier.addListener(_onConfigChanged);
+    AdMobKit.addEventListener(_onAdEvent);
 
-  void _initAdManager(String unitId) {
-    final manager = InterstitialManager(
-      adUnitIdProvider: () => unitId,
-      cooldown: Duration.zero,
-    );
-    _manager = manager;
-
-    manager.onEvent = (event) {
-      if (!mounted) return;
-      if (event.type == AdEventType.loaded) {
-        setState(() {});
-        widget.onAdLoaded?.call();
-      } else if (event.type == AdEventType.loadFailed) {
-        setState(() {});
-        widget.onAdFailed?.call();
-      } else if (event.type == AdEventType.dismissed) {
-        _executeDismiss();
+    final manager = _centralManager;
+    if (manager != null) {
+      manager.addListener(_onManagerChanged);
+      final unitId = widget.adUnitId ?? AdMobKit.config.interstitialId;
+      if (!_effectiveEntitled && unitId != null && unitId.isNotEmpty) {
+        manager.preload(unitId);
       }
-    };
-
-    manager.preload(unitId);
+    }
 
     _timeoutTimer = Timer(widget.timeout, () {
       if (mounted) {
@@ -163,30 +154,65 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
     });
   }
 
+  void _onConfigChanged() {
+    if (!mounted) return;
+    if (_effectiveEntitled) {
+      _timeoutTimer?.cancel();
+    }
+    setState(() {});
+  }
+
+  void _onManagerChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _onAdEvent(AdEvent event) {
+    if (event.format != AdFormat.interstitial) return;
+
+    if (event.type == AdEventType.loaded) {
+      if (mounted) {
+        setState(() {});
+        widget.onAdLoaded?.call();
+      }
+    } else if (event.type == AdEventType.loadFailed) {
+      if (mounted) {
+        setState(() {});
+        widget.onAdFailed?.call();
+      }
+    } else if (event.type == AdEventType.dismissed) {
+      if (_isShowingCloseAd) {
+        _isShowingCloseAd = false;
+        _executeDismiss();
+      }
+    }
+  }
+
   @override
   void didUpdateWidget(covariant PaywallCloseGuard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isEntitled != widget.isEntitled && _effectiveEntitled) {
-      _manager?.dispose();
-      _manager = null;
       _timeoutTimer?.cancel();
+      if (mounted) setState(() {});
     }
   }
 
   Future<void> _attemptDismiss() async {
     if (_isDismissing) return;
 
-    // 1. Entitled users exit immediately with zero ads
-    if (_effectiveEntitled || _manager == null) {
+    // 1. Entitled users or uninitialized SDK exit immediately with zero ads
+    final manager = _centralManager;
+    if (_effectiveEntitled || manager == null) {
       _executeDismiss();
       return;
     }
 
     // 2. If ad is ready, show it
-    if (_manager!.isReady) {
-      _isDismissing = true;
-      final shown = await _manager!.show(true);
+    if (manager.isReady) {
+      _isShowingCloseAd = true;
+      final shown = await manager.show(true);
       if (!shown) {
+        _isShowingCloseAd = false;
         _executeDismiss();
       }
       return;
@@ -205,18 +231,23 @@ class _PaywallCloseGuardState extends State<PaywallCloseGuard> {
   @override
   void dispose() {
     try {
-      AdMobKit.appOpen.isInPaywall = false;
+      if (AdMobKit.isInitialized) {
+        AdMobKit.appOpen.isInPaywall = false;
+      }
     } catch (_) {}
+    AdMobKit.configNotifier.removeListener(_onConfigChanged);
+    AdMobKit.removeEventListener(_onAdEvent);
+    _centralManager?.removeListener(_onManagerChanged);
     _timeoutTimer?.cancel();
-    _manager?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final manager = _centralManager;
     final isLoading = !_effectiveEntitled &&
-        _manager != null &&
-        _manager!.isLoading &&
+        manager != null &&
+        manager.isLoading &&
         !_isTimedOut;
 
     final content = widget.builder != null
