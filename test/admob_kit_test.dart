@@ -108,6 +108,64 @@ void main() {
       expect(AdMobKit.config.interstitialId, 'ca-app-pub-new/222');
     });
 
+    test('initialization failure allows safe retry and does not deadlock',
+        () async {
+      expect(AdMobKit.isInitialized, isFalse);
+
+      AdMobKit.testHookBeforeInit = () {
+        throw Exception('Simulated network/SDK init error');
+      };
+
+      // First attempt fails
+      await expectLater(
+        AdMobKit.initialize(
+          config: const AdMobConfig(
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+          ),
+          autoPreload: false,
+        ),
+        throwsA(isA<Exception>()),
+      );
+
+      expect(AdMobKit.isInitialized, isFalse);
+
+      // Clear the failure hook
+      AdMobKit.testHookBeforeInit = null;
+
+      // Retry must succeed cleanly
+      await AdMobKit.initialize(
+        config: const AdMobConfig(
+          android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+        ),
+        autoPreload: false,
+      );
+
+      expect(AdMobKit.isInitialized, isTrue);
+    });
+
+    test('updateConfig with testMode true invalidates and switches to test IDs',
+        () async {
+      await AdMobKit.initialize(
+        config: const AdMobConfig(
+          android: AdPlatformConfig(interstitial: 'prod/111'),
+        ),
+        autoPreload: false,
+      );
+
+      expect(AdMobKit.config.interstitialId, 'prod/111');
+      expect(AdMobKit.config.testMode, isFalse);
+
+      AdMobKit.updateConfig(
+        AdMobKit.config.copyWith(testMode: true),
+      );
+
+      expect(AdMobKit.config.testMode, isTrue);
+      expect(
+        AdMobKit.config.interstitialId,
+        'ca-app-pub-3940256099942544/1033173712',
+      );
+    });
+
     test('setEntitled(true) suppresses preloading and clears cached state',
         () async {
       await AdMobKit.initialize(
@@ -126,6 +184,16 @@ void main() {
       // Re-enabling entitlement
       AdMobKit.setEntitled(false);
       expect(AdMobKit.isEntitled, isFalse);
+    });
+
+    test('NativeAdWidget provides only small and medium constructors', () {
+      const smallWidget = NativeAdWidget.small();
+      expect(smallWidget.template, NativeTemplate.small);
+      expect(smallWidget.height, 90.0);
+
+      const mediumWidget = NativeAdWidget.medium();
+      expect(mediumWidget.template, NativeTemplate.medium);
+      expect(mediumWidget.height, 320.0);
     });
   });
 }

@@ -39,6 +39,7 @@ class AdMobConfig {
   const AdMobConfig({
     this.android,
     this.ios,
+    this.testMode = false,
     this.enableUmpConsent = false,
     this.interstitialCooldown = const Duration(seconds: 30),
     this.interstitialExpiry = const Duration(hours: 1),
@@ -54,6 +55,9 @@ class AdMobConfig {
 
   /// iOS ad unit configuration.
   final AdPlatformConfig? ios;
+
+  /// When `true`, official Google test ad unit IDs are used automatically.
+  final bool testMode;
 
   /// Whether to automatically check and request Google UMP consent on initialization.
   final bool enableUmpConsent;
@@ -79,20 +83,50 @@ class AdMobConfig {
   /// When `true`, user is marked as premium/entitled and all ads are suppressed.
   final bool isEntitled;
 
+  static const String _testAndroidInterstitial =
+      'ca-app-pub-3940256099942544/1033173712';
+  static const String _testAndroidRewarded =
+      'ca-app-pub-3940256099942544/5224354917';
+  static const String _testAndroidAppOpen =
+      'ca-app-pub-3940256099942544/9257390910';
+  static const String _testAndroidBanner =
+      'ca-app-pub-3940256099942544/6300978111';
+  static const String _testAndroidNative =
+      'ca-app-pub-3940256099942544/2247696110';
+
+  static const String _testIosInterstitial =
+      'ca-app-pub-3940256099942544/4411468910';
+  static const String _testIosRewarded =
+      'ca-app-pub-3940256099942544/1712485313';
+  static const String _testIosAppOpen =
+      'ca-app-pub-3940256099942544/5575463023';
+  static const String _testIosBanner = 'ca-app-pub-3940256099942544/2934735716';
+  static const String _testIosNative = 'ca-app-pub-3940256099942544/3986624511';
+
   /// Resolves the active Interstitial Ad Unit ID.
-  String? get interstitialId => _activePlatformConfig?.interstitial;
+  String? get interstitialId => testMode
+      ? (_isIos ? _testIosInterstitial : _testAndroidInterstitial)
+      : _activePlatformConfig?.interstitial;
 
   /// Resolves the active Rewarded Ad Unit ID.
-  String? get rewardedId => _activePlatformConfig?.rewarded;
+  String? get rewardedId => testMode
+      ? (_isIos ? _testIosRewarded : _testAndroidRewarded)
+      : _activePlatformConfig?.rewarded;
 
   /// Resolves the active App Open Ad Unit ID.
-  String? get appOpenId => _activePlatformConfig?.appOpen;
+  String? get appOpenId => testMode
+      ? (_isIos ? _testIosAppOpen : _testAndroidAppOpen)
+      : _activePlatformConfig?.appOpen;
 
   /// Resolves the active Banner Ad Unit ID.
-  String? get bannerId => _activePlatformConfig?.banner;
+  String? get bannerId => testMode
+      ? (_isIos ? _testIosBanner : _testAndroidBanner)
+      : _activePlatformConfig?.banner;
 
   /// Resolves the active Native Ad Unit ID.
-  String? get nativeId => _activePlatformConfig?.native;
+  String? get nativeId => testMode
+      ? (_isIos ? _testIosNative : _testAndroidNative)
+      : _activePlatformConfig?.native;
 
   bool get _isIos {
     if (kIsWeb) return false;
@@ -108,6 +142,7 @@ class AdMobConfig {
   AdMobConfig copyWith({
     AdPlatformConfig? android,
     AdPlatformConfig? ios,
+    bool? testMode,
     bool? enableUmpConsent,
     Duration? interstitialCooldown,
     Duration? interstitialExpiry,
@@ -120,6 +155,7 @@ class AdMobConfig {
     return AdMobConfig(
       android: android ?? this.android,
       ios: ios ?? this.ios,
+      testMode: testMode ?? this.testMode,
       enableUmpConsent: enableUmpConsent ?? this.enableUmpConsent,
       interstitialCooldown: interstitialCooldown ?? this.interstitialCooldown,
       interstitialExpiry: interstitialExpiry ?? this.interstitialExpiry,

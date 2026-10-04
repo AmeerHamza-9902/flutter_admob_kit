@@ -32,12 +32,24 @@ void main() {
       expect(config.nativeId, isNull);
     });
 
+    test('resolves Google official test ad unit IDs when testMode is true', () {
+      const config = AdMobConfig(testMode: true);
+
+      expect(config.interstitialId, 'ca-app-pub-3940256099942544/1033173712');
+      expect(config.rewardedId, 'ca-app-pub-3940256099942544/5224354917');
+      expect(config.appOpenId, 'ca-app-pub-3940256099942544/9257390910');
+      expect(config.bannerId, 'ca-app-pub-3940256099942544/6300978111');
+      expect(config.nativeId, 'ca-app-pub-3940256099942544/2247696110');
+    });
+
     test('copyWith updates specified fields cleanly', () {
-      const config = AdMobConfig(isEntitled: false);
-      final updated = config.copyWith(isEntitled: true);
+      const config = AdMobConfig(isEntitled: false, testMode: false);
+      final updated = config.copyWith(isEntitled: true, testMode: true);
 
       expect(config.isEntitled, isFalse);
+      expect(config.testMode, isFalse);
       expect(updated.isEntitled, isTrue);
+      expect(updated.testMode, isTrue);
     });
   });
 }

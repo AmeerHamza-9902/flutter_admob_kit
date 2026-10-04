@@ -12,7 +12,7 @@ A lightweight, robust, production-ready Google Mobile Ads wrapper for Flutter. D
 
 * ⚡ **Simple & Declarative API:** Show ads with `AdMobKit.interstitial.show(true)` or `show(false)`.
 * 🛡️ **Zero-Spam & Zero-Waste:** Calling `show(false)` is a 100% no-op. It triggers zero network requests and does not reset or reload ads.
-* 📦 **Zero External Bloat:** No Firebase, no Remote Config, and no external networking dependencies. Only `google_mobile_ads` is used.
+* 📦 **Zero External Bloat:** Pure Dart configuration. No external servers or configuration bloat. Only `google_mobile_ads` is used.
 * 🔒 **GDPR & UMP Consent Gating:** Integrated Google User Messaging Platform (UMP). Ads are gated and will **never** request or preload until `canRequestAds()` reports safe consent.
 * 🔄 **Automatic Single-Pool Preload:** Automatically preloads the next fullscreen ad in the background after dismissal.
 * ⏱️ **Ad Freshness & Expiry (4 Hours):** Stale ads are automatically evicted and refreshed so invalid impressions never occur.
@@ -66,6 +66,7 @@ void main() async {
         banner: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
         native: 'ca-app-pub-XXXXXXXXXXXXXXXX/ZZZZZZZZZZ',
       ),
+      testMode: false,           // Set to true to automatically use official Google test IDs during development
       enableUmpConsent: true,    // Checks and presents Google UMP GDPR consent form
       autoResumeAppOpen: true,   // Automatically shows App Open ad when returning from background
       interstitialCooldown: Duration(seconds: 30), // Minimum interval between interstitials
@@ -224,6 +225,21 @@ PaywallCloseGuard(
     body: const PaywallBody(),
   ),
 )
+```
+
+---
+
+### 10. Dynamic Configuration (`updateConfig`)
+
+Update ad unit IDs or test mode dynamically at runtime. Old cached ads and in-flight retries are immediately invalidated and safely evicted:
+
+```dart
+// Switch to test mode or update Ad Unit IDs dynamically:
+AdMobKit.updateConfig(
+  AdMobKit.config.copyWith(
+    testMode: true,
+  ),
+);
 ```
 
 ---

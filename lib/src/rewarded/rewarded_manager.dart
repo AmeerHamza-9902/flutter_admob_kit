@@ -274,10 +274,13 @@ class RewardedManager extends ChangeNotifier {
   }
 
   /// Disposes currently cached ad and resets state to idle.
-  /// If [newAdUnitId] is provided, verifies if the cached ad matches it.
-  void invalidate({String? newAdUnitId}) {
+  /// If [newAdUnitId] is provided, verifies if the cached ad matches it unless [force] is true.
+  void invalidate({String? newAdUnitId, bool force = false}) {
     if (_state == AdState.disposed) return;
-    if (newAdUnitId != null && _loadedAdUnitId == newAdUnitId && _ad != null) {
+    if (!force &&
+        newAdUnitId != null &&
+        _loadedAdUnitId == newAdUnitId &&
+        _ad != null) {
       return; // Still matching
     }
     _generation++;

@@ -56,50 +56,6 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : template = NativeTemplate.small;
 
-  /// Deprecated alias for [NativeAdWidget.medium].
-  @Deprecated('Use NativeAdWidget.medium() instead')
-  const NativeAdWidget.big({
-    Key? key,
-    String? adUnitId,
-    NativeAdStyle? style,
-    double height = 320.0,
-    bool showShimmer = true,
-    Widget? placeholder,
-    VoidCallback? onAdLoaded,
-    VoidCallback? onAdFailed,
-  }) : this.medium(
-          key: key,
-          adUnitId: adUnitId,
-          style: style,
-          height: height,
-          showShimmer: showShimmer,
-          placeholder: placeholder,
-          onAdLoaded: onAdLoaded,
-          onAdFailed: onAdFailed,
-        );
-
-  /// Deprecated alias for [NativeAdWidget.medium].
-  @Deprecated('Use NativeAdWidget.medium() instead')
-  const NativeAdWidget.fullScreen({
-    Key? key,
-    String? adUnitId,
-    NativeAdStyle? style,
-    double height = 320.0,
-    bool showShimmer = true,
-    Widget? placeholder,
-    VoidCallback? onAdLoaded,
-    VoidCallback? onAdFailed,
-  }) : this.medium(
-          key: key,
-          adUnitId: adUnitId,
-          style: style,
-          height: height,
-          showShimmer: showShimmer,
-          placeholder: placeholder,
-          onAdLoaded: onAdLoaded,
-          onAdFailed: onAdFailed,
-        );
-
   /// Optional override for the Native Ad Unit ID. If omitted, uses [AdMobKit.config.nativeId].
   final String? adUnitId;
 
