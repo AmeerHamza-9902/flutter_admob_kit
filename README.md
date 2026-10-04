@@ -229,9 +229,9 @@ PaywallCloseGuard(
 
 ---
 
-### 10. Dynamic Configuration (`updateConfig`)
+### 10. Runtime Configuration (`updateConfig`)
 
-Update ad unit IDs or test mode dynamically at runtime. Old cached ads and in-flight retries are immediately invalidated and safely evicted:
+Update ad unit IDs or test mode at runtime. Old cached ads and in-flight retries are immediately invalidated and safely evicted:
 
 ```dart
 // Switch to test mode or update Ad Unit IDs dynamically:

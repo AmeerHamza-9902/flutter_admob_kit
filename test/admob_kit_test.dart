@@ -42,6 +42,24 @@ void main() {
       expect(AdMobKit.isInitialized, isTrue);
     });
 
+    test(
+        'preloads Rewarded alongside Interstitial and AppOpen on initialization',
+        () async {
+      await AdMobKit.initialize(
+        config: const AdMobConfig(
+          android: AdPlatformConfig(
+            interstitial: 'ca-app-pub-test/111',
+            rewarded: 'ca-app-pub-test/222',
+            appOpen: 'ca-app-pub-test/333',
+          ),
+        ),
+        autoPreload: true,
+      );
+
+      expect(AdMobKit.isInitialized, isTrue);
+      expect(AdMobKit.rewarded.state, isNot(AdState.disposed));
+    });
+
     test('show(false) returns false without presenting or loading', () async {
       await AdMobKit.initialize(
         config: const AdMobConfig(

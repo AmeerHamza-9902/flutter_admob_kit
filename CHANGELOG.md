@@ -5,7 +5,7 @@
 * **New:** Support latest `google_mobile_ads` up to `<10.0.0` (supports v8.x, v9.x, and v9.1.0).
 * **New:** Global Entitlement Gate (`AdMobKit.instance.setEntitled(true)`) for instant 1-line app-wide ad suppression.
 * **New:** `AdLifecycleMixin` unifying load, retry, exponential backoff, and freshness eviction across all managers.
-* **New:** Eager in-memory preloading on startup and dynamic configuration changes via `updateConfig`.
+* **New:** Eager in-memory preloading on startup and runtime configuration changes via `updateConfig`.
 * **New:** Async generation tokens on `BannerAdWidget` and `NativeAdWidget` to eliminate race conditions.
 * **Fix:** Click counter now preserves progression when an ad is unready to guarantee high show rate and match rate.
 * **Fix:** Clean Dart configuration model with cross-platform platform configs.
