@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Default Android medium native cards to 280dp, expand media with custom taller heights, and adapt text line counts to available space without reloading ads.
+
 * Remove medium media corner rounding, set CTA corners to 10dp, display SDK-provided rating stars/score and store, use 16sp three-line headlines and 13sp two-line bodies, and reserve at least 380dp on Android.
 
 * Default native template backgrounds to white while preserving developer color overrides.

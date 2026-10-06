@@ -96,6 +96,34 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets(
+    'medium height defaults to 280 and resizes without another request',
+    (tester) async {
+      await initialize();
+      Future<void> show(double? height) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: NativeAdWidget.medium(height: height, showShimmer: true),
+            ),
+          ),
+        );
+        await tester.pump();
+      }
+
+      await show(null);
+      expect(tester.getSize(find.byType(NativeAdWidget)).height, 280);
+      expect(loads('Native'), hasLength(1));
+      await show(450);
+      expect(tester.getSize(find.byType(NativeAdWidget)).height, 450);
+      expect(loads('Native'), hasLength(1));
+      await show(280);
+      expect(tester.getSize(find.byType(NativeAdWidget)).height, 280);
+      expect(loads('Native'), hasLength(1));
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   testWidgets('factory setup failure makes no native request', (tester) async {
     await initialize();
     var failed = 0;

@@ -246,7 +246,7 @@ void main() {
 
       const mediumWidget = NativeAdWidget.medium();
       expect(mediumWidget.template, NativeTemplate.medium);
-      expect(mediumWidget.height, 320.0);
+      expect(mediumWidget.height, 280.0);
     });
   });
 }

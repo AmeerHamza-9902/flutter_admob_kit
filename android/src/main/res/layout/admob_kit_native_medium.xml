@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <com.google.android.gms.ads.nativead.NativeAdView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent" android:layout_height="match_parent">
-    <LinearLayout android:id="@+id/ad_card" android:layout_width="match_parent"
+    <dev.admobkit.flutter_admob_kit.ResponsiveNativeCard android:id="@+id/ad_card" android:layout_width="match_parent"
         android:layout_height="match_parent" android:orientation="vertical" android:background="#FFFFFF">
         <FrameLayout android:id="@+id/ad_media_container" android:layout_width="match_parent"
-            android:layout_height="0dp" android:layout_weight="1" android:minHeight="170dp"
+            android:layout_height="0dp" android:layout_weight="1" android:minHeight="120dp"
             android:layout_marginTop="5dp" android:layout_marginBottom="3dp"
             android:layout_marginHorizontal="12dp" android:clipToOutline="false">
             <com.google.android.gms.ads.nativead.MediaView android:id="@+id/ad_media"
@@ -12,7 +12,7 @@
             <ImageView android:id="@+id/ad_media_fallback" android:layout_width="match_parent"
                 android:layout_height="match_parent" android:scaleType="centerCrop" android:visibility="gone" />
         </FrameLayout>
-        <RelativeLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        <RelativeLayout android:id="@+id/ad_details" android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginHorizontal="12dp" android:layout_marginVertical="3.1dp">
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:layout_toStartOf="@id/ad_choices_view" android:gravity="center_vertical" android:orientation="horizontal">
@@ -54,5 +54,5 @@
         <Button android:id="@+id/ad_call_to_action" android:layout_width="match_parent" android:layout_height="50dp"
             android:layout_marginTop="3.1dp" android:layout_marginHorizontal="12dp" android:layout_marginBottom="4dp"
             android:textAllCaps="false" android:textColor="#FFFFFF" android:textSize="17sp" android:textStyle="bold" />
-    </LinearLayout>
+    </dev.admobkit.flutter_admob_kit.ResponsiveNativeCard>
 </com.google.android.gms.ads.nativead.NativeAdView>

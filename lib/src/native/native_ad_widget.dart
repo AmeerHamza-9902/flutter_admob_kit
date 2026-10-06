@@ -33,12 +33,12 @@ class NativeAdWidget extends StatefulWidget {
 
   /// Factory constructor for a medium native ad card (media view + headline + body + CTA).
   ///
-  /// Height is at least `380.0` on Android and `320.0` on iOS.
+  /// Height is at least `280.0` on Android and `320.0` on iOS.
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
     this.style,
-    this.height = 320.0,
+    this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -68,7 +68,7 @@ class NativeAdWidget extends StatefulWidget {
   /// Custom visual styling (background, text color, CTA color, corner radius).
   final NativeAdStyle? style;
 
-  /// Container height. Minimum 380 for Android medium, 320 for iOS medium,
+  /// Container height. Minimum 280 for Android medium, 320 for iOS medium,
   /// and 90 for small templates.
   final double? height;
 
@@ -102,7 +102,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     final minimum = widget.template == NativeTemplate.small
         ? 90.0
         : (!kIsWeb && defaultTargetPlatform == TargetPlatform.android
-              ? 380.0
+              ? 280.0
               : 320.0);
     return (widget.height ?? minimum).clamp(minimum, double.infinity);
   }
