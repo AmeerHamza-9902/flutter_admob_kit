@@ -25,3 +25,10 @@ topics:
   - monetization
   - interstitial
   - rewarded
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: dev.admobkit.flutter_admob_kit
+        pluginClass: FlutterAdmobKitPlugin

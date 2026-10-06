@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
@@ -9,8 +11,8 @@ import 'native_templates.dart';
 
 /// Drop-in, zero-boilerplate Native Ad widget with built-in templates.
 ///
-/// Automatically uses the configured Native Ad Unit ID, applies Google's official
-/// native templates for Android and iOS, handles loading, placeholders, and disposal.
+/// Uses the configured Native Ad Unit ID and bundled Android medium layout.
+/// Small ads and iOS use Google's native templates. Owns loading and disposal.
 ///
 /// ```dart
 /// const NativeAdWidget.medium()
@@ -31,7 +33,7 @@ class NativeAdWidget extends StatefulWidget {
 
   /// Factory constructor for a medium native ad card (media view + headline + body + CTA).
   ///
-  /// Height defaults to `320.0` matching Google Mobile Ads official medium template.
+  /// Height defaults to `320.0` for the Android card and iOS medium template.
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
@@ -87,6 +89,7 @@ class NativeAdWidget extends StatefulWidget {
 
 class _NativeAdWidgetState extends State<NativeAdWidget>
     with InlineAdRetry<NativeAdWidget> {
+  static const _templates = MethodChannel('flutter_admob_kit/native_templates');
   NativeAd? _ad;
   bool _isLoaded = false;
   bool _hasFailed = false;
@@ -184,12 +187,33 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     _activeTestMode = testMode;
     if (mounted) setState(() {});
 
-    final templateStyle = (widget.style ?? const NativeAdStyle())
-        .toGoogleTemplateStyle(widget.template);
+    final style = widget.style ?? const NativeAdStyle();
+    final customMedium =
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android &&
+        widget.template == NativeTemplate.medium;
+    final templateStyle = customMedium
+        ? null
+        : style.toGoogleTemplateStyle(widget.template);
+    if (customMedium) {
+      try {
+        await _templates.invokeMethod<void>('ensureRegistered');
+      } catch (_) {
+        if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
+          return;
+        }
+        setState(() => _hasFailed = true);
+        widget.onAdFailed?.call();
+        return;
+      }
+      if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) return;
+    }
 
     final nativeAd = NativeAd(
       adUnitId: unitId,
       nativeTemplateStyle: templateStyle,
+      factoryId: customMedium ? 'flutter_admob_kit/medium' : null,
+      customOptions: customMedium ? style.toNativeOptions() : null,
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdImpression: (_) {

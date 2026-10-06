@@ -151,3 +151,10 @@ Source analysis, automated regressions and both native debug builds pass, but un
 2. Run Google test ads on both platforms for all five formats, including actual template sizing/touch layout, real foreground transitions, consent/privacy forms, reward callbacks, and delayed/offline/network-handover recovery.
 
 These are explicit integration verification blockers, not claims that unit tests established real AdMob performance. The source fixes and audit are complete; publication was subsequently authorized by the user.
+
+
+## Unreleased native layout follow-up
+
+The Android medium native template now uses a bundled XML layout with a media area, 52dp icon/header, visible Ad attribution, SDK-managed AdChoices and a 50dp pill CTA. The factory registers once per engine through a setup channel before a native request; it uses actual ad assets, hides unavailable optional assets and never adds custom click listeners. Small and iOS layouts remain the official Google templates. All native templates default to white; `NativeAdStyle` retains developer background/text/CTA color and card-radius overrides.
+
+The package now bundles an Android Flutter plugin; consumers must fully rebuild native apps after adopting this GitHub change. Factory setup failure makes no ad request, and unmount/config invalidation during setup cannot start a stale request. Verification: 121 tests passed, static analysis and diff whitespace checks passed, Android debug APK and iOS simulator builds passed, and the production Dart performance scan had no findings. Full rendered-ad verification still depends on SDK test fill. The package remains version 4.0.0; this follow-up is GitHub-only and was not published to pub.dev.

@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+* Default native template backgrounds to white while preserving developer color overrides.
+* Bundle the Android medium media/header/pill-CTA layout with native asset registration, optional-asset handling and automatic per-engine factory setup.
+* Keep small and iOS layouts on Google templates; document full native rebuild requirements.
+
+
 ## 4.0.0
 
 * Complete UMP privacy entry-point support with `PrivacyConsentButton`, requirement/busy/error state, initialization parameters, and separate initial-consent/privacy-form results.

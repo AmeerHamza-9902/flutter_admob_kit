@@ -11,6 +11,12 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
+          const MethodChannel('flutter_admob_kit/native_templates'),
+          (_) async => null,
+        );
+
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
           MethodChannel(
             'plugins.flutter.io/google_mobile_ads',
             StandardMethodCodec(AdMessageCodec()),

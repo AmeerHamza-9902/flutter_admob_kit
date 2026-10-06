@@ -7,7 +7,7 @@ enum NativeTemplate {
   small,
 
   /// Medium native ad card (full-width media on top + icon + headline + body + CTA).
-  /// Google Mobile Ads official medium template (height 300-340dp, defaults to 320dp).
+  /// Bundled Android media/header/pill-CTA layout; official iOS medium template.
   medium,
 }
 
@@ -20,7 +20,7 @@ enum NativeTemplate {
 /// - Corner radius
 class NativeAdStyle {
   const NativeAdStyle({
-    this.backgroundColor,
+    this.backgroundColor = Colors.white,
     this.cornerRadius = 8.0,
     this.callToActionColor,
     this.callToActionTextColor = Colors.white,
@@ -28,10 +28,12 @@ class NativeAdStyle {
     this.secondaryTextColor,
   });
 
-  /// Main background color of the native ad card.
+  /// Main background color of the native ad card. Defaults to white.
+  /// Passing null also resolves to white.
   final Color? backgroundColor;
 
-  /// Corner radius of the ad container and CTA button.
+  /// Corner radius of the ad container (and official-template CTA).
+  /// The bundled Android medium CTA retains its pill shape.
   final double cornerRadius;
 
   /// Background color of the Call To Action button.
@@ -51,7 +53,7 @@ class NativeAdStyle {
     final isSmall = template == NativeTemplate.small;
     return NativeTemplateStyle(
       templateType: isSmall ? TemplateType.small : TemplateType.medium,
-      mainBackgroundColor: backgroundColor,
+      mainBackgroundColor: backgroundColor ?? Colors.white,
       cornerRadius: cornerRadius,
       callToActionTextStyle:
           callToActionColor != null || callToActionTextColor != Colors.white
@@ -78,6 +80,19 @@ class NativeAdStyle {
           : null,
     );
   }
+
+  /// Styling passed to the bundled Android medium layout.
+  Map<String, Object> toNativeOptions() => {
+    'backgroundColor': (backgroundColor ?? Colors.white).toARGB32(),
+    'cornerRadius': cornerRadius,
+    'callToActionColor': (callToActionColor ?? const Color(0xFF2563EB))
+        .toARGB32(),
+    'callToActionTextColor': callToActionTextColor.toARGB32(),
+    'primaryTextColor': (primaryTextColor ?? const Color(0xFF111827))
+        .toARGB32(),
+    'secondaryTextColor': (secondaryTextColor ?? const Color(0xFF4B5563))
+        .toARGB32(),
+  };
 
   @override
   bool operator ==(Object other) =>

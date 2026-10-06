@@ -20,6 +20,11 @@ void main() {
     StandardMethodCodec(UserMessagingCodec()),
   );
   setUp(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter_admob_kit/native_templates'),
+          (_) async => null,
+        );
     AdMobKit.resetForTesting();
     allowed = true;
     calls.clear();
@@ -66,6 +71,92 @@ void main() {
         );
     await done.future;
   }
+
+  testWidgets('Android medium uses bundled factory and developer style', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: NativeAdWidget.medium(
+          style: NativeAdStyle(
+            backgroundColor: Colors.black,
+            primaryTextColor: Colors.white,
+          ),
+          showShimmer: false,
+        ),
+      ),
+    );
+    await tester.pump();
+    final args = loads('Native').single.arguments as Map;
+    expect(args['factoryId'], 'flutter_admob_kit/medium');
+    expect(args['nativeTemplateStyle'], isNull);
+    expect(args['customOptions']['backgroundColor'], Colors.black.toARGB32());
+    expect(args['customOptions']['primaryTextColor'], Colors.white.toARGB32());
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('factory setup failure makes no native request', (tester) async {
+    await initialize();
+    var failed = 0;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter_admob_kit/native_templates'),
+          (_) async {
+            throw PlatformException(code: 'factory_conflict');
+          },
+        );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: NativeAdWidget.medium(
+          onAdFailed: () => failed++,
+          showShimmer: false,
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(loads('Native'), isEmpty);
+    expect(failed, 1);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('unmount during factory setup never starts a native load', (
+    tester,
+  ) async {
+    await initialize();
+    final setup = Completer<void>();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter_admob_kit/native_templates'),
+          (_) => setup.future,
+        );
+    await tester.pumpWidget(
+      const MaterialApp(home: NativeAdWidget.medium(showShimmer: false)),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+    setup.complete();
+    await tester.pump();
+    expect(loads('Native'), isEmpty);
+  });
+
+  testWidgets(
+    'Android small keeps the official template with white background',
+    (tester) async {
+      await initialize();
+      await tester.pumpWidget(
+        const MaterialApp(home: NativeAdWidget.small(showShimmer: false)),
+      );
+      await tester.pump();
+      final args = loads('Native').single.arguments as Map;
+      expect(args['factoryId'], isNull);
+      expect(
+        (args['nativeTemplateStyle'] as NativeTemplateStyle)
+            .mainBackgroundColor,
+        Colors.white,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets(
     'adaptive banner uses container width and reloads once per size change',
