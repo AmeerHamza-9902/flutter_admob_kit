@@ -7,7 +7,7 @@ enum NativeTemplate {
   small,
 
   /// Medium native ad card (full-width media on top + icon + headline + body + CTA).
-  /// Bundled Android media/header/pill-CTA layout; official iOS medium template.
+  /// Bundled Android media/header/CTA layout; official iOS medium template.
   medium,
 }
 
@@ -33,7 +33,7 @@ class NativeAdStyle {
   final Color? backgroundColor;
 
   /// Corner radius of the ad container (and official-template CTA).
-  /// The bundled Android medium CTA retains its pill shape.
+  /// The bundled Android medium CTA uses a fixed 10dp radius.
   final double cornerRadius;
 
   /// Background color of the Call To Action button.

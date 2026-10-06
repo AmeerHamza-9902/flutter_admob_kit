@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+* Remove medium media corner rounding, set CTA corners to 10dp, display SDK-provided rating stars/score and store, use 16sp three-line headlines and 13sp two-line bodies, and reserve at least 380dp on Android.
+
 * Default native template backgrounds to white while preserving developer color overrides.
 * Bundle the Android medium media/header/pill-CTA layout with native asset registration, optional-asset handling and automatic per-engine factory setup.
 * Keep small and iOS layouts on Google templates; document full native rebuild requirements.

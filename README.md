@@ -163,10 +163,10 @@ const BannerAdWidget(); // Native-size 320×50 banner.
 const BannerAdWidget.small(); // Adaptive to available container width.
 const BannerAdWidget.mediumRectangle(); // Native-size 300×250.
 const NativeAdWidget.small(); // Minimum height 90.
-const NativeAdWidget.medium(); // Minimum height 320.
+const NativeAdWidget.medium(); // Minimum height 380 Android / 320 iOS.
 ```
 
-Native templates default to a white background. The Android medium card uses a media area (minimum 170dp), a 52dp icon with headline/body and Ad attribution, an SDK AdChoices view, and a full-width 50dp pill CTA. Missing optional ad assets are hidden; app icons, advertiser names and CTA labels come from the actual ad. Dark headline/body defaults keep the white card readable. Small templates and iOS continue using Google's official layouts with a white default background.
+Native templates default to a white background. The Android medium card uses a square-corner media area (minimum 170dp), a 52dp icon with headline/body and Ad attribution, an SDK AdChoices view, and a full-width 50dp CTA with 10dp corners. Headlines use 16sp and up to three lines; descriptions use 13sp and at most two lines, with ellipsis rather than shrinking text. Long headlines (including roughly 24 words) may still be truncated depending on width and text scaling. Android medium height is clamped to at least 380 logical pixels to reserve room for media and the expanded text. Rating stars/numeric score and store name appear only when provided by the native SDK; the wrapper does not fetch Play Store data or invent ratings. Missing optional ad assets are hidden; app icons, advertiser names and CTA labels come from the actual ad. Dark headline/body defaults keep the white card readable. Small templates and iOS continue using Google's official layouts with a white default background.
 
 Developers can override the same style properties:
 

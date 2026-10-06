@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.RatingBar;
+import java.text.NumberFormat;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdView;
 import com.google.android.gms.ads.nativead.MediaView;
@@ -35,7 +37,8 @@ public final class MediumNativeAdFactory implements NativeAdFactory {
         card.setBackground(rounded(background, radius));
         card.setClipToOutline(true);
         View mediaContainer = view.findViewById(R.id.ad_media_container);
-        mediaContainer.setBackground(rounded(background, radius));
+        mediaContainer.setBackgroundColor(background);
+        mediaContainer.setClipToOutline(false);
         MediaView media = view.findViewById(R.id.ad_media);
         ImageView fallback = view.findViewById(R.id.ad_media_fallback);
         view.setMediaView(media);
@@ -59,6 +62,24 @@ public final class MediumNativeAdFactory implements NativeAdFactory {
         TextView advertiser = view.findViewById(R.id.ad_advertiser);
         bindOptional(advertiser, ad.getAdvertiser(), secondary);
         view.setAdvertiserView(advertiser);
+        View ratingGroup = view.findViewById(R.id.ad_rating_group);
+        RatingBar stars = view.findViewById(R.id.ad_stars);
+        TextView ratingValue = view.findViewById(R.id.ad_rating_value);
+        Double rating = ad.getStarRating();
+        if (rating != null && Double.isFinite(rating) && rating >= 0 && rating <= 5) {
+            stars.setRating(rating.floatValue());
+            NumberFormat format = NumberFormat.getNumberInstance();
+            format.setMaximumFractionDigits(1);
+            ratingValue.setText(format.format(rating));
+            ratingValue.setTextColor(secondary);
+            ratingGroup.setVisibility(View.VISIBLE);
+            view.setStarRatingView(ratingGroup);
+        } else {
+            ratingGroup.setVisibility(View.GONE);
+        }
+        TextView store = view.findViewById(R.id.ad_store);
+        bindOptional(store, ad.getStore(), secondary);
+        view.setStoreView(store);
         ((TextView) view.findViewById(R.id.ad_badge)).setTextColor(primary);
         ImageView icon = view.findViewById(R.id.ad_app_icon);
         icon.setBackground(rounded(background, radius));
@@ -72,7 +93,7 @@ public final class MediumNativeAdFactory implements NativeAdFactory {
         cta.setText(ad.getCallToAction());
         cta.setVisibility(ad.getCallToAction() == null ? View.GONE : View.VISIBLE);
         cta.setBackgroundTintList(null);
-        cta.setBackground(rounded(color(options, "callToActionColor", Color.rgb(37, 99, 235)), 25 * density));
+        cta.setBackground(rounded(color(options, "callToActionColor", Color.rgb(37, 99, 235)), 10 * density));
         cta.setTextColor(color(options, "callToActionTextColor", Color.WHITE));
         view.setCallToActionView(cta);
         view.setAdChoicesView((AdChoicesView) view.findViewById(R.id.ad_choices_view));
