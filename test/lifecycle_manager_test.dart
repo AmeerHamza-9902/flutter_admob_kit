@@ -95,6 +95,37 @@ void main() {
       appOpen.dispose();
     });
 
+    test('dismissal before lifecycle callbacks cannot chain app open', () {
+      final appOpen = _FakeAppOpenManager();
+      final lifecycle = LifecycleManager(appOpenManager: appOpen);
+      final token = AdOrchestrator.instance.acquireToken('interstitial')!;
+      AdOrchestrator.instance.releaseWithToken(token);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.hidden);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      expect(appOpen.showCallCount, 0);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      expect(appOpen.showCallCount, 1);
+      lifecycle.dispose();
+      appOpen.dispose();
+    });
+
+    test(
+      'fullscreen shown during a background cycle suppresses its resume',
+      () {
+        final appOpen = _FakeAppOpenManager();
+        final lifecycle = LifecycleManager(appOpenManager: appOpen);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+        final token = AdOrchestrator.instance.acquireToken('interstitial')!;
+        AdOrchestrator.instance.releaseWithToken(token);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        expect(appOpen.showCallCount, 0);
+        lifecycle.dispose();
+        appOpen.dispose();
+      },
+    );
+
     test('resumed state skips App Open when inside paywall screen', () {
       final appOpen = _FakeAppOpenManager();
       appOpen.isInPaywall = true;
@@ -104,11 +135,9 @@ void main() {
         isEnabled: true,
       );
 
-      // Transition to resumed
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
       lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      // App Open must NOT be shown!
       expect(appOpen.showCallCount, 0);
-
       lifecycle.dispose();
       appOpen.dispose();
     });

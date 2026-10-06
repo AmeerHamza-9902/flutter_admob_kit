@@ -15,6 +15,9 @@ class AdOrchestrator extends ChangeNotifier {
   int _leaseCounter = 0;
   int? _activeToken;
 
+  /// Monotonic presentation generation, including already dismissed ads.
+  int get presentationGeneration => _leaseCounter;
+
   /// Whether any fullscreen ad is currently active on screen.
   bool get isAnyFullscreenShowing => _isLeaseHeld;
 

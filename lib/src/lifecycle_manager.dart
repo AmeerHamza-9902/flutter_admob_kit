@@ -6,7 +6,8 @@ import 'app_open/app_open_manager.dart';
 /// Monitors app foreground/background transitions to automatically present
 /// App Open ads safely without boilerplate code.
 class LifecycleManager with WidgetsBindingObserver {
-  LifecycleManager({required this.appOpenManager, this.isEnabled = true});
+  LifecycleManager({required this.appOpenManager, this.isEnabled = true})
+    : _lastPresentation = AdOrchestrator.instance.presentationGeneration;
 
   final AppOpenManager appOpenManager;
   bool isEnabled;
@@ -28,15 +29,31 @@ class LifecycleManager with WidgetsBindingObserver {
   }
 
   bool _wasInBackground = false;
+  bool _backgroundCycleStarted = false;
+  int _lastPresentation;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      _wasInBackground = !AdOrchestrator.instance.isAnyFullscreenShowing;
+      final orchestrator = AdOrchestrator.instance;
+      final interrupted =
+          orchestrator.isAnyFullscreenShowing ||
+          orchestrator.presentationGeneration != _lastPresentation;
+      if (!_backgroundCycleStarted) {
+        _backgroundCycleStarted = true;
+        _wasInBackground = !interrupted;
+      } else if (interrupted) {
+        _wasInBackground = false;
+      }
+      _lastPresentation = orchestrator.presentationGeneration;
     } else if (state == AppLifecycleState.resumed) {
-      if (!_wasInBackground) return;
+      final generation = AdOrchestrator.instance.presentationGeneration;
+      final genuineResume = _wasInBackground && generation == _lastPresentation;
       _wasInBackground = false;
+      _backgroundCycleStarted = false;
+      _lastPresentation = generation;
+      if (!genuineResume) return;
 
       if (!isEnabled) return;
 

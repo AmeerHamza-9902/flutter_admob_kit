@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Suppress resume App Open for fullscreen-ad lifecycle cycles even when dismissal arrives before background/resume callbacks; preserve the next genuine resume and paywall suppression.
+
 - Add opt-in `BannerPreloadController` for splash-to-next-screen handoff, pending-request reuse, exact format/size matching, single-placement ownership, short cache expiry and consent/configuration invalidation.
 
 - Add `BannerAdWidget.large()` for standard 320×100 banners with optional proportional full-width fitting.
