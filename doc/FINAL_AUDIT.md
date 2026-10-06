@@ -1,6 +1,6 @@
 # Final technical and monetization audit
 
-Date: 6 October 2026. Updated after consent-form cleanup and native Android/iOS builds. Scope: all tracked package source, tests, example source, package configuration, README and CHANGELOG; resolved Google Mobile Ads plugin configuration and current official guidance. No version bump, pub.dev publication, release or tag was performed. GitHub source push was subsequently authorized by the user.
+Date: 6 October 2026. Updated after consent-form cleanup and native Android/iOS builds. Scope: all tracked package source, tests, example source, package configuration, README and CHANGELOG; resolved Google Mobile Ads plugin configuration and current official guidance. The audited package version is 4.0.0. The user subsequently authorized GitHub source push and pub.dev publication.
 
 ## A. Architecture
 
@@ -150,4 +150,4 @@ Source analysis, automated regressions and both native debug builds pass, but un
 1. Configure a real AdMob app ID and published privacy message to verify the required consent and privacy-options forms. Both supplied example native builds already pass with Google test app IDs.
 2. Run Google test ads on both platforms for all five formats, including actual template sizing/touch layout, real foreground transitions, consent/privacy forms, reward callbacks, and delayed/offline/network-handover recovery.
 
-These are explicit integration verification blockers, not claims that unit tests established real AdMob performance. The source fixes and audit are complete; publishing remains prohibited.
+These are explicit integration verification blockers, not claims that unit tests established real AdMob performance. The source fixes and audit are complete; publication was subsequently authorized by the user.

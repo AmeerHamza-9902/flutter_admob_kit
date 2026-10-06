@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased audit changes
+## 4.0.0
 
 * Complete UMP privacy entry-point support with `PrivacyConsentButton`, requirement/busy/error state, initialization parameters, and separate initial-consent/privacy-form results.
 * Add consent/form lifecycle regression tests and correct the native form method name in existing tests.
@@ -13,9 +13,7 @@
 * Reuse the central interstitial in paywall guards, suppress duplicate dismiss actions, and account for nested paywalls.
 * Remove ownership-less mutex APIs; minimum supported versions are Flutter 3.38.1, Dart 3.10, and google_mobile_ads 9.1.0.
 * Expand request-count, slow-load, retry, stale callback, entitlement, initialization, and widget tests.
-* Correct setup documentation and unsupported performance/metric claims. No package version change or release.
-
-## 4.0.0
+* Correct setup documentation and unsupported performance/metric claims.
 
 * Central Dart configuration, fullscreen managers, UMP integration, premium entitlement, and small/medium native templates.
 * Previous release notes incorrectly referenced an `AdLifecycleMixin`, click-counter behavior, and `showOnResumeAppOpen()` absent from this source. Those claims have been removed.

@@ -12,19 +12,14 @@ A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Conf
 
 ## Requirements and platform setup
 
-Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.1.0 <10.0.0`. Earlier plugin versions do not provide all APIs used here. The package version remains 4.0.0; these unreleased changes require migration review.
-
-These changes are available from GitHub and have not been released to pub.dev. To use this repository version:
+Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.1.0 <10.0.0`. Earlier plugin versions do not provide all APIs used here. Version 4.0.0 introduces breaking changes from 3.x; review the migration notes below.
 
 ```yaml
 dependencies:
-  flutter_admob_kit:
-    git:
-      url: https://github.com/AmeerHamza-9902/flutter_admob_kit.git
-      ref: main
+  flutter_admob_kit: ^4.0.0
 ```
 
-Pin `ref` to a reviewed commit for reproducible application builds. The existing pub.dev `^4.0.0` release does not include these unreleased changes.
+Run `flutter pub get` after adding the dependency.
 
 This repository contains a Dart package and an Android/iOS example host using official Google test app IDs. Configure your own consuming application as follows. In your application's `android/app/src/main/AndroidManifest.xml`, add your **app ID** inside `<application>`:
 
@@ -209,9 +204,9 @@ flutter run
 
 The example includes native test app IDs; production apps must supply their own app and ad unit IDs. See [example setup](example/README.md).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 115 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered; an iOS test banner rendered. Android returned a no-fill response during the smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](docs/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 115 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered; an iOS test banner rendered. Android returned a no-fill response during the smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
-## Unreleased migration notes
+## Migration from 3.x
 
 - UMP flow defaults to enabled; disabling it no longer bypasses the shared gate.
 - SDK initialization failures propagate instead of being silently ignored.
