@@ -367,6 +367,140 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('splash preload is shared and consumed by onboarding once', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final first = controller.preloadLarge();
+    final second = controller.preloadLarge();
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    final id = loads('Banner').single.arguments['adId'] as int;
+    await event(id, 'onAdLoaded');
+    expect(await first, isTrue);
+    expect(await second, isTrue);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: BannerAdWidget.large(preloadController: controller),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    expect(find.byType(AdWidget), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('onboarding joins pending preload rather than requesting twice', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadInlineAdaptive(width: 360);
+    await tester.pump();
+    final id = loads('Banner').single.arguments['adId'] as int;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 360,
+            child: BannerAdWidget.inlineAdaptiveLarge(
+              preloadController: controller,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    await event(id, 'onAdLoaded');
+    expect(await pending, isTrue);
+    await tester.pump();
+    expect(find.byType(AdWidget), findsOneWidget);
+    expect(tester.getSize(find.byType(BannerAdWidget)).height, 180);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('entitlement cancels pending preload and prevents new requests', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadLarge();
+    await tester.pump();
+    AdMobKit.setEntitled(true);
+    expect(await pending, isFalse);
+    expect(await controller.preloadLarge(), isFalse);
+    expect(loads('Banner'), hasLength(1));
+  });
+
+  testWidgets('unused preload expires without automatic replacement', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadLarge();
+    await tester.pump();
+    final id = loads('Banner').single.arguments['adId'] as int;
+    await event(id, 'onAdLoaded');
+    expect(await pending, isTrue);
+    await tester.pump(const Duration(minutes: 3));
+    expect(await controller.take(AdSize.largeBanner, 'banner-1'), isNull);
+    expect(loads('Banner'), hasLength(1));
+    expect(calls.where((c) => c.method == 'disposeAd'), isNotEmpty);
+  });
+
+  testWidgets('departing onboarding disposes its pending preload reservation', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadLarge();
+    await tester.pump();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: BannerAdWidget.large(preloadController: controller),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(await pending, isFalse);
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    expect(calls.where((c) => c.method == 'disposeAd'), isNotEmpty);
+  });
+
+  testWidgets('inline preload with different height cap is discarded', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadInlineAdaptive(
+      width: 360,
+      maxHeight: 250,
+    );
+    await tester.pump();
+    expect(
+      await controller.take(
+        AdSize.getInlineAdaptiveBannerAdSize(360, 50),
+        'banner-1',
+      ),
+      isNull,
+    );
+    expect(await pending, isFalse);
+    expect(calls.where((c) => c.method == 'disposeAd'), isNotEmpty);
+  });
+
   test('initialization failure is visible and retryable', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {

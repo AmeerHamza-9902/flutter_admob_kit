@@ -8,6 +8,7 @@ export 'src/admob_kit.dart';
 export 'src/app_open/app_open_manager.dart';
 export 'src/banner/banner_ad_widget.dart';
 export 'src/banner/banner_manager.dart';
+export 'src/banner/banner_preload_controller.dart';
 export 'src/consent_manager.dart';
 export 'src/interstitial/interstitial_manager.dart';
 export 'src/lifecycle_manager.dart';

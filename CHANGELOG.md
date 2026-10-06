@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add opt-in `BannerPreloadController` for splash-to-next-screen handoff, pending-request reuse, exact format/size matching, single-placement ownership, short cache expiry and consent/configuration invalidation.
+
 - Add `BannerAdWidget.large()` for standard 320×100 banners with optional proportional full-width fitting.
 
 - Add compact (50dp maximum) and large (250dp maximum) inline adaptive banners with customizable height caps and SDK-reported loaded sizes. Enable proportional FittedBox width fitting for medium rectangles by default.

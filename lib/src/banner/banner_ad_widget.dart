@@ -6,6 +6,7 @@ import '../inline_ad_retry.dart';
 import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
 import 'banner_manager.dart';
+import 'banner_preload_controller.dart';
 
 /// Drop-in, zero-boilerplate banner ad widget.
 ///
@@ -19,6 +20,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.size = AdSize.banner,
     this.isAdaptive = false,
     this.isInlineAdaptive = false,
@@ -35,6 +37,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.small({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -50,6 +53,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.large({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
@@ -65,6 +69,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.mediumRectangle({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
@@ -80,6 +85,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.inlineAdaptive({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.maxHeight = 50,
     this.fitToWidth = false,
     this.showShimmer = true,
@@ -95,6 +101,7 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.inlineAdaptiveLarge({
     super.key,
     this.adUnitId,
+    this.preloadController,
     this.maxHeight = 250,
     this.fitToWidth = false,
     this.showShimmer = true,
@@ -108,6 +115,9 @@ class BannerAdWidget extends StatefulWidget {
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
   final String? adUnitId;
+
+  /// Optional splash preload, consumed once by this placement.
+  final BannerPreloadController? preloadController;
 
   /// The banner ad size. Defaults to [AdSize.banner].
   final AdSize size;
@@ -144,6 +154,19 @@ class BannerAdWidget extends StatefulWidget {
 class _BannerAdWidgetState extends State<BannerAdWidget>
     with InlineAdRetry<BannerAdWidget> {
   BannerAd? _ad;
+  BannerPreloadController? _claimController;
+  Object? _claimToken;
+  void Function()? _releasePreload;
+
+  void _cancelClaim() {
+    _releasePreload?.call();
+    _releasePreload = null;
+    final token = _claimToken;
+    if (token != null) _claimController?.cancelClaim(token);
+    _claimController = null;
+    _claimToken = null;
+  }
+
   AdSize? _resolvedSize;
   bool _isLoaded = false;
   bool _hasFailed = false;
@@ -196,6 +219,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
   void didUpdateWidget(covariant BannerAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.adUnitId != widget.adUnitId ||
+        oldWidget.preloadController != widget.preloadController ||
         oldWidget.size != widget.size ||
         oldWidget.isAdaptive != widget.isAdaptive ||
         oldWidget.isInlineAdaptive != widget.isInlineAdaptive ||
@@ -213,6 +237,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     if (!mounted) return;
 
     if (!AdMobKit.canRequestAds) {
+      _cancelClaim();
       resetRetry();
       _loadGeneration++;
       _ad?.dispose();
@@ -235,6 +260,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
   Future<void> _load({bool retry = false}) async {
     if (!mounted) return;
     if (_usesWidth && _adaptiveWidth == null) return;
+    _cancelClaim();
     if (!retry) resetRetry();
     final gen = ++_loadGeneration;
 
@@ -282,6 +308,33 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) return;
     }
     _resolvedSize = targetSize;
+    final preload = widget.preloadController;
+    if (preload != null) {
+      final token = Object();
+      _claimController = preload;
+      _claimToken = token;
+      final cached = await preload.take(targetSize, unitId, owner: token);
+      if (identical(_claimToken, token)) {
+        _claimController = null;
+        _claimToken = null;
+      }
+      if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
+        cached?.release();
+        cached?.ad.dispose();
+        return;
+      }
+      if (cached != null) {
+        setState(() {
+          _ad = cached.ad;
+          _releasePreload = cached.release;
+          _resolvedSize = cached.size;
+          _isLoaded = true;
+          _hasFailed = false;
+        });
+        widget.onAdLoaded?.call();
+        return;
+      }
+    }
 
     final banner = BannerAd(
       adUnitId: unitId,
@@ -393,6 +446,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
 
   @override
   void dispose() {
+    _cancelClaim();
     AdMobKit.configNotifier.removeListener(_onConfigChanged);
     _loadGeneration++;
     _ad?.dispose();

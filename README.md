@@ -171,6 +171,29 @@ const NativeAdWidget.small(); // Minimum height 90.
 const NativeAdWidget.medium(); // Default height 280 Android / minimum 320 iOS.
 ```
 
+### Preload an upcoming banner on splash
+
+Keep one controller in the parent that owns both routes. After `AdMobKit.initialize` and consent complete, preload only if onboarding will actually be visited:
+
+```dart
+final onboardingBanner = BannerPreloadController();
+
+// Splash: start loading without delaying navigation.
+unawaited(onboardingBanner.preloadLarge()); // import dart:async
+
+// Onboarding: pass the SAME controller and matching banner format.
+BannerAdWidget.large(preloadController: onboardingBanner);
+
+// Parent disposal (after the routes no longer need the controller):
+onboardingBanner.dispose();
+```
+
+For other formats use `preloadMediumRectangle()`, `preloadSmall(width: destinationWidth)`, or `preloadInlineAdaptive(width: destinationWidth, maxHeight: 250)` with the matching widget and maximum height. Account for destination padding/safe areas in the width. Ready ads are handed to one placement; widgets joining an in-flight preload wait for the same request. A second placement gets its own ad. Size mismatches discard the unused preload and load the correct size. After handoff the widget owns disposal; cancelling a pending destination releases its reserved load.
+
+Unused loaded ads expire after two minutes without automatic replenishment. Pending loads time out after one minute. Consent/entitlement/configuration changes invalidate unused preloads. There is no background retry loop or automatic splash request; failed/missing preloads fall back to the existing bounded widget retry flow. Do not await preload to block navigation. Slow networks can still leave a loading placeholder.
+
+Preloading cannot guarantee 80% match/show rate or CTR. Loading an ad that the user never reaches can lower show rate, so preload only the next confirmed placement. SDK impression/click callbacks remain the source of events; no impressions or clicks are simulated. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
+
 Native templates default to a white background. The Android medium card uses a square-corner media area (minimum 120dp), a 52dp icon with headline/body and Ad attribution, an SDK AdChoices view, and a full-width 50dp CTA with 10dp corners. Headlines use 16sp and up to three lines; descriptions use 13sp and at most two lines, with ellipsis rather than shrinking text. Long headlines (including roughly 24 words) may still be truncated depending on width and text scaling. Android medium defaults to 280 logical pixels (also its minimum). Custom taller heights expand the media area; text uses up to three headline lines and two body lines when space permits, reducing to one line each in compact cards while retaining the 16sp headline size. Height-only rebuilds resize the existing ad without requesting another ad. Rating stars/numeric score and store name appear only when provided by the native SDK; the wrapper does not fetch Play Store data or invent ratings. Missing optional ad assets are hidden; app icons, advertiser names and CTA labels come from the actual ad. Dark headline/body defaults keep the white card readable. Small templates and iOS continue using Google's official layouts with a white default background.
 
 Developers can override the same style properties:
