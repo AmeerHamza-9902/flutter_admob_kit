@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add `BannerAdWidget.large()` for standard 320×100 banners with optional proportional full-width fitting.
+
 - Add compact (50dp maximum) and large (250dp maximum) inline adaptive banners with customizable height caps and SDK-reported loaded sizes. Enable proportional FittedBox width fitting for medium rectangles by default.
 
 - Default Android medium native cards to 280dp, expand media with custom taller heights, and adapt text line counts to available space without reloading ads.

@@ -45,6 +45,21 @@ class BannerAdWidget extends StatefulWidget {
        maxHeight = 50,
        fitToWidth = false;
 
+  /// Standard 320x100 large banner, fitted proportionally to available width.
+  /// Set [fitToWidth] to false to retain its native dimensions.
+  const BannerAdWidget.large({
+    super.key,
+    this.adUnitId,
+    this.fitToWidth = true,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : size = AdSize.largeBanner,
+       isAdaptive = false,
+       isInlineAdaptive = false,
+       maxHeight = 100;
+
   /// Factory constructor for a standard 300x250 Medium Rectangle banner
   /// Use [fitToWidth] to scale proportionally to the available width.
   const BannerAdWidget.mediumRectangle({
