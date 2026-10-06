@@ -21,12 +21,15 @@ class BannerAdWidget extends StatefulWidget {
     this.adUnitId,
     this.size = AdSize.banner,
     this.isAdaptive = false,
+    this.isInlineAdaptive = false,
+    this.maxHeight = 250,
     this.fitToWidth = false,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
-  });
+  }) : assert(maxHeight >= 50),
+       assert(!isAdaptive || !isInlineAdaptive);
 
   /// Factory constructor for a standard small banner that adapts to full screen width.
   const BannerAdWidget.small({
@@ -38,20 +41,55 @@ class BannerAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : size = AdSize.banner,
        isAdaptive = true,
+       isInlineAdaptive = false,
+       maxHeight = 50,
        fitToWidth = false;
 
   /// Factory constructor for a standard 300x250 Medium Rectangle banner
-  /// displayed at its native size without scaling ad assets.
+  /// Use [fitToWidth] to scale proportionally to the available width.
   const BannerAdWidget.mediumRectangle({
     super.key,
     this.adUnitId,
-    this.fitToWidth = false,
+    this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
   }) : size = AdSize.mediumRectangle,
-       isAdaptive = false;
+       isAdaptive = false,
+       isInlineAdaptive = false,
+       maxHeight = 250;
+
+  /// Full-width inline banner, with a default maximum height of 50dp.
+  /// Place in scrolling content; the SDK returns the actual loaded height.
+  const BannerAdWidget.inlineAdaptive({
+    super.key,
+    this.adUnitId,
+    this.maxHeight = 50,
+    this.fitToWidth = false,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : assert(maxHeight >= 50),
+       size = AdSize.banner,
+       isAdaptive = false,
+       isInlineAdaptive = true;
+
+  /// Full-width inline banner, with a default maximum height of 250dp.
+  const BannerAdWidget.inlineAdaptiveLarge({
+    super.key,
+    this.adUnitId,
+    this.maxHeight = 250,
+    this.fitToWidth = false,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : assert(maxHeight >= 50),
+       size = AdSize.mediumRectangle,
+       isAdaptive = false,
+       isInlineAdaptive = true;
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
   final String? adUnitId;
@@ -62,7 +100,14 @@ class BannerAdWidget extends StatefulWidget {
   /// Whether to use anchored adaptive banner sizing based on device screen width.
   final bool isAdaptive;
 
-  /// Centers the native-size banner in available space; never scales ad assets.
+  /// Use full-width SDK sizing for inline banners in scrolling content.
+  final bool isInlineAdaptive;
+
+  /// Maximum requested inline height in dp; the SDK determines actual height.
+  final int maxHeight;
+
+  /// Scales the banner proportionally with FittedBox to fill available width.
+  /// Its displayed height scales too. Adaptive banners already request full width.
   final bool fitToWidth;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -97,30 +142,36 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     AdMobKit.configNotifier.addListener(_onConfigChanged);
   }
 
+  bool get _usesWidth => widget.isAdaptive || widget.isInlineAdaptive;
+
   int? _adaptiveWidth;
   int? _pendingWidth;
   bool _layoutScheduled = false;
+  bool _reloadForLayout = false;
   bool _started = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_started && !widget.isAdaptive) {
+    if (!_started && !_usesWidth) {
       _started = true;
       _load();
     }
   }
 
   void _scheduleWidth(int width) {
-    if (width <= 0 || width == _adaptiveWidth) return;
+    if (width <= 0 || (width == _adaptiveWidth && !_reloadForLayout)) return;
     _pendingWidth = width;
     if (_layoutScheduled) return;
     _layoutScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _layoutScheduled = false;
-      if (!mounted || !widget.isAdaptive) return;
+      if (!mounted || !_usesWidth) return;
       final width = _pendingWidth;
-      if (width == null || width == _adaptiveWidth) return;
+      if (width == null || (width == _adaptiveWidth && !_reloadForLayout)) {
+        return;
+      }
+      _reloadForLayout = false;
       _adaptiveWidth = width;
       _load();
     });
@@ -131,8 +182,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.size != widget.size ||
-        oldWidget.isAdaptive != widget.isAdaptive) {
-      _load();
+        oldWidget.isAdaptive != widget.isAdaptive ||
+        oldWidget.isInlineAdaptive != widget.isInlineAdaptive ||
+        (widget.isInlineAdaptive && oldWidget.maxHeight != widget.maxHeight)) {
+      if (_usesWidth) {
+        _reloadForLayout = true;
+      } else {
+        _reloadForLayout = false;
+        _load();
+      }
     }
   }
 
@@ -161,7 +219,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
 
   Future<void> _load({bool retry = false}) async {
     if (!mounted) return;
-    if (widget.isAdaptive && _adaptiveWidth == null) return;
+    if (_usesWidth && _adaptiveWidth == null) return;
     if (!retry) resetRetry();
     final gen = ++_loadGeneration;
 
@@ -198,7 +256,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     if (mounted) setState(() {});
 
     AdSize targetSize = widget.size;
-    if (widget.isAdaptive && mounted) {
+    if (widget.isInlineAdaptive) {
+      targetSize = AdSize.getInlineAdaptiveBannerAdSize(
+        _adaptiveWidth!,
+        widget.maxHeight,
+      );
+    } else if (widget.isAdaptive && mounted) {
       final width = _adaptiveWidth!;
       targetSize = await BannerManager.getAdaptiveSize(width);
       if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) return;
@@ -234,10 +297,36 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
             );
           }
         },
-        onAdLoaded: (ad) {
+        onAdLoaded: (ad) async {
           if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
             ad.dispose();
             return;
+          }
+          if (widget.isInlineAdaptive) {
+            AdSize? platformSize;
+            try {
+              platformSize = await (ad as BannerAd).getPlatformAdSize();
+            } catch (_) {
+              platformSize = null;
+            }
+            if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
+              ad.dispose();
+              return;
+            }
+            if (platformSize == null ||
+                platformSize.width <= 0 ||
+                platformSize.height <= 0) {
+              ad.dispose();
+              setState(() {
+                _ad = null;
+                _isLoaded = false;
+                _hasFailed = true;
+              });
+              retryLoad(() => _load(retry: true));
+              widget.onAdFailed?.call();
+              return;
+            }
+            _resolvedSize = platformSize;
           }
           setState(() {
             _ad = ad as BannerAd;
@@ -298,7 +387,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
 
   @override
   Widget build(BuildContext context) {
-    if (!widget.isAdaptive) return _buildContent(context);
+    if (!_usesWidth) return _buildContent(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.hasBoundedWidth
@@ -316,7 +405,12 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     }
 
     final width = (_resolvedSize ?? widget.size).width.toDouble();
-    final height = (_resolvedSize ?? widget.size).height.toDouble();
+    final resolvedHeight = (_resolvedSize ?? widget.size).height;
+    final height =
+        (widget.isInlineAdaptive && !_isLoaded
+                ? widget.maxHeight
+                : resolvedHeight)
+            .toDouble();
 
     Widget content;
     if (_isLoaded && _ad != null) {
@@ -340,7 +434,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     }
 
     if (widget.fitToWidth) {
-      return Center(child: content);
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final targetWidth = constraints.hasBoundedWidth
+              ? constraints.maxWidth
+              : width;
+          return SizedBox(
+            width: targetWidth,
+            height: height * targetWidth / width,
+            child: FittedBox(fit: BoxFit.fitWidth, child: content),
+          );
+        },
+      );
     }
 
     return content;

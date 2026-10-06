@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add compact (50dp maximum) and large (250dp maximum) inline adaptive banners with customizable height caps and SDK-reported loaded sizes. Enable proportional FittedBox width fitting for medium rectangles by default.
+
 - Default Android medium native cards to 280dp, expand media with custom taller heights, and adapt text line counts to available space without reloading ads.
 
 * Remove medium media corner rounding, set CTA corners to 10dp, display SDK-provided rating stars/score and store, use 16sp three-line headlines and 13sp two-line bodies, and reserve at least 380dp on Android.

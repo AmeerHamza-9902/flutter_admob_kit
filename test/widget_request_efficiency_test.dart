@@ -11,6 +11,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   final calls = <MethodCall>[];
   var allowed = true;
+  Future<AdSize?> Function()? platformSize;
   final channel = MethodChannel(
     'plugins.flutter.io/google_mobile_ads',
     StandardMethodCodec(AdMessageCodec()),
@@ -28,11 +29,17 @@ void main() {
     AdMobKit.resetForTesting();
     allowed = true;
     calls.clear();
+    platformSize = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           calls.add(call);
           if (call.method == 'MobileAds#initialize') {
             return InitializationStatus({});
+          }
+          if (call.method == 'getAdSize') {
+            return platformSize == null
+                ? const AdSize(width: 360, height: 180)
+                : await platformSize!();
           }
           if (call.method == 'AdSize#getLargeAnchoredAdaptiveBannerAdSize') {
             return 50;
@@ -216,6 +223,149 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets(
+    'inline banner uses SDK height and reloads only for changed sizing',
+    (tester) async {
+      await initialize();
+      Widget tree(int cap) => MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 360,
+            child: BannerAdWidget.inlineAdaptiveLarge(
+              maxHeight: cap,
+              showShimmer: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(tree(250));
+      await tester.pump();
+      final args = loads('Banner').single.arguments as Map;
+      final size = args['size'] as InlineAdaptiveSize;
+      expect(size.width, 360);
+      expect(size.maxHeight, 250);
+      expect(tester.getSize(find.byType(BannerAdWidget)).height, 250);
+      await event(args['adId'] as int, 'onAdLoaded');
+      await tester.pump();
+      expect(tester.getSize(find.byType(BannerAdWidget)).height, 180);
+      await tester.pumpWidget(tree(250));
+      await tester.pump();
+      expect(loads('Banner'), hasLength(1));
+      await tester.pumpWidget(tree(300));
+      await tester.pump();
+      expect(loads('Banner'), hasLength(2));
+      expect(
+        (loads('Banner').last.arguments['size'] as InlineAdaptiveSize)
+            .maxHeight,
+        300,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'simultaneous inline width and cap change requests only final size',
+    (tester) async {
+      await initialize();
+      Widget tree(double width, int cap) => MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: width,
+            child: BannerAdWidget.inlineAdaptiveLarge(maxHeight: cap),
+          ),
+        ),
+      );
+      await tester.pumpWidget(tree(320, 250));
+      await tester.pump();
+      await tester.pumpWidget(tree(400, 300));
+      await tester.pump();
+      expect(loads('Banner'), hasLength(2));
+      final size = loads('Banner').last.arguments['size'] as InlineAdaptiveSize;
+      expect(size.width, 400);
+      expect(size.maxHeight, 300);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets(
+    'unmount during inline size lookup ignores stale loaded callback',
+    (tester) async {
+      await initialize();
+      final size = Completer<AdSize?>();
+      platformSize = () => size.future;
+      var loaded = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 360,
+              child: BannerAdWidget.inlineAdaptiveLarge(
+                onAdLoaded: () => loaded++,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final id = loads('Banner').single.arguments['adId'] as int;
+      await event(id, 'onAdLoaded');
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      size.complete(const AdSize(width: 360, height: 200));
+      await tester.pump();
+      expect(loaded, 0);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'missing inline platform size reports failure instead of showing zero-height ad',
+    (tester) async {
+      await initialize();
+      platformSize = () async => null;
+      var failed = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(
+            child: SizedBox(
+              width: 360,
+              child: BannerAdWidget.inlineAdaptive(onAdFailed: () => failed++),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final args = loads('Banner').single.arguments as Map;
+      expect((args['size'] as InlineAdaptiveSize).maxHeight, 50);
+      await event(args['adId'] as int, 'onAdLoaded');
+      await tester.pump();
+      expect(failed, 1);
+      expect(find.byType(AdWidget), findsNothing);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
+  testWidgets('medium rectangle fits width proportionally with FittedBox', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 360,
+            child: BannerAdWidget.mediumRectangle(showShimmer: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.getSize(find.byType(BannerAdWidget)), const Size(360, 300));
+    expect(find.byType(FittedBox), findsOneWidget);
+    expect(loads('Banner').single.arguments['size'], AdSize.mediumRectangle);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   test('initialization failure is visible and retryable', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
