@@ -1,18 +1,18 @@
 name: flutter_admob_kit
-description: Production-ready AdMob library for Flutter with UMP Consent, Zero-CLS Shimmer, Paywall Close Guards, Entitlement Gate, and Auto Resume App Open.
+description: Lightweight Google Mobile Ads wrapper for Flutter with UMP consent, automatic preloading, premium gating, banners, native templates, and fullscreen ads.
 version: 4.0.0
-homepage: https://github.com/Ameerhamza-tech/flutter_admob_kit
-repository: https://github.com/Ameerhamza-tech/flutter_admob_kit
-issue_tracker: https://github.com/Ameerhamza-tech/flutter_admob_kit/issues
+homepage: https://github.com/AmeerHamza-9902/flutter_admob_kit
+repository: https://github.com/AmeerHamza-9902/flutter_admob_kit
+issue_tracker: https://github.com/AmeerHamza-9902/flutter_admob_kit/issues
 
 environment:
-  sdk: '>=3.3.0 <4.0.0'
-  flutter: '>=3.19.0'
+  sdk: '>=3.10.0 <4.0.0'
+  flutter: '>=3.38.1'
 
 dependencies:
   flutter:
     sdk: flutter
-  google_mobile_ads: '>=5.1.0 <10.0.0'
+  google_mobile_ads: '>=9.1.0 <10.0.0'
 
 dev_dependencies:
   flutter_test:

@@ -1,32 +1,4 @@
-/// A lightweight, production-ready internal AdMob SDK for Flutter.
-///
-/// ## Quick Start
-/// ```dart
-/// // 1. Initialize once in main()
-/// await AdMobKit.initialize(
-///   config: AdMobConfig(
-///     android: AdPlatformConfig(
-///       interstitial: 'ca-app-pub-XXXX/XXXX',
-///       rewarded: 'ca-app-pub-XXXX/XXXX',
-///       appOpen: 'ca-app-pub-XXXX/XXXX',
-///       banner: 'ca-app-pub-XXXX/XXXX',
-///       native: 'ca-app-pub-XXXX/XXXX',
-///     ),
-///   ),
-/// );
-///
-/// // 2. Show Interstitial
-/// AdMobKit.interstitial.show(true);
-///
-/// // 3. Show Rewarded
-/// AdMobKit.rewarded.show(true, onReward: (reward) {
-///   // reward user
-/// });
-///
-/// // 4. Display Banner or Native widgets
-/// const BannerAdWidget();
-/// const NativeAdWidget.medium();
-/// ```
+/// Flutter ads with shared consent, entitlement and lifecycle management.
 library;
 
 export 'src/ad_config.dart';
@@ -45,3 +17,6 @@ export 'src/retry_policy.dart';
 export 'src/rewarded/rewarded_manager.dart';
 export 'src/widgets/ad_shimmer_placeholder.dart';
 export 'src/widgets/paywall_close_guard.dart';
+export 'src/widgets/privacy_consent_button.dart';
+export 'package:google_mobile_ads/google_mobile_ads.dart'
+    show ConsentRequestParameters, ConsentDebugSettings, DebugGeography;

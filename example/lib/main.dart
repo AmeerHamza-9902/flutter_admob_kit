@@ -4,25 +4,11 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 1. Initialize AdMobKit once with centralized configuration.
   await AdMobKit.initialize(
     config: const AdMobConfig(
-      android: AdPlatformConfig(
-        interstitial: 'ca-app-pub-3940256099942544/1033173712',
-        rewarded: 'ca-app-pub-3940256099942544/5224354917',
-        appOpen: 'ca-app-pub-3940256099942544/9257390910',
-        banner: 'ca-app-pub-3940256099942544/9214589741',
-        native: 'ca-app-pub-3940256099942544/2247696110',
-      ),
-      ios: AdPlatformConfig(
-        interstitial: 'ca-app-pub-3940256099942544/4411468910',
-        rewarded: 'ca-app-pub-3940256099942544/1712485313',
-        appOpen: 'ca-app-pub-3940256099942544/5575463023',
-        banner: 'ca-app-pub-3940256099942544/2435281174',
-        native: 'ca-app-pub-3940256099942544/3986624511',
-      ),
       autoResumeAppOpen: true,
-      enableUmpConsent: false,
+      enableUmpConsent: true,
+      testMode: true,
     ),
   );
 
@@ -36,10 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'flutter_admob_kit Demo',
-      theme: ThemeData(
-        colorSchemeSeed: Colors.indigo,
-        useMaterial3: true,
-      ),
+      theme: ThemeData(colorSchemeSeed: Colors.indigo, useMaterial3: true),
       home: const HomeScreen(),
     );
   }
@@ -80,6 +63,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                const PrivacyConsentButton(),
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -96,8 +80,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? 'Premium Member: Ads are suppressed'
                               : 'Free User: Ads enabled',
                           style: TextStyle(
-                            color:
-                                _isEntitled ? Colors.green : Colors.grey[700],
+                            color: _isEntitled
+                                ? Colors.green
+                                : Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -107,7 +92,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // 1. Interstitial Ad Trigger
                 ElevatedButton.icon(
                   icon: const Icon(Icons.fullscreen),
                   label: const Text('Show Interstitial (show: true)'),
@@ -119,7 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // 2. Interstitial Ad with false (No ad shown, zero spam)
                 OutlinedButton.icon(
                   icon: const Icon(Icons.block),
                   label: const Text('Show Interstitial (show: false)'),
@@ -130,7 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // 3. Rewarded Ad Trigger
                 ElevatedButton.icon(
                   icon: const Icon(Icons.card_giftcard),
                   label: const Text('Show Rewarded Ad (+10 Coins)'),
@@ -138,6 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     await AdMobKit.rewarded.show(
                       true,
                       onReward: (reward) {
+                        if (!mounted) return;
                         setState(() {
                           _coins += reward.amount.toInt();
                         });
@@ -154,7 +137,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // 4. Paywall Screen with Safe Interstitial Close Guard
                 ElevatedButton.icon(
                   icon: const Icon(Icons.lock_outline),
                   label: const Text('Open Paywall (Close Guard)'),
@@ -163,32 +145,38 @@ class _HomeScreenState extends State<HomeScreen> {
                       MaterialPageRoute(
                         builder: (_) => PaywallCloseGuard(
                           onDismiss: () => Navigator.of(context).pop(),
-                          child: Scaffold(
-                            appBar: AppBar(title: const Text('Upgrade to Pro')),
-                            body: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(
-                                    Icons.workspace_premium,
-                                    size: 80,
-                                    color: Colors.amber,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  const Text(
-                                    'Unlock All Features',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                          child: Builder(
+                            builder: (paywallContext) => Scaffold(
+                              appBar: AppBar(
+                                title: const Text('Upgrade to Pro'),
+                              ),
+                              body: Center(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.workspace_premium,
+                                      size: 80,
+                                      color: Colors.amber,
                                     ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                  ElevatedButton(
-                                    onPressed: () =>
-                                        PaywallCloseGuard.dismiss(context),
-                                    child: const Text('Close Paywall'),
-                                  ),
-                                ],
+                                    const SizedBox(height: 16),
+                                    const Text(
+                                      'Unlock All Features',
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 24),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          PaywallCloseGuard.dismiss(
+                                            paywallContext,
+                                          ),
+                                      child: const Text('Close Paywall'),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -199,7 +187,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // 5. Native Ad
                 const Text(
                   'Native Ad (Medium Template):',
                   style: TextStyle(fontWeight: FontWeight.bold),
@@ -210,7 +197,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          // 6. Adaptive Banner Ad at Bottom
           const BannerAdWidget(),
         ],
       ),

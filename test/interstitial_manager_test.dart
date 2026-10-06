@@ -50,26 +50,27 @@ void main() {
     });
 
     test(
-        'duplicate preload calls while loading do not trigger multiple requests',
-        () async {
-      final manager = _FakeInterstitialManager(
-        adUnitIdProvider: () => 'test-id',
-      );
+      'duplicate preload calls while loading do not trigger multiple requests',
+      () async {
+        final manager = _FakeInterstitialManager(
+          adUnitIdProvider: () => 'test-id',
+        );
 
-      // 1. First preload starts loading
-      final future1 = manager.preload();
-      expect(manager.state, AdState.loading);
-      expect(manager.fetchCallCount, 1);
-      expect(future1, isNotNull);
+        // 1. First preload starts loading
+        final future1 = manager.preload();
+        expect(manager.state, AdState.loading);
+        expect(manager.fetchCallCount, 1);
+        expect(future1, isNotNull);
 
-      // 2. Second preload called while first is in-flight
-      manager.preload();
-      // Must NOT trigger another fetchAd call!
-      expect(manager.fetchCallCount, 1);
-      expect(manager.state, AdState.loading);
+        // 2. Second preload called while first is in-flight
+        manager.preload();
+        // Must NOT trigger another fetchAd call!
+        expect(manager.fetchCallCount, 1);
+        expect(manager.state, AdState.loading);
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
     test('cooldown prevents rapid consecutive shows', () async {
       final manager = _FakeInterstitialManager(
@@ -94,28 +95,30 @@ void main() {
       manager.dispose();
     });
 
-    test('callbacks after disposal are safely ignored and do not revive state',
-        () {
-      final manager = _FakeInterstitialManager(
-        adUnitIdProvider: () => 'test-id',
-      );
+    test(
+      'callbacks after disposal are safely ignored and do not revive state',
+      () {
+        final manager = _FakeInterstitialManager(
+          adUnitIdProvider: () => 'test-id',
+        );
 
-      manager.preload();
-      expect(manager.state, AdState.loading);
-      final callback = manager.lastCallback;
-      expect(callback, isNotNull);
+        manager.preload();
+        expect(manager.state, AdState.loading);
+        final callback = manager.lastCallback;
+        expect(callback, isNotNull);
 
-      // Dispose manager while fetch is in-flight
-      manager.dispose();
-      expect(manager.state, AdState.disposed);
+        // Dispose manager while fetch is in-flight
+        manager.dispose();
+        expect(manager.state, AdState.disposed);
 
-      // Stale load failure callback arrives
-      callback!.onAdFailedToLoad(
-        LoadAdError(1, 'domain', 'Network failure', null),
-      );
-      // Manager must remain disposed and not transition to idle or retry
-      expect(manager.state, AdState.disposed);
-    });
+        // Stale load failure callback arrives
+        callback!.onAdFailedToLoad(
+          LoadAdError(1, 'domain', 'Network failure', null),
+        );
+        // Manager must remain disposed and not transition to idle or retry
+        expect(manager.state, AdState.disposed);
+      },
+    );
 
     test('invalidate cancels state and updates to new ad unit id', () {
       String currentId = 'id-1';

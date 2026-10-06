@@ -17,13 +17,7 @@ enum AdState {
 }
 
 /// The core ad formats supported by the SDK.
-enum AdFormat {
-  interstitial,
-  rewarded,
-  appOpen,
-  banner,
-  native,
-}
+enum AdFormat { interstitial, rewarded, appOpen, banner, native }
 
 /// Event types emitted during the lifecycle of an advertisement.
 enum AdEventType {

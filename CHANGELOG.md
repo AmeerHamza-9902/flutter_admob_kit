@@ -1,21 +1,24 @@
 # Changelog
 
+## Unreleased audit changes
+
+* Complete UMP privacy entry-point support with `PrivacyConsentButton`, requirement/busy/error state, initialization parameters, and separate initial-consent/privacy-form results.
+* Add consent/form lifecycle regression tests and correct the native form method name in existing tests.
+* Remove unused `AdMobKit.instance`, ignored paywall `adUnitId`, duplicate inline gate checks, and redundant comments/example IDs.
+
+* Consolidate fullscreen load/cache/retry/presentation ownership; prevent show-while-loading requests and stale callback corruption.
+* Keep exact fullscreen leases and presented native resources until dismissal, including configuration/entitlement changes.
+* Centralize fail-closed UMP readiness for all formats; enable automatic consent by default and surface initialization errors.
+* Add conservative bounded retries, inline resource ownership during loads, adaptive container sizing, and equivalent native-style comparison.
+* Reuse the central interstitial in paywall guards, suppress duplicate dismiss actions, and account for nested paywalls.
+* Remove ownership-less mutex APIs; minimum supported versions are Flutter 3.38.1, Dart 3.10, and google_mobile_ads 9.1.0.
+* Expand request-count, slow-load, retry, stale callback, entitlement, initialization, and widget tests.
+* Correct setup documentation and unsupported performance/metric claims. No package version change or release.
+
 ## 4.0.0
 
-* **New:** Support latest `google_mobile_ads` up to `<10.0.0` (supports v8.x, v9.x, and v9.1.0).
-* **New:** Global Entitlement Gate (`AdMobKit.instance.setEntitled(true)`) for instant 1-line app-wide ad suppression.
-* **New:** `AdLifecycleMixin` unifying load, retry, exponential backoff, and freshness eviction across all managers.
-* **New:** Eager in-memory preloading on startup and runtime configuration changes via `updateConfig`.
-* **New:** Async generation tokens on `BannerAdWidget` and `NativeAdWidget` to eliminate race conditions.
-* **Fix:** Click counter now preserves progression when an ad is unready to guarantee high show rate and match rate.
-* **Fix:** Clean Dart configuration model with cross-platform platform configs.
-
-* **New:** `onAdClicked` and `onAdImpression` callbacks on all fullscreen ad managers
-* **Fix:** `showOnResumeAppOpen()` now pre-loads the ad before showing
-* **Fix:** Updated `flutter_lints` to `^6.0.0`
-* **Fix:** Removed stray directories and `.DS_Store` files from repository
-* **Fix:** Removed unnecessary dependencies from example app
-* **Fix:** Added `analysis_options.yaml`
+* Central Dart configuration, fullscreen managers, UMP integration, premium entitlement, and small/medium native templates.
+* Previous release notes incorrectly referenced an `AdLifecycleMixin`, click-counter behavior, and `showOnResumeAppOpen()` absent from this source. Those claims have been removed.
 
 ## 3.0.6
 
@@ -34,15 +37,6 @@
 
 * **Fix:** Broadened `google_mobile_ads` constraint to `>=5.1.0 <7.0.0`
 * **Fix:** Pure Dart configuration — pass ad unit IDs directly
-
-### ⚠️ google_mobile_ads version conflict?
-
-If you see a conflict error, add this to your `pubspec.yaml`:
-
-```yaml
-dependency_overrides:
-  google_mobile_ads: ^8.0.0
-```
 
 ## 3.0.0
 

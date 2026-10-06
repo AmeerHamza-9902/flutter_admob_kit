@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
-import '../consent_manager.dart';
+import '../inline_ad_retry.dart';
+import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
 import 'native_templates.dart';
 
 /// Drop-in, zero-boilerplate Native Ad widget with built-in templates.
 ///
 /// Automatically uses the configured Native Ad Unit ID, applies Google's official
-/// native templates for Android and iOS, handles loading, zero-CLS shimmers, and disposal.
+/// native templates for Android and iOS, handles loading, placeholders, and disposal.
 ///
 /// ```dart
 /// const NativeAdWidget.medium()
@@ -84,7 +85,8 @@ class NativeAdWidget extends StatefulWidget {
   State<NativeAdWidget> createState() => _NativeAdWidgetState();
 }
 
-class _NativeAdWidgetState extends State<NativeAdWidget> {
+class _NativeAdWidgetState extends State<NativeAdWidget>
+    with InlineAdRetry<NativeAdWidget> {
   NativeAd? _ad;
   bool _isLoaded = false;
   bool _hasFailed = false;
@@ -93,7 +95,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   bool? _activeTestMode;
 
   double get _targetHeight {
-    if (widget.height != null) return widget.height!;
+    if (widget.height != null) {
+      final minimum = widget.template == NativeTemplate.small ? 90.0 : 320.0;
+      return widget.height!.clamp(minimum, double.infinity);
+    }
     switch (widget.template) {
       case NativeTemplate.small:
         return 90.0;
@@ -122,7 +127,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
   void _onConfigChanged() {
     if (!mounted) return;
 
-    if (AdMobKit.isEntitled) {
+    if (!AdMobKit.canRequestAds) {
+      resetRetry();
       _loadGeneration++;
       _ad?.dispose();
       _ad = null;
@@ -141,11 +147,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool retry = false}) async {
+    if (!mounted) return;
+    if (!retry) resetRetry();
     final gen = ++_loadGeneration;
 
-    // Check entitlement (premium users see no ads)
-    if (AdMobKit.isEntitled) {
+    if (!AdMobKit.canRequestAds) {
       _ad?.dispose();
       _ad = null;
       _isLoaded = false;
@@ -155,20 +162,17 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       return;
     }
 
-    // Check consent state
-    final canRequest = await ConsentManager.instance.canRequestAds();
-    if (!canRequest ||
-        gen != _loadGeneration ||
-        !mounted ||
-        AdMobKit.isEntitled) {
-      return;
-    }
-
     final unitId = widget.adUnitId ?? AdMobKit.config.nativeId;
     final testMode = AdMobKit.config.testMode;
     if (unitId == null || unitId.isEmpty) {
-      _hasFailed = true;
-      widget.onAdFailed?.call();
+      _ad?.dispose();
+      _ad = null;
+      setState(() {
+        _isLoaded = false;
+        _hasFailed = true;
+      });
+      _activeAdUnitId = unitId;
+      _activeTestMode = testMode;
       return;
     }
 
@@ -178,6 +182,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
     _hasFailed = false;
     _activeAdUnitId = unitId;
     _activeTestMode = testMode;
+    if (mounted) setState(() {});
 
     final templateStyle = (widget.style ?? const NativeAdStyle())
         .toGoogleTemplateStyle(widget.template);
@@ -187,8 +192,32 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       nativeTemplateStyle: templateStyle,
       request: const AdRequest(),
       listener: NativeAdListener(
+        onAdImpression: (_) {
+          if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.native,
+                type: AdEventType.impression,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+              ),
+            );
+          }
+        },
+        onAdClicked: (_) {
+          if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.native,
+                type: AdEventType.clicked,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+              ),
+            );
+          }
+        },
         onAdLoaded: (ad) {
-          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) {
+          if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
             ad.dispose();
             return;
           }
@@ -197,22 +226,47 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
             _isLoaded = true;
             _hasFailed = false;
           });
+          resetRetry();
+          AdMobKit.reportEvent(
+            AdEvent(
+              format: AdFormat.native,
+              type: AdEventType.loaded,
+              timestamp: DateTime.now(),
+              adUnitId: unitId,
+            ),
+          );
           widget.onAdLoaded?.call();
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
+          if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
+            return;
+          }
           setState(() {
             _ad = null;
             _isLoaded = false;
             _hasFailed = true;
           });
+          retryLoad(() => _load(retry: true));
           widget.onAdFailed?.call();
         },
       ),
     );
 
-    nativeAd.load();
+    _ad = nativeAd;
+    try {
+      await nativeAd.load();
+    } catch (_) {
+      await nativeAd.dispose();
+      if (!mounted || gen != _loadGeneration) return;
+      setState(() {
+        _ad = null;
+        _isLoaded = false;
+        _hasFailed = true;
+      });
+      retryLoad(() => _load(retry: true));
+      widget.onAdFailed?.call();
+    }
   }
 
   @override
@@ -226,7 +280,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (AdMobKit.isEntitled || _hasFailed) {
+    if (!AdMobKit.canRequestAds || _hasFailed) {
       return const SizedBox.shrink();
     }
 
@@ -240,7 +294,6 @@ class _NativeAdWidgetState extends State<NativeAdWidget> {
       );
     }
 
-    // Loading state: custom placeholder or shimmer skeleton
     if (widget.placeholder != null) {
       return widget.placeholder!;
     }

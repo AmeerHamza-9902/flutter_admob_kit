@@ -3,10 +3,7 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class _FakeRewardedManager extends RewardedManager {
-  _FakeRewardedManager({
-    super.adUnitIdProvider,
-    super.canRequestAdsProvider,
-  });
+  _FakeRewardedManager({super.adUnitIdProvider, super.canRequestAdsProvider});
 
   int fetchCallCount = 0;
   RewardedAdLoadCallback? lastCallback;
@@ -48,44 +45,47 @@ void main() {
     });
 
     test(
-        'duplicate preload calls while loading do not trigger multiple requests',
-        () {
-      final manager = _FakeRewardedManager(
-        adUnitIdProvider: () => 'test-rewarded-id',
-      );
+      'duplicate preload calls while loading do not trigger multiple requests',
+      () {
+        final manager = _FakeRewardedManager(
+          adUnitIdProvider: () => 'test-rewarded-id',
+        );
 
-      final future1 = manager.preload();
-      expect(manager.state, AdState.loading);
-      expect(manager.fetchCallCount, 1);
-      expect(future1, isNotNull);
+        final future1 = manager.preload();
+        expect(manager.state, AdState.loading);
+        expect(manager.fetchCallCount, 1);
+        expect(future1, isNotNull);
 
-      manager.preload();
-      expect(manager.fetchCallCount, 1);
-      expect(manager.state, AdState.loading);
+        manager.preload();
+        expect(manager.fetchCallCount, 1);
+        expect(manager.state, AdState.loading);
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
-    test('callbacks after disposal are safely ignored and do not revive state',
-        () {
-      final manager = _FakeRewardedManager(
-        adUnitIdProvider: () => 'test-rewarded-id',
-      );
+    test(
+      'callbacks after disposal are safely ignored and do not revive state',
+      () {
+        final manager = _FakeRewardedManager(
+          adUnitIdProvider: () => 'test-rewarded-id',
+        );
 
-      manager.preload();
-      expect(manager.state, AdState.loading);
-      final callback = manager.lastCallback;
-      expect(callback, isNotNull);
+        manager.preload();
+        expect(manager.state, AdState.loading);
+        final callback = manager.lastCallback;
+        expect(callback, isNotNull);
 
-      manager.dispose();
-      expect(manager.state, AdState.disposed);
+        manager.dispose();
+        expect(manager.state, AdState.disposed);
 
-      // Stale callback arrives
-      callback!.onAdFailedToLoad(
-        LoadAdError(1, 'domain', 'Network failure', null),
-      );
-      expect(manager.state, AdState.disposed);
-    });
+        // Stale callback arrives
+        callback!.onAdFailedToLoad(
+          LoadAdError(1, 'domain', 'Network failure', null),
+        );
+        expect(manager.state, AdState.disposed);
+      },
+    );
 
     test('canRequestAdsProvider == false prevents preload', () async {
       bool consentAllowed = false;

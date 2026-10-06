@@ -13,56 +13,58 @@ void main() {
     });
 
     test('successfully acquires presentation lock', () {
-      final acquired = AdOrchestrator.instance.tryAcquire('interstitial');
-      expect(acquired, isTrue);
+      final acquired = AdOrchestrator.instance.acquireToken('interstitial');
+      expect(acquired, isNotNull);
       expect(AdOrchestrator.instance.isAnyFullscreenShowing, isTrue);
       expect(AdOrchestrator.instance.activeFormat, 'interstitial');
     });
 
     test('blocks concurrent presentation of different ad formats', () {
       // 1. Interstitial acquires lock
-      expect(AdOrchestrator.instance.tryAcquire('interstitial'), isTrue);
+      expect(AdOrchestrator.instance.acquireToken('interstitial'), isNotNull);
 
       // 2. App Open attempts to acquire — blocked!
-      expect(AdOrchestrator.instance.tryAcquire('app_open'), isFalse);
+      expect(AdOrchestrator.instance.acquireToken('app_open'), isNull);
 
       // 3. Rewarded attempts to acquire — blocked!
-      expect(AdOrchestrator.instance.tryAcquire('rewarded'), isFalse);
+      expect(AdOrchestrator.instance.acquireToken('rewarded'), isNull);
 
       expect(AdOrchestrator.instance.activeFormat, 'interstitial');
     });
 
     test('releasing lock allows next format to acquire', () {
-      expect(AdOrchestrator.instance.tryAcquire('interstitial'), isTrue);
-      AdOrchestrator.instance.release('interstitial');
+      final token = AdOrchestrator.instance.acquireToken('interstitial');
+      AdOrchestrator.instance.releaseWithToken(token!);
 
       expect(AdOrchestrator.instance.isAnyFullscreenShowing, isFalse);
       expect(AdOrchestrator.instance.activeFormat, isNull);
 
       // Now App Open can acquire cleanly
-      expect(AdOrchestrator.instance.tryAcquire('app_open'), isTrue);
+      expect(AdOrchestrator.instance.acquireToken('app_open'), isNotNull);
       expect(AdOrchestrator.instance.activeFormat, 'app_open');
     });
 
-    test('token-based acquire and release prevents stale release collisions',
-        () {
-      final token1 = AdOrchestrator.instance.acquireToken('interstitial');
-      expect(token1, isNotNull);
-      expect(AdOrchestrator.instance.activeFormat, 'interstitial');
+    test(
+      'token-based acquire and release prevents stale release collisions',
+      () {
+        final token1 = AdOrchestrator.instance.acquireToken('interstitial');
+        expect(token1, isNotNull);
+        expect(AdOrchestrator.instance.activeFormat, 'interstitial');
 
-      // Second acquire fails
-      final token2 = AdOrchestrator.instance.acquireToken('rewarded');
-      expect(token2, isNull);
+        // Second acquire fails
+        final token2 = AdOrchestrator.instance.acquireToken('rewarded');
+        expect(token2, isNull);
 
-      // Stale token cannot release
-      final releasedStale = AdOrchestrator.instance.releaseWithToken(9999);
-      expect(releasedStale, isFalse);
-      expect(AdOrchestrator.instance.isAnyFullscreenShowing, isTrue);
+        // Stale token cannot release
+        final releasedStale = AdOrchestrator.instance.releaseWithToken(9999);
+        expect(releasedStale, isFalse);
+        expect(AdOrchestrator.instance.isAnyFullscreenShowing, isTrue);
 
-      // Valid token releases cleanly
-      final releasedValid = AdOrchestrator.instance.releaseWithToken(token1!);
-      expect(releasedValid, isTrue);
-      expect(AdOrchestrator.instance.isAnyFullscreenShowing, isFalse);
-    });
+        // Valid token releases cleanly
+        final releasedValid = AdOrchestrator.instance.releaseWithToken(token1!);
+        expect(releasedValid, isTrue);
+        expect(AdOrchestrator.instance.isAnyFullscreenShowing, isFalse);
+      },
+    );
   });
 }

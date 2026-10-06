@@ -10,36 +10,16 @@ import 'interstitial/interstitial_manager.dart';
 import 'lifecycle_manager.dart';
 import 'rewarded/rewarded_manager.dart';
 
-/// Central entry point for flutter_admob_kit.
-///
-/// Designed to behave like a lightweight internal AdMob SDK:
-/// - Configure Ad Unit IDs once during initialization.
-/// - Control fullscreen ads with simple calls like `AdMobKit.interstitial.show(true)`.
-/// - Automatic preloading, exponential retries, expiry validation, and app resume lifecycle.
-///
-/// ```dart
-/// await AdMobKit.initialize(
-///   config: AdMobConfig(
-///     android: AdPlatformConfig(interstitial: '...'),
-///     ios: AdPlatformConfig(interstitial: '...'),
-///   ),
-/// );
-/// ```
 class _ConfigChangeNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
 }
 
+/// Central entry point for initialization, ads, entitlement and consent.
 class AdMobKit {
   AdMobKit._();
 
-  static final AdMobKit _singleton = AdMobKit._();
-
-  /// Shared singleton instance for convenience and backward compatibility.
-  static AdMobKit get instance => _singleton;
-
   static AdMobConfig _config = const AdMobConfig();
   static bool _isInitialized = false;
-  static bool _isEntitled = false;
 
   static InterstitialManager? _interstitial;
   static RewardedManager? _rewarded;
@@ -60,7 +40,7 @@ class AdMobKit {
   static bool get isInitialized => _isInitialized;
 
   /// Whether the user is entitled (ad-free premium).
-  static bool get isEntitled => _isEntitled || _config.isEntitled;
+  static bool get isEntitled => _config.isEntitled;
 
   /// The active [InterstitialManager] instance.
   static InterstitialManager get interstitial {
@@ -90,6 +70,7 @@ class AdMobKit {
       ConsentManager.instance.showPrivacyOptionsForm();
 
   static Future<void>? _initFuture;
+  static ConsentRequestParameters? _consentParameters;
 
   /// Initializes the AdMob SDK and internal managers.
   ///
@@ -99,6 +80,7 @@ class AdMobKit {
   static Future<void> initialize({
     AdMobConfig? config,
     bool autoPreload = true,
+    ConsentRequestParameters? consentParameters,
   }) {
     if (_isInitialized) return Future.value();
     if (_initFuture != null) return _initFuture!;
@@ -106,6 +88,7 @@ class AdMobKit {
     final future = _doInitialize(
       config: config,
       autoPreload: autoPreload,
+      consentParameters: consentParameters,
     );
 
     _initFuture = future.then(
@@ -126,32 +109,31 @@ class AdMobKit {
   static Future<void> _doInitialize({
     AdMobConfig? config,
     bool autoPreload = true,
+    ConsentRequestParameters? consentParameters,
   }) async {
     try {
       testHookBeforeInit?.call();
       WidgetsFlutterBinding.ensureInitialized();
+      _consentParameters = consentParameters;
 
       if (config != null) {
-        final entitled = _isEntitled || config.isEntitled;
+        final entitled = isEntitled || config.isEntitled;
         _config = config.copyWith(isEntitled: entitled);
-        _isEntitled = entitled;
       }
 
-      // 1. Google UMP Consent flow (if enabled)
       if (_config.enableUmpConsent) {
-        try {
-          await ConsentManager.instance.requestConsent();
-        } catch (_) {}
+        await consent.requestConsent(parameters: consentParameters);
       }
 
-      // 2. Initialize Google Mobile Ads SDK
-      try {
-        await MobileAds.instance.initialize();
-      } catch (_) {}
+      // Initialization errors must not expose request-capable managers.
+      await MobileAds.instance.initialize();
+      if (!_config.enableUmpConsent) await consent.canRequestAds();
 
-      // 3. Setup internal managers
-      bool canRequest() =>
-          !_config.enableUmpConsent || ConsentManager.instance.isConsentSafe;
+      bool canRequest() => canRequestAds;
+      bool canShow() {
+        final state = WidgetsBinding.instance.lifecycleState;
+        return state == null || state == AppLifecycleState.resumed;
+      }
 
       _interstitial = InterstitialManager(
         adUnitIdProvider: () => _config.interstitialId,
@@ -159,6 +141,7 @@ class AdMobKit {
         adExpiry: _config.interstitialExpiry,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
+        canShowAdsProvider: canShow,
       )..onEvent = _handleEvent;
 
       _rewarded = RewardedManager(
@@ -166,6 +149,7 @@ class AdMobKit {
         adExpiry: _config.rewardedExpiry,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
+        canShowAdsProvider: canShow,
       )..onEvent = _handleEvent;
 
       _appOpen = AppOpenManager(
@@ -174,9 +158,9 @@ class AdMobKit {
         adExpiry: _config.appOpenExpiry,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
+        canShowAdsProvider: canShow,
       )..onEvent = _handleEvent;
 
-      // 4. Setup automatic App Open lifecycle observer
       _lifecycleManager = LifecycleManager(
         appOpenManager: _appOpen!,
         isEnabled: _config.autoResumeAppOpen,
@@ -184,26 +168,40 @@ class AdMobKit {
 
       _isInitialized = true;
 
-      // 5. Initial eager preloads (only if permitted by consent and entitlement)
-      if (autoPreload && !isEntitled) {
-        final canRequestAds = await ConsentManager.instance.canRequestAds();
-        if (canRequestAds && !isEntitled) {
-          if (_config.interstitialId != null) {
-            _interstitial!.preload();
-          }
-          if (_config.rewardedId != null) {
-            _rewarded!.preload();
-          }
-          if (_config.appOpenId != null) {
-            _appOpen!.preload();
-          }
-        }
-      }
+      ConsentManager.instance.addListener(_onConsentChanged);
+      _autoPreload = autoPreload;
+      _configNotifier.notify();
+      if (autoPreload) _preload();
     } catch (e) {
       _initFuture = null;
       _isInitialized = false;
       rethrow;
     }
+  }
+
+  static bool _autoPreload = true;
+
+  /// All formats share this gate, including when UMP is managed by the host.
+  static bool get canRequestAds =>
+      _isInitialized && !isEntitled && ConsentManager.instance.isConsentSafe;
+
+  static void _preload() {
+    if (!canRequestAds) return;
+    unawaited(_interstitial!.preload());
+    unawaited(_rewarded!.preload());
+    unawaited(_appOpen!.preload());
+  }
+
+  static void _invalidateAll() {
+    _interstitial?.invalidate(force: true);
+    _rewarded?.invalidate(force: true);
+    _appOpen?.invalidate(force: true);
+  }
+
+  static void _onConsentChanged() {
+    if (!canRequestAds) _invalidateAll();
+    _configNotifier.notify();
+    if (_autoPreload) _preload();
   }
 
   /// Sets the user's entitlement status.
@@ -212,99 +210,58 @@ class AdMobKit {
   /// are immediately invalidated, and active banner/native widgets collapse.
   /// When `false`, preloading resumes if consent permits.
   static void setEntitled(bool entitled) {
-    final wasEntitled = _isEntitled;
-    _isEntitled = entitled;
+    if (isEntitled == entitled) return;
     _config = _config.copyWith(isEntitled: entitled);
-
+    if (entitled) _invalidateAll();
     _configNotifier.notify();
-
-    if (entitled) {
-      // Evict all preloaded cached ads and cancel timers
-      _interstitial?.invalidate(force: true);
-      _rewarded?.invalidate(force: true);
-      _appOpen?.invalidate(force: true);
-    } else if (wasEntitled && _isInitialized) {
-      // Re-prime preloaded ads if allowed
-      ConsentManager.instance.canRequestAds().then((canRequest) {
-        if (canRequest && !isEntitled) {
-          if (_config.interstitialId != null) _interstitial?.preload();
-          if (_config.rewardedId != null) _rewarded?.preload();
-          if (_config.appOpenId != null) _appOpen?.preload();
-        }
-      });
-    }
+    if (!entitled && _autoPreload) _preload();
   }
 
-  /// Updates runtime configuration dynamically.
+  /// Updates code-owned configuration, preserving active presentations.
   static void updateConfig(AdMobConfig newConfig) {
-    final oldConfig = _config;
+    final old = _config;
     _config = newConfig;
-    _isEntitled = newConfig.isEntitled;
-
+    _lifecycleManager?.isEnabled = newConfig.autoResumeAppOpen;
+    _interstitial?.cooldown = newConfig.interstitialCooldown;
+    _interstitial?.adExpiry = newConfig.interstitialExpiry;
+    _rewarded?.adExpiry = newConfig.rewardedExpiry;
+    _appOpen?.cooldown = newConfig.appOpenCooldown;
+    _appOpen?.adExpiry = newConfig.appOpenExpiry;
+    final modeChanged = old.testMode != newConfig.testMode;
+    final interstitialChanged =
+        modeChanged ||
+        old.interstitialId != newConfig.interstitialId ||
+        old.interstitialExpiry != newConfig.interstitialExpiry;
+    final rewardedChanged =
+        modeChanged ||
+        old.rewardedId != newConfig.rewardedId ||
+        old.rewardedExpiry != newConfig.rewardedExpiry;
+    final appOpenChanged =
+        modeChanged ||
+        old.appOpenId != newConfig.appOpenId ||
+        old.appOpenExpiry != newConfig.appOpenExpiry;
+    if (modeChanged || old.interstitialId != newConfig.interstitialId) {
+      _interstitial?.invalidate(force: true);
+    }
+    if (modeChanged || old.rewardedId != newConfig.rewardedId) {
+      _rewarded?.invalidate(force: true);
+    }
+    if (modeChanged || old.appOpenId != newConfig.appOpenId) {
+      _appOpen?.invalidate(force: true);
+    }
+    if (isEntitled) _invalidateAll();
+    if (!old.enableUmpConsent && newConfig.enableUmpConsent) {
+      unawaited(consent.requestConsent(parameters: _consentParameters));
+    }
     _configNotifier.notify();
-
-    if (newConfig.isEntitled) {
-      setEntitled(true);
-      return;
-    }
-
-    if (_lifecycleManager != null) {
-      _lifecycleManager!.isEnabled = newConfig.autoResumeAppOpen;
-    }
-
-    final bool testModeChanged = oldConfig.testMode != newConfig.testMode;
-    final bool interstitialChanged = testModeChanged ||
-        (oldConfig.interstitialId != newConfig.interstitialId);
-    final bool rewardedChanged =
-        testModeChanged || (oldConfig.rewardedId != newConfig.rewardedId);
-    final bool appOpenChanged =
-        testModeChanged || (oldConfig.appOpenId != newConfig.appOpenId);
-
-    if (_interstitial != null) {
-      _interstitial!.cooldown = newConfig.interstitialCooldown;
-      _interstitial!.adExpiry = newConfig.interstitialExpiry;
-      if (interstitialChanged) {
-        _interstitial!.invalidate(
-          newAdUnitId: newConfig.interstitialId,
-          force: testModeChanged,
-        );
+    if (_autoPreload && canRequestAds) {
+      if (old.isEntitled && !newConfig.isEntitled) {
+        _preload();
+      } else {
+        if (interstitialChanged) unawaited(_interstitial!.preload());
+        if (rewardedChanged) unawaited(_rewarded!.preload());
+        if (appOpenChanged) unawaited(_appOpen!.preload());
       }
-    }
-    if (_rewarded != null) {
-      _rewarded!.adExpiry = newConfig.rewardedExpiry;
-      if (rewardedChanged) {
-        _rewarded!.invalidate(
-          newAdUnitId: newConfig.rewardedId,
-          force: testModeChanged,
-        );
-      }
-    }
-    if (_appOpen != null) {
-      _appOpen!.cooldown = newConfig.appOpenCooldown;
-      _appOpen!.adExpiry = newConfig.appOpenExpiry;
-      if (appOpenChanged) {
-        _appOpen!.invalidate(
-          newAdUnitId: newConfig.appOpenId,
-          force: testModeChanged,
-        );
-      }
-    }
-
-    // Automatically trigger preload using new configuration if consent and entitlement allow
-    if (_isInitialized && !isEntitled) {
-      ConsentManager.instance.canRequestAds().then((canRequest) {
-        if (canRequest && !isEntitled) {
-          if (interstitialChanged && newConfig.interstitialId != null) {
-            _interstitial?.preload();
-          }
-          if (rewardedChanged && newConfig.rewardedId != null) {
-            _rewarded?.preload();
-          }
-          if (appOpenChanged && newConfig.appOpenId != null) {
-            _appOpen?.preload();
-          }
-        }
-      });
     }
   }
 
@@ -320,6 +277,9 @@ class AdMobKit {
     _eventListeners.remove(listener);
   }
 
+  /// Routes SDK callbacks from owned placements to optional local listeners.
+  static void reportEvent(AdEvent event) => _handleEvent(event);
+
   static void _handleEvent(AdEvent event) {
     for (final listener in List.of(_eventListeners)) {
       try {
@@ -332,18 +292,8 @@ class AdMobKit {
 
   static void _ensureInitialized() {
     if (!_isInitialized) {
-      // Lazy fallback initialization with default config to prevent crashes
-      _interstitial ??= InterstitialManager(
-        adUnitIdProvider: () => _config.interstitialId,
-        isEntitledProvider: () => isEntitled,
-      );
-      _rewarded ??= RewardedManager(
-        adUnitIdProvider: () => _config.rewardedId,
-        isEntitledProvider: () => isEntitled,
-      );
-      _appOpen ??= AppOpenManager(
-        adUnitIdProvider: () => _config.appOpenId,
-        isEntitledProvider: () => isEntitled,
+      throw StateError(
+        'Await AdMobKit.initialize() before accessing managers.',
       );
     }
   }
@@ -351,6 +301,7 @@ class AdMobKit {
   /// Resets internal state (useful for unit tests).
   @visibleForTesting
   static void resetForTesting() {
+    ConsentManager.instance.removeListener(_onConsentChanged);
     _lifecycleManager?.stop();
     _lifecycleManager = null;
     _interstitial?.dispose();
@@ -361,9 +312,10 @@ class AdMobKit {
     _appOpen = null;
     _eventListeners.clear();
     _isInitialized = false;
-    _isEntitled = false;
     _initFuture = null;
+    _autoPreload = true;
     testHookBeforeInit = null;
+    _consentParameters = null;
     _config = const AdMobConfig();
     _configNotifier.notify();
   }

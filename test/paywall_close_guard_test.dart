@@ -6,15 +6,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('PaywallCloseGuard', () {
-    testWidgets('renders builder and bypasses ad if user is entitled',
-        (tester) async {
+    testWidgets('renders builder and bypasses ad if user is entitled', (
+      tester,
+    ) async {
       bool dismissed = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PaywallCloseGuard(
             isEntitled: true,
-            adUnitId: 'test-ad-unit',
             onDismiss: () => dismissed = true,
             builder: (context, attemptDismiss, isLoading) {
               return Scaffold(
@@ -36,15 +36,15 @@ void main() {
       expect(dismissed, true);
     });
 
-    testWidgets('dismisses immediately when no adUnitId provided',
-        (tester) async {
+    testWidgets('dismisses immediately when SDK is uninitialized', (
+      tester,
+    ) async {
       bool dismissed = false;
 
       await tester.pumpWidget(
         MaterialApp(
           home: PaywallCloseGuard(
             isEntitled: false,
-            adUnitId: null,
             onDismiss: () => dismissed = true,
             builder: (context, attemptDismiss, isLoading) {
               return Scaffold(
@@ -64,8 +64,9 @@ void main() {
       expect(dismissed, true);
     });
 
-    testWidgets('renders direct child and PaywallCloseGuard.dismiss works',
-        (tester) async {
+    testWidgets('renders direct child and PaywallCloseGuard.dismiss works', (
+      tester,
+    ) async {
       bool dismissed = false;
 
       await tester.pumpWidget(

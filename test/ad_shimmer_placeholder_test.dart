@@ -49,8 +49,9 @@ void main() {
       expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     });
 
-    testWidgets('renders mediumRectangle variant without errors',
-        (tester) async {
+    testWidgets('renders mediumRectangle variant without errors', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(

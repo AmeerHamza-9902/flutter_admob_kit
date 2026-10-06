@@ -55,13 +55,13 @@ class NativeAdStyle {
       cornerRadius: cornerRadius,
       callToActionTextStyle:
           callToActionColor != null || callToActionTextColor != Colors.white
-              ? NativeTemplateTextStyle(
-                  backgroundColor: callToActionColor,
-                  textColor: callToActionTextColor,
-                  style: NativeTemplateFontStyle.bold,
-                  size: isSmall ? 14.0 : 16.0,
-                )
-              : null,
+          ? NativeTemplateTextStyle(
+              backgroundColor: callToActionColor,
+              textColor: callToActionTextColor,
+              style: NativeTemplateFontStyle.bold,
+              size: isSmall ? 14.0 : 16.0,
+            )
+          : null,
       primaryTextStyle: primaryTextColor != null
           ? NativeTemplateTextStyle(
               textColor: primaryTextColor,
@@ -78,6 +78,26 @@ class NativeAdStyle {
           : null,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is NativeAdStyle &&
+      backgroundColor == other.backgroundColor &&
+      cornerRadius == other.cornerRadius &&
+      callToActionColor == other.callToActionColor &&
+      callToActionTextColor == other.callToActionTextColor &&
+      primaryTextColor == other.primaryTextColor &&
+      secondaryTextColor == other.secondaryTextColor;
+
+  @override
+  int get hashCode => Object.hash(
+    backgroundColor,
+    cornerRadius,
+    callToActionColor,
+    callToActionTextColor,
+    primaryTextColor,
+    secondaryTextColor,
+  );
 
   /// Creates a copy of this style with modified properties.
   NativeAdStyle copyWith({

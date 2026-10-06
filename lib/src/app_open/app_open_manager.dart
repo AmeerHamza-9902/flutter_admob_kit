@@ -1,113 +1,27 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-
-import '../ad_orchestrator.dart';
 import '../ad_state.dart';
-import '../retry_policy.dart';
+import '../fullscreen_manager.dart';
 
-/// Manages App Open ads, preloading, retries, paywall protection, and presentation.
-class AppOpenManager extends ChangeNotifier {
+/// Owns one appOpen cache and one request at a time.
+class AppOpenManager extends FullscreenManager<AppOpenAd> {
   AppOpenManager({
-    this.adUnitIdProvider,
-    this.adExpiry = const Duration(hours: 4),
-    this.cooldown = const Duration(seconds: 10),
-    this.retryPolicy = const RetryPolicy(),
-    this.isEntitledProvider,
-    this.canRequestAdsProvider,
-  });
+    super.adUnitIdProvider,
+    super.isEntitledProvider,
+    super.canRequestAdsProvider,
+    super.canShowAdsProvider,
+    super.adExpiry = const Duration(hours: 4),
+    super.cooldown = const Duration(seconds: 10),
+    super.retryPolicy,
+  }) : super(format: AdFormat.appOpen);
 
-  /// Function that returns the active ad unit ID.
-  final ValueGetter<String?>? adUnitIdProvider;
-
-  /// Function that returns whether the user is entitled (ad-free).
-  final ValueGetter<bool>? isEntitledProvider;
-
-  /// Function that returns whether consent allows ad requests.
-  final ValueGetter<bool>? canRequestAdsProvider;
-
-  /// Maximum freshness lifespan of a loaded App Open ad (Google advises 4 hours).
-  Duration adExpiry;
-
-  /// Cooldown between consecutive App Open presentations.
-  Duration cooldown;
-
-  /// Backoff retry policy.
-  RetryPolicy retryPolicy;
-
-  /// Flag set when the user is on a paywall / pro purchase screen.
-  /// Suppresses App Open ads from interrupting the purchase funnel.
-  bool isInPaywall = false;
-
-  AppOpenAd? _ad;
-  AdState _state = AdState.idle;
-  DateTime? _loadedAt;
-  DateTime? _lastShownAt;
-  String? _loadedAdUnitId;
-  int _retryAttempt = 0;
-  int _generation = 0;
-  int? _leaseToken;
-  Timer? _retryTimer;
-  Completer<bool>? _loadCompleter;
-
-  /// Current state of the App Open ad.
-  AdState get state => _state;
-
-  /// Whether an ad is loaded and ready to be shown.
-  bool get isReady => _state == AdState.ready && !isExpired;
-
-  /// Whether an ad is currently loading.
-  bool get isLoading => _state == AdState.loading;
-
-  /// Whether an ad is currently showing on screen.
-  bool get isShowing => _state == AdState.showing;
-
-  /// Whether the cached ad has expired.
-  bool get isExpired {
-    if (_loadedAt == null) return true;
-    return DateTime.now().difference(_loadedAt!) > adExpiry;
-  }
-
-  /// Whether currently inside the cooldown window.
-  bool get isInCooldown {
-    if (_lastShownAt == null) return false;
-    return DateTime.now().difference(_lastShownAt!) < cooldown;
-  }
-
-  /// Callback when an ad lifecycle event occurs.
-  void Function(AdEvent event)? onEvent;
-
-  /// Preloads an App Open ad into memory.
-  Future<bool> preload([String? overrideAdUnitId]) async {
-    if (_state == AdState.disposed) return false;
-    if (isEntitledProvider?.call() == true) return false;
-    if (canRequestAdsProvider?.call() == false) return false;
-
-    // Evict expired ad
-    if (_state == AdState.ready && isExpired) {
-      _disposeCurrentAd();
-      _state = AdState.idle;
-    }
-
-    // Already ready and fresh
-    if (_state == AdState.ready && _ad != null) return true;
-
-    // Already in flight
-    if (_state == AdState.loading) {
-      return _loadCompleter?.future ?? Future.value(false);
-    }
-
-    final adUnitId = overrideAdUnitId ?? adUnitIdProvider?.call();
-    if (adUnitId == null || adUnitId.isEmpty) {
-      return false;
-    }
-
-    _state = AdState.loading;
-    _loadCompleter = Completer<bool>();
-    notifyListeners();
-
-    _fetch(adUnitId, _generation);
-    return _loadCompleter!.future;
+  bool _manualPaywall = false;
+  int _paywallCount = 0;
+  bool get isInPaywall => _manualPaywall || _paywallCount > 0;
+  set isInPaywall(bool value) => _manualPaywall = value;
+  void enterPaywall() => _paywallCount++;
+  void leavePaywall() {
+    if (_paywallCount > 0) _paywallCount--;
   }
 
   @protected
@@ -116,238 +30,31 @@ class AppOpenManager extends ChangeNotifier {
       adUnitId: adUnitId,
       request: const AdRequest(),
       adLoadCallback: callback,
-    );
+    ).catchError((Object error) {
+      callback.onAdFailedToLoad(LoadAdError(-1, 'platform', '$error', null));
+    });
   }
 
-  void _fetch(String adUnitId, int gen) {
-    if (_state == AdState.disposed || gen != _generation) {
-      _completeLoad(false);
-      return;
-    }
-
+  @override
+  void requestAd(
+    String id,
+    void Function(AppOpenAd) loaded,
+    void Function(LoadAdError) failed,
+  ) {
     fetchAd(
-      adUnitId,
-      AppOpenAdLoadCallback(
-        onAdLoaded: (ad) {
-          if (_state == AdState.disposed ||
-              gen != _generation ||
-              isEntitledProvider?.call() == true) {
-            ad.dispose();
-            _completeLoad(false);
-            return;
-          }
-          _ad = ad;
-          _loadedAdUnitId = adUnitId;
-          _state = AdState.ready;
-          _loadedAt = DateTime.now();
-          _retryAttempt = 0;
-          _emitEvent(AdEventType.loaded, adUnitId: adUnitId);
-          notifyListeners();
-          _completeLoad(true);
-        },
-        onAdFailedToLoad: (error) {
-          if (_state == AdState.disposed ||
-              gen != _generation ||
-              isEntitledProvider?.call() == true) {
-            _completeLoad(false);
-            return;
-          }
-          _emitEvent(
-            AdEventType.loadFailed,
-            adUnitId: adUnitId,
-            errorMessage: error.message,
-          );
-          _handleLoadFailure(adUnitId, gen);
-        },
-      ),
-    );
-  }
-
-  void _handleLoadFailure(String adUnitId, int gen) {
-    if (_state == AdState.disposed ||
-        gen != _generation ||
-        isEntitledProvider?.call() == true) {
-      _completeLoad(false);
-      return;
-    }
-
-    _retryAttempt++;
-    if (retryPolicy.shouldRetry(_retryAttempt)) {
-      final delay = retryPolicy.delayFor(_retryAttempt);
-      _retryTimer?.cancel();
-      _retryTimer = Timer(delay, () {
-        if (_state != AdState.disposed &&
-            _state != AdState.ready &&
-            gen == _generation &&
-            isEntitledProvider?.call() != true) {
-          _fetch(adUnitId, gen);
-        }
-      });
-    } else {
-      _state = AdState.idle;
-      _retryAttempt = 0;
-      notifyListeners();
-      _completeLoad(false);
-    }
-  }
-
-  /// Displays the App Open ad.
-  ///
-  /// - When [shouldShow] is `false`: Does not show and does not trigger any ad requests.
-  /// - When [shouldShow] is `true`: Shows if ready and presentation conditions are met.
-  ///
-  /// Returns `true` if presented, `false` otherwise.
-  Future<bool> show([bool shouldShow = true]) async {
-    if (!shouldShow) return false;
-    if (_state == AdState.disposed) return false;
-    if (isInPaywall) return false;
-    if (isEntitledProvider?.call() == true) return false;
-
-    // Check cooldown
-    if (isInCooldown) return false;
-
-    // Check expiration
-    if (isExpired) {
-      _disposeCurrentAd();
-      _state = AdState.idle;
-      preload();
-      return false;
-    }
-
-    // Check readiness
-    if (_state != AdState.ready || _ad == null) {
-      if (_state == AdState.idle) preload();
-      return false;
-    }
-
-    // Mutual exclusion: acquire fullscreen presentation lock with token
-    final token = AdOrchestrator.instance.acquireToken('app_open');
-    if (token == null) {
-      return false;
-    }
-    _leaseToken = token;
-
-    _state = AdState.showing;
-    notifyListeners();
-
-    final activeAd = _ad!;
-    final currentGen = _generation;
-    activeAd.fullScreenContentCallback = FullScreenContentCallback<AppOpenAd>(
-      onAdShowedFullScreenContent: (_) {
-        _lastShownAt = DateTime.now();
-        _emitEvent(AdEventType.shown);
-      },
-      onAdDismissedFullScreenContent: (ad) {
-        _onAdClosed(ad, currentGen, token);
-        _emitEvent(AdEventType.dismissed);
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        _onAdClosed(ad, currentGen, token);
-        _emitEvent(AdEventType.dismissed, errorMessage: error.message);
-      },
-      onAdClicked: (_) => _emitEvent(AdEventType.clicked),
-      onAdImpression: (_) => _emitEvent(AdEventType.impression),
-    );
-
-    activeAd.show();
-    return true;
-  }
-
-  void _onAdClosed(AppOpenAd ad, int gen, [int? token]) {
-    final tokenToRelease = token ?? _leaseToken;
-    if (tokenToRelease != null) {
-      AdOrchestrator.instance.releaseWithToken(tokenToRelease);
-      if (_leaseToken == tokenToRelease) {
-        _leaseToken = null;
-      }
-    }
-
-    ad.dispose();
-    _ad = null;
-    _loadedAdUnitId = null;
-    _loadedAt = null;
-
-    if (_state != AdState.disposed && gen == _generation) {
-      _state = AdState.idle;
-      notifyListeners();
-
-      // Auto-preload the next App Open ad
-      if (isEntitledProvider?.call() != true) {
-        preload();
-      }
-    }
-  }
-
-  void _completeLoad(bool result) {
-    if (_loadCompleter != null && !_loadCompleter!.isCompleted) {
-      _loadCompleter!.complete(result);
-    }
-  }
-
-  /// Disposes currently cached ad and resets state to idle.
-  /// If [newAdUnitId] is provided, verifies if the cached ad matches it unless [force] is true.
-  void invalidate({String? newAdUnitId, bool force = false}) {
-    if (_state == AdState.disposed) return;
-    if (!force &&
-        newAdUnitId != null &&
-        _loadedAdUnitId == newAdUnitId &&
-        _ad != null) {
-      return; // Still matching
-    }
-    _generation++;
-    _retryTimer?.cancel();
-    _completeLoad(false);
-    _disposeCurrentAd();
-    if (_state != AdState.showing) {
-      _state = AdState.idle;
-      notifyListeners();
-    }
-  }
-
-  void _disposeCurrentAd() {
-    _ad?.dispose();
-    _ad = null;
-    _loadedAdUnitId = null;
-    _loadedAt = null;
-  }
-
-  void _emitEvent(
-    AdEventType type, {
-    String? adUnitId,
-    String? errorMessage,
-  }) {
-    onEvent?.call(
-      AdEvent(
-        format: AdFormat.appOpen,
-        type: type,
-        timestamp: DateTime.now(),
-        adUnitId: adUnitId,
-        errorMessage: errorMessage,
-      ),
+      id,
+      AppOpenAdLoadCallback(onAdLoaded: loaded, onAdFailedToLoad: failed),
     );
   }
 
   @override
-  void dispose() {
-    _generation++;
-    _state = AdState.disposed;
-    _retryTimer?.cancel();
-    _completeLoad(false);
-    if (_leaseToken != null) {
-      AdOrchestrator.instance.releaseWithToken(_leaseToken!);
-      _leaseToken = null;
-    }
-    _disposeCurrentAd();
-    super.dispose();
+  void setContentCallback(
+    AppOpenAd ad,
+    FullScreenContentCallback<AppOpenAd> callback,
+  ) {
+    ad.fullScreenContentCallback = callback;
   }
 
-  @visibleForTesting
-  int? get leaseToken => _leaseToken;
-
-  @visibleForTesting
-  void setAdForTesting(AppOpenAd ad) {
-    _ad = ad;
-    _state = AdState.ready;
-    _loadedAt = DateTime.now();
-  }
+  Future<bool> show([bool shouldShow = true]) =>
+      present(shouldShow && !isInPaywall, (ad) => ad.show());
 }

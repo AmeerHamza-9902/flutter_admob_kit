@@ -8,7 +8,11 @@ class BannerManager {
   ///
   /// Falls back to [AdSize.banner] if adaptive calculation is unavailable.
   static Future<AdSize> getAdaptiveSize(int width) async {
-    final adaptive = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
-    return adaptive ?? AdSize.banner;
+    try {
+      final adaptive = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(width);
+      return adaptive ?? AdSize.banner;
+    } catch (_) {
+      return AdSize.banner;
+    }
   }
 }

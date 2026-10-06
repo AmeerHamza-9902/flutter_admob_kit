@@ -5,6 +5,7 @@ void main() {
   group('AdMobConfig', () {
     test('resolves configured ad units explicitly from code', () {
       const config = AdMobConfig(
+        enableUmpConsent: false,
         android: AdPlatformConfig(
           interstitial: 'android-interstitial-id',
           rewarded: 'android-rewarded-id',

@@ -21,27 +21,16 @@ class AdOrchestrator extends ChangeNotifier {
   /// The format name currently presenting, or `null` if idle.
   String? get activeFormat => _activeFormat;
 
-  /// Attempts to acquire the presentation lock for [format].
-  ///
-  /// Returns `true` if acquired, `false` if another fullscreen ad is already presenting.
-  bool tryAcquire(String format) {
-    if (_isLeaseHeld) return false;
-    _isLeaseHeld = true;
-    _activeFormat = format;
-    _activeToken = ++_leaseCounter;
-    notifyListeners();
-    return true;
-  }
-
   /// Attempts to acquire the presentation lock and returns an ownership token,
   /// or `null` if the lock is already held.
   int? acquireToken(String format) {
     if (_isLeaseHeld) return null;
     _isLeaseHeld = true;
     _activeFormat = format;
-    _activeToken = ++_leaseCounter;
+    final token = ++_leaseCounter;
+    _activeToken = token;
     notifyListeners();
-    return _activeToken;
+    return token;
   }
 
   /// Releases the presentation lock using the [token] obtained from [acquireToken].
@@ -54,18 +43,6 @@ class AdOrchestrator extends ChangeNotifier {
     _activeToken = null;
     notifyListeners();
     return true;
-  }
-
-  /// Releases the presentation lock.
-  void release([String? format]) {
-    if (!_isLeaseHeld) return;
-    if (format != null && _activeFormat != null && _activeFormat != format) {
-      return;
-    }
-    _isLeaseHeld = false;
-    _activeFormat = null;
-    _activeToken = null;
-    notifyListeners();
   }
 
   /// Resets state (useful for unit tests).

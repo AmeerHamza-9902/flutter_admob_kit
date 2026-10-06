@@ -6,10 +6,7 @@ import 'app_open/app_open_manager.dart';
 /// Monitors app foreground/background transitions to automatically present
 /// App Open ads safely without boilerplate code.
 class LifecycleManager with WidgetsBindingObserver {
-  LifecycleManager({
-    required this.appOpenManager,
-    this.isEnabled = true,
-  });
+  LifecycleManager({required this.appOpenManager, this.isEnabled = true});
 
   final AppOpenManager appOpenManager;
   bool isEnabled;
@@ -34,23 +31,19 @@ class LifecycleManager with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!isEnabled) return;
-
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      _wasInBackground = true;
+      _wasInBackground = !AdOrchestrator.instance.isAnyFullscreenShowing;
     } else if (state == AppLifecycleState.resumed) {
-      // 1. Only present if the app actually transitioned from background (not first launch)
       if (!_wasInBackground) return;
       _wasInBackground = false;
 
-      // 2. Skip if another fullscreen ad is already presenting
+      if (!isEnabled) return;
+
       if (AdOrchestrator.instance.isAnyFullscreenShowing) return;
 
-      // 3. Skip if currently in a paywall/purchase screen
       if (appOpenManager.isInPaywall) return;
 
-      // 4. Attempt to present the primed App Open ad
       appOpenManager.show(true);
     }
   }

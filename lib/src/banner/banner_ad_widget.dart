@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
-import '../consent_manager.dart';
+import '../inline_ad_retry.dart';
+import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
 import 'banner_manager.dart';
 
@@ -35,22 +36,22 @@ class BannerAdWidget extends StatefulWidget {
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
-  })  : size = AdSize.banner,
-        isAdaptive = true,
-        fitToWidth = false;
+  }) : size = AdSize.banner,
+       isAdaptive = true,
+       fitToWidth = false;
 
   /// Factory constructor for a standard 300x250 Medium Rectangle banner
-  /// scaled with [FittedBox] to fit full container/screen width.
+  /// displayed at its native size without scaling ad assets.
   const BannerAdWidget.mediumRectangle({
     super.key,
     this.adUnitId,
-    this.fitToWidth = true,
+    this.fitToWidth = false,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
-  })  : size = AdSize.mediumRectangle,
-        isAdaptive = false;
+  }) : size = AdSize.mediumRectangle,
+       isAdaptive = false;
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
   final String? adUnitId;
@@ -61,8 +62,7 @@ class BannerAdWidget extends StatefulWidget {
   /// Whether to use anchored adaptive banner sizing based on device screen width.
   final bool isAdaptive;
 
-  /// Whether to wrap the banner in a [FittedBox] so it scales seamlessly to full width.
-  /// Especially ideal for 300x250 medium rectangles on full-width feeds.
+  /// Centers the native-size banner in available space; never scales ad assets.
   final bool fitToWidth;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -81,7 +81,8 @@ class BannerAdWidget extends StatefulWidget {
   State<BannerAdWidget> createState() => _BannerAdWidgetState();
 }
 
-class _BannerAdWidgetState extends State<BannerAdWidget> {
+class _BannerAdWidgetState extends State<BannerAdWidget>
+    with InlineAdRetry<BannerAdWidget> {
   BannerAd? _ad;
   AdSize? _resolvedSize;
   bool _isLoaded = false;
@@ -94,7 +95,35 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   void initState() {
     super.initState();
     AdMobKit.configNotifier.addListener(_onConfigChanged);
-    _load();
+  }
+
+  int? _adaptiveWidth;
+  int? _pendingWidth;
+  bool _layoutScheduled = false;
+  bool _started = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_started && !widget.isAdaptive) {
+      _started = true;
+      _load();
+    }
+  }
+
+  void _scheduleWidth(int width) {
+    if (width <= 0 || width == _adaptiveWidth) return;
+    _pendingWidth = width;
+    if (_layoutScheduled) return;
+    _layoutScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _layoutScheduled = false;
+      if (!mounted || !widget.isAdaptive) return;
+      final width = _pendingWidth;
+      if (width == null || width == _adaptiveWidth) return;
+      _adaptiveWidth = width;
+      _load();
+    });
   }
 
   @override
@@ -110,7 +139,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   void _onConfigChanged() {
     if (!mounted) return;
 
-    if (AdMobKit.isEntitled) {
+    if (!AdMobKit.canRequestAds) {
+      resetRetry();
       _loadGeneration++;
       _ad?.dispose();
       _ad = null;
@@ -129,11 +159,13 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool retry = false}) async {
+    if (!mounted) return;
+    if (widget.isAdaptive && _adaptiveWidth == null) return;
+    if (!retry) resetRetry();
     final gen = ++_loadGeneration;
 
-    // Check entitlement (premium users see no ads)
-    if (AdMobKit.isEntitled) {
+    if (!AdMobKit.canRequestAds) {
       _ad?.dispose();
       _ad = null;
       _isLoaded = false;
@@ -143,37 +175,33 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       return;
     }
 
-    // Check consent state
-    final canRequest = await ConsentManager.instance.canRequestAds();
-    if (!canRequest ||
-        gen != _loadGeneration ||
-        !mounted ||
-        AdMobKit.isEntitled) {
-      return;
-    }
-
     final unitId = widget.adUnitId ?? AdMobKit.config.bannerId;
     final testMode = AdMobKit.config.testMode;
     if (unitId == null || unitId.isEmpty) {
-      _hasFailed = true;
-      widget.onAdFailed?.call();
+      _ad?.dispose();
+      _ad = null;
+      setState(() {
+        _isLoaded = false;
+        _hasFailed = true;
+      });
+      _activeAdUnitId = unitId;
+      _activeTestMode = testMode;
       return;
     }
 
-    // Dispose any previous ad
     _ad?.dispose();
     _ad = null;
     _isLoaded = false;
     _hasFailed = false;
     _activeAdUnitId = unitId;
     _activeTestMode = testMode;
+    if (mounted) setState(() {});
 
-    // Resolve adaptive size if requested
     AdSize targetSize = widget.size;
     if (widget.isAdaptive && mounted) {
-      final width = MediaQuery.of(context).size.width.truncate();
+      final width = _adaptiveWidth!;
       targetSize = await BannerManager.getAdaptiveSize(width);
-      if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
+      if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) return;
     }
     _resolvedSize = targetSize;
 
@@ -182,8 +210,32 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
       size: targetSize,
       request: const AdRequest(),
       listener: BannerAdListener(
+        onAdImpression: (_) {
+          if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.banner,
+                type: AdEventType.impression,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+              ),
+            );
+          }
+        },
+        onAdClicked: (_) {
+          if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.banner,
+                type: AdEventType.clicked,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+              ),
+            );
+          }
+        },
         onAdLoaded: (ad) {
-          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) {
+          if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
             ad.dispose();
             return;
           }
@@ -192,22 +244,47 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
             _isLoaded = true;
             _hasFailed = false;
           });
+          resetRetry();
+          AdMobKit.reportEvent(
+            AdEvent(
+              format: AdFormat.banner,
+              type: AdEventType.loaded,
+              timestamp: DateTime.now(),
+              adUnitId: unitId,
+            ),
+          );
           widget.onAdLoaded?.call();
         },
         onAdFailedToLoad: (ad, error) {
           ad.dispose();
-          if (gen != _loadGeneration || !mounted || AdMobKit.isEntitled) return;
+          if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
+            return;
+          }
           setState(() {
             _ad = null;
             _isLoaded = false;
             _hasFailed = true;
           });
+          retryLoad(() => _load(retry: true));
           widget.onAdFailed?.call();
         },
       ),
     );
 
-    banner.load();
+    _ad = banner;
+    try {
+      await banner.load();
+    } catch (_) {
+      await banner.dispose();
+      if (!mounted || gen != _loadGeneration) return;
+      setState(() {
+        _ad = null;
+        _isLoaded = false;
+        _hasFailed = true;
+      });
+      retryLoad(() => _load(retry: true));
+      widget.onAdFailed?.call();
+    }
   }
 
   @override
@@ -221,7 +298,20 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (AdMobKit.isEntitled || _hasFailed) {
+    if (!widget.isAdaptive) return _buildContent(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.hasBoundedWidth
+            ? constraints.maxWidth
+            : MediaQuery.sizeOf(context).width;
+        _scheduleWidth(width.truncate());
+        return _buildContent(context);
+      },
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    if (!AdMobKit.canRequestAds || _hasFailed) {
       return const SizedBox.shrink();
     }
 
@@ -250,14 +340,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
     }
 
     if (widget.fitToWidth) {
-      return SizedBox(
-        width: double.infinity,
-        child: FittedBox(
-          fit: BoxFit.fitWidth,
-          alignment: Alignment.center,
-          child: content,
-        ),
-      );
+      return Center(child: content);
     }
 
     return content;

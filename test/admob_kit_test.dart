@@ -1,3 +1,5 @@
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:google_mobile_ads/src/ad_instance_manager.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';
@@ -8,11 +10,23 @@ void main() {
   setUp(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      const MethodChannel('plugins.flutter.io/google_mobile_ads'),
-      (MethodCall methodCall) async {
-        return null;
-      },
-    );
+          MethodChannel(
+            'plugins.flutter.io/google_mobile_ads',
+            StandardMethodCodec(AdMessageCodec()),
+          ),
+          (MethodCall methodCall) async {
+            if (methodCall.method == 'MobileAds#initialize') {
+              return InitializationStatus({});
+            }
+            return null;
+          },
+        );
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('plugins.flutter.io/google_mobile_ads/ump'),
+          (call) async =>
+              call.method == 'ConsentInformation#canRequestAds' ? false : null,
+        );
     AdMobKit.resetForTesting();
   });
 
@@ -22,6 +36,7 @@ void main() {
 
       await AdMobKit.initialize(
         config: const AdMobConfig(
+          enableUmpConsent: false,
           android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
         ),
         autoPreload: false,
@@ -33,6 +48,7 @@ void main() {
       // Calling initialize a second time must NOT throw and must not duplicate state
       await AdMobKit.initialize(
         config: const AdMobConfig(
+          enableUmpConsent: false,
           android: AdPlatformConfig(interstitial: 'ca-app-pub-test/222'),
         ),
         autoPreload: false,
@@ -43,26 +59,29 @@ void main() {
     });
 
     test(
-        'preloads Rewarded alongside Interstitial and AppOpen on initialization',
-        () async {
-      await AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(
-            interstitial: 'ca-app-pub-test/111',
-            rewarded: 'ca-app-pub-test/222',
-            appOpen: 'ca-app-pub-test/333',
+      'preloads Rewarded alongside Interstitial and AppOpen on initialization',
+      () async {
+        await AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(
+              interstitial: 'ca-app-pub-test/111',
+              rewarded: 'ca-app-pub-test/222',
+              appOpen: 'ca-app-pub-test/333',
+            ),
           ),
-        ),
-        autoPreload: true,
-      );
+          autoPreload: true,
+        );
 
-      expect(AdMobKit.isInitialized, isTrue);
-      expect(AdMobKit.rewarded.state, isNot(AdState.disposed));
-    });
+        expect(AdMobKit.isInitialized, isTrue);
+        expect(AdMobKit.rewarded.state, isNot(AdState.disposed));
+      },
+    );
 
     test('show(false) returns false without presenting or loading', () async {
       await AdMobKit.initialize(
         config: const AdMobConfig(
+          enableUmpConsent: false,
           android: AdPlatformConfig(
             interstitial: 'ca-app-pub-test/111',
             rewarded: 'ca-app-pub-test/222',
@@ -82,127 +101,143 @@ void main() {
       expect(appOpenResult, isFalse);
     });
 
-    test('concurrent initialize calls share single future and do not duplicate',
-        () async {
-      expect(AdMobKit.isInitialized, isFalse);
+    test(
+      'concurrent initialize calls share single future and do not duplicate',
+      () async {
+        expect(AdMobKit.isInitialized, isFalse);
 
-      final f1 = AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
-        ),
-        autoPreload: false,
-      );
-      final f2 = AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
-        ),
-        autoPreload: false,
-      );
-
-      // Both should be the same underlying future
-      expect(identical(f1, f2), isTrue);
-
-      await Future.wait([f1, f2]);
-      expect(AdMobKit.isInitialized, isTrue);
-    });
-
-    test('updateConfig invalidates ad managers when ad unit IDs change',
-        () async {
-      await AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-old/111'),
-        ),
-        autoPreload: false,
-      );
-
-      expect(AdMobKit.config.interstitialId, 'ca-app-pub-old/111');
-
-      AdMobKit.updateConfig(
-        const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-new/222'),
-        ),
-      );
-
-      expect(AdMobKit.config.interstitialId, 'ca-app-pub-new/222');
-    });
-
-    test('initialization failure allows safe retry and does not deadlock',
-        () async {
-      expect(AdMobKit.isInitialized, isFalse);
-
-      AdMobKit.testHookBeforeInit = () {
-        throw Exception('Simulated network/SDK init error');
-      };
-
-      // First attempt fails
-      await expectLater(
-        AdMobKit.initialize(
+        final f1 = AdMobKit.initialize(
           config: const AdMobConfig(
+            enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
           ),
           autoPreload: false,
-        ),
-        throwsA(isA<Exception>()),
-      );
+        );
+        final f2 = AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+          ),
+          autoPreload: false,
+        );
 
-      expect(AdMobKit.isInitialized, isFalse);
+        // Both should be the same underlying future
+        expect(identical(f1, f2), isTrue);
 
-      // Clear the failure hook
-      AdMobKit.testHookBeforeInit = null;
+        await Future.wait([f1, f2]);
+        expect(AdMobKit.isInitialized, isTrue);
+      },
+    );
 
-      // Retry must succeed cleanly
-      await AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
-        ),
-        autoPreload: false,
-      );
+    test(
+      'updateConfig invalidates ad managers when ad unit IDs change',
+      () async {
+        await AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-old/111'),
+          ),
+          autoPreload: false,
+        );
 
-      expect(AdMobKit.isInitialized, isTrue);
-    });
+        expect(AdMobKit.config.interstitialId, 'ca-app-pub-old/111');
 
-    test('updateConfig with testMode true invalidates and switches to test IDs',
-        () async {
-      await AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'prod/111'),
-        ),
-        autoPreload: false,
-      );
+        AdMobKit.updateConfig(
+          const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-new/222'),
+          ),
+        );
 
-      expect(AdMobKit.config.interstitialId, 'prod/111');
-      expect(AdMobKit.config.testMode, isFalse);
+        expect(AdMobKit.config.interstitialId, 'ca-app-pub-new/222');
+      },
+    );
 
-      AdMobKit.updateConfig(
-        AdMobKit.config.copyWith(testMode: true),
-      );
+    test(
+      'initialization failure allows safe retry and does not deadlock',
+      () async {
+        expect(AdMobKit.isInitialized, isFalse);
 
-      expect(AdMobKit.config.testMode, isTrue);
-      expect(
-        AdMobKit.config.interstitialId,
-        'ca-app-pub-3940256099942544/1033173712',
-      );
-    });
+        AdMobKit.testHookBeforeInit = () {
+          throw Exception('Simulated network/SDK init error');
+        };
 
-    test('setEntitled(true) suppresses preloading and clears cached state',
-        () async {
-      await AdMobKit.initialize(
-        config: const AdMobConfig(
-          android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
-        ),
-        autoPreload: false,
-      );
+        // First attempt fails
+        await expectLater(
+          AdMobKit.initialize(
+            config: const AdMobConfig(
+              enableUmpConsent: false,
+              android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+            ),
+            autoPreload: false,
+          ),
+          throwsA(isA<Exception>()),
+        );
 
-      AdMobKit.setEntitled(true);
-      expect(AdMobKit.isEntitled, isTrue);
+        expect(AdMobKit.isInitialized, isFalse);
 
-      // Subsequent show calls immediately return false
-      expect(await AdMobKit.interstitial.show(true), isFalse);
+        // Clear the failure hook
+        AdMobKit.testHookBeforeInit = null;
 
-      // Re-enabling entitlement
-      AdMobKit.setEntitled(false);
-      expect(AdMobKit.isEntitled, isFalse);
-    });
+        // Retry must succeed cleanly
+        await AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+          ),
+          autoPreload: false,
+        );
+
+        expect(AdMobKit.isInitialized, isTrue);
+      },
+    );
+
+    test(
+      'updateConfig with testMode true invalidates and switches to test IDs',
+      () async {
+        await AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'prod/111'),
+          ),
+          autoPreload: false,
+        );
+
+        expect(AdMobKit.config.interstitialId, 'prod/111');
+        expect(AdMobKit.config.testMode, isFalse);
+
+        AdMobKit.updateConfig(AdMobKit.config.copyWith(testMode: true));
+
+        expect(AdMobKit.config.testMode, isTrue);
+        expect(
+          AdMobKit.config.interstitialId,
+          'ca-app-pub-3940256099942544/1033173712',
+        );
+      },
+    );
+
+    test(
+      'setEntitled(true) suppresses preloading and clears cached state',
+      () async {
+        await AdMobKit.initialize(
+          config: const AdMobConfig(
+            enableUmpConsent: false,
+            android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
+          ),
+          autoPreload: false,
+        );
+
+        AdMobKit.setEntitled(true);
+        expect(AdMobKit.isEntitled, isTrue);
+
+        // Subsequent show calls immediately return false
+        expect(await AdMobKit.interstitial.show(true), isFalse);
+
+        // Re-enabling entitlement
+        AdMobKit.setEntitled(false);
+        expect(AdMobKit.isEntitled, isFalse);
+      },
+    );
 
     test('NativeAdWidget provides only small and medium constructors', () {
       const smallWidget = NativeAdWidget.small();

@@ -15,8 +15,7 @@ enum AdShimmerVariant {
   nativeMedium,
 }
 
-/// A lightweight, zero-dependency shimmer placeholder widget designed to
-/// eliminate Cumulative Layout Shift (CLS) while ads are loading.
+/// Reserves ad space and displays a shimmer while a placement is loading.
 class AdShimmerPlaceholder extends StatefulWidget {
   /// The height of the shimmer placeholder.
   final double? height;
@@ -75,9 +74,11 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final base = widget.baseColor ??
+    final base =
+        widget.baseColor ??
         (isDark ? Colors.grey.shade800 : Colors.grey.shade300);
-    final highlight = widget.highlightColor ??
+    final highlight =
+        widget.highlightColor ??
         (isDark ? Colors.grey.shade700 : Colors.grey.shade100);
 
     return AnimatedBuilder(
@@ -143,7 +144,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // 50x50 Ad App Icon
           Container(
             width: 50,
             height: 50,
@@ -153,7 +153,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ),
           ),
           const SizedBox(width: 8),
-          // Headline + Badge + Body
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -194,7 +193,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ),
           ),
           const SizedBox(width: 8),
-          // 90x40 CTA Button
           Container(
             width: 90,
             height: 40,
@@ -221,7 +219,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Media view container on top
           Expanded(
             child: Container(
               width: double.infinity,
@@ -232,7 +229,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ),
           ),
           const SizedBox(height: 12),
-          // App icon + Headline + Body
           Row(
             children: [
               Container(
@@ -271,7 +267,6 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ],
           ),
           const SizedBox(height: 10),
-          // Full-width CTA button
           Container(
             width: double.infinity,
             height: 44,

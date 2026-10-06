@@ -4,10 +4,11 @@ import 'dart:math' as math;
 class RetryPolicy {
   const RetryPolicy({
     this.maxRetries = 3,
-    this.initialDelay = const Duration(seconds: 2),
-    this.maxDelay = const Duration(seconds: 16),
+    this.initialDelay = const Duration(seconds: 30),
+    this.maxDelay = const Duration(minutes: 5),
     this.multiplier = 2.0,
-  });
+  }) : assert(maxRetries >= 0),
+       assert(multiplier >= 1);
 
   /// Maximum consecutive retry attempts allowed before stopping.
   final int maxRetries;
@@ -22,18 +23,24 @@ class RetryPolicy {
   final double multiplier;
 
   /// Whether an attempt at [attemptNumber] (1-indexed) is permitted.
-  bool shouldRetry(int attemptNumber) => attemptNumber <= maxRetries;
+  bool shouldRetry(int attemptNumber) =>
+      attemptNumber > 0 && attemptNumber <= maxRetries;
 
   /// Calculates the backoff duration for [attemptNumber] (1-indexed).
   ///
-  /// For attempt 1: 2s
-  /// For attempt 2: 4s
-  /// For attempt 3: 8s (capped at [maxDelay])
+  /// For attempt 1: 30s
+  /// For attempt 2: 60s
+  /// For attempt 3: 120s (capped at [maxDelay])
   Duration delayFor(int attemptNumber) {
     if (attemptNumber <= 0) return Duration.zero;
     final exponent = math.max(0, attemptNumber - 1);
     final factor = math.pow(multiplier, exponent).toDouble();
-    final calculatedMs = (initialDelay.inMilliseconds * factor).round();
+    final calculatedMs = math
+        .min(
+          initialDelay.inMilliseconds * factor,
+          maxDelay.inMilliseconds.toDouble(),
+        )
+        .round();
     final boundedMs = math.min(calculatedMs, maxDelay.inMilliseconds);
     return Duration(milliseconds: boundedMs);
   }

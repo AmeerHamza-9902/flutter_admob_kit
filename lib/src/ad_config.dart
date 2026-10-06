@@ -40,7 +40,7 @@ class AdMobConfig {
     this.android,
     this.ios,
     this.testMode = false,
-    this.enableUmpConsent = false,
+    this.enableUmpConsent = true,
     this.interstitialCooldown = const Duration(seconds: 30),
     this.interstitialExpiry = const Duration(hours: 1),
     this.appOpenCooldown = const Duration(seconds: 10),
