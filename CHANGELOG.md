@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Start a primed resume App Open presentation during the foreground `inactive` transition, with `resumed` fallback and duplicate suppression, reducing the visible SDK handoff delay.
+
 - Correct the Android App Open demo unit to Google's current official test ID so test-mode resume requests do not fail with `Publisher data not found`.
 
 - Show a primed resume App Open ad after genuine background returns of any duration, including sub-second returns, without letting an earlier foreground fullscreen ad suppress the next resume.

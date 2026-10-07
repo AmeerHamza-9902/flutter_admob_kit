@@ -63,6 +63,38 @@ void main() {
     });
 
     test(
+      'foreground inactive starts App Open before resumed without duplicate',
+      () {
+        final appOpen = _FakeAppOpenManager();
+        final lifecycle = LifecycleManager(
+          appOpenManager: appOpen,
+          isEnabled: true,
+        );
+
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
+        expect(appOpen.showCallCount, 1);
+
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        expect(appOpen.showCallCount, 1);
+
+        lifecycle.dispose();
+        appOpen.dispose();
+      },
+    );
+
+    test('inactive while leaving foreground does not trigger App Open', () {
+      final appOpen = _FakeAppOpenManager();
+      final lifecycle = LifecycleManager(appOpenManager: appOpen);
+
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      expect(appOpen.showCallCount, 0);
+
+      lifecycle.dispose();
+      appOpen.dispose();
+    });
+
+    test(
       'resumed state skips App Open when another fullscreen ad is showing',
       () {
         final appOpen = _FakeAppOpenManager();

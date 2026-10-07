@@ -135,6 +135,13 @@ class AdMobKit {
         return state == null || state == AppLifecycleState.resumed;
       }
 
+      bool canShowAppOpen() {
+        final state = WidgetsBinding.instance.lifecycleState;
+        return state == null ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.resumed;
+      }
+
       _interstitial = InterstitialManager(
         adUnitIdProvider: () => _config.interstitialId,
         cooldown: _config.interstitialCooldown,
@@ -158,7 +165,7 @@ class AdMobKit {
         adExpiry: _config.appOpenExpiry,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
-        canShowAdsProvider: canShow,
+        canShowAdsProvider: canShowAppOpen,
       )..onEvent = _handleEvent;
 
       _lifecycleManager = LifecycleManager(

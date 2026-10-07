@@ -35,6 +35,7 @@ class LifecycleManager with WidgetsBindingObserver {
   bool _wasInBackground = false;
   bool _backgroundCycleStarted = false;
   bool _presentationSyncScheduled = false;
+  bool _resumePresentationStarted = false;
   int _lastPresentation;
 
   /// A fullscreen ad completed while the app remained in the foreground.
@@ -73,22 +74,37 @@ class LifecycleManager with WidgetsBindingObserver {
         _wasInBackground = false;
       }
       _lastPresentation = orchestrator.presentationGeneration;
+    } else if (state == AppLifecycleState.inactive &&
+        _backgroundCycleStarted &&
+        !_resumePresentationStarted) {
+      // On Android and iOS the foreground path reaches inactive before
+      // resumed. Start the already-primed App Open presentation here so the
+      // SDK can build its fullscreen surface during the system transition.
+      _resumePresentationStarted = _presentForCurrentBackgroundCycle();
     } else if (state == AppLifecycleState.resumed) {
-      final generation = AdOrchestrator.instance.presentationGeneration;
-      final genuineResume = _wasInBackground && generation == _lastPresentation;
+      if (!_resumePresentationStarted) {
+        _resumePresentationStarted = _presentForCurrentBackgroundCycle();
+      }
       _wasInBackground = false;
       _backgroundCycleStarted = false;
-      _lastPresentation = generation;
-      if (!genuineResume) return;
-
-      if (!isEnabled) return;
-
-      if (AdOrchestrator.instance.isAnyFullscreenShowing) return;
-
-      if (appOpenManager.isInPaywall) return;
-
-      appOpenManager.show(true);
+      _resumePresentationStarted = false;
+      _lastPresentation = AdOrchestrator.instance.presentationGeneration;
     }
+  }
+
+  bool _presentForCurrentBackgroundCycle() {
+    final orchestrator = AdOrchestrator.instance;
+    final genuineResume =
+        _wasInBackground &&
+        orchestrator.presentationGeneration == _lastPresentation;
+    if (!genuineResume || !isEnabled) return false;
+
+    if (orchestrator.isAnyFullscreenShowing) return false;
+
+    if (appOpenManager.isInPaywall) return false;
+
+    unawaited(appOpenManager.show(true));
+    return true;
   }
 
   void dispose() {
