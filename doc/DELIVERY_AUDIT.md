@@ -7,6 +7,21 @@ and entitlement. Fullscreen presentation additionally checks foreground state,
 cooldown and the shared fullscreen lease. The SDK impression callback is the only
 impression signal.
 
+## Format-by-format lifecycle
+
+| Format | Eligibility and request | Loaded ownership and opportunity | Impression, close and next request |
+| --- | --- | --- | --- |
+| Interstitial | Initialization/consent/premium gate; configured unit is eagerly preloaded unless `autoPreload: false`. One request and bounded retries per manager. | A fresh single-slot cache is used only at an explicit `show(true)` opportunity, subject to cooldown, foreground and fullscreen lease. A missing ad primes a request and returns immediately. | SDK impression callback is recorded separately from show acceptance. Dismiss/failure releases the exact lease, disposes the ad and starts one replacement load. |
+| Rewarded | Same shared eligibility gate and single-slot preload. | Host offers an explicit reward opportunity; a ready ad needs the fullscreen lease. No ad is shown later after a missed opportunity. | SDK reward callback is delivered at most once per presentation, including permitted callback ordering around dismissal. SDK impression and reward are separate events. Dismiss/failure disposes and replenishes. |
+| App Open | Same request gate and single-slot preload; expiry is capped at four hours. | Lifecycle observer offers a ready ad on a genuine foreground return; paywall, scoped external flows, consent, cooldown and another fullscreen ad suppress that opportunity. Manual `show(true)` is also available. | SDK impression is confirmed by its callback. Close disposes and replenishes; a late load never presents on an unrelated screen. |
+| Banner | A mounted widget requests its configured size after the gate opens, or a destination-specific controller preloads one matching size. | The controller shares an in-flight request and hands its loaded instance to one widget only; the widget owns the visible `AdWidget`. | SDK impression/click callbacks are recorded. Unmount or invalidation disposes; a later mount or bounded failure retry makes a new request. There is no library-driven success refresh loop. |
+| Native | A mounted template widget or destination-specific controller requests after eligibility and Android factory registration. | A controller shares one pending request and transfers exclusive ownership to a matching widget. | SDK impression/click callbacks are recorded. Unmount/invalidation disposes; a later mount or bounded failure retry makes a new request. There is no reusable multi-screen native view. |
+
+Banner and native are inline formats, so fullscreen dismissal and an accepted
+`show()` result do not apply. Their opportunity is the eligible mounted
+placement; a successfully loaded view can still fail to receive an impression
+if it is never mounted, is immediately removed, or does not become visible.
+
 ## Where loaded ads can be lost
 
 - A host can load for a screen that the user never visits. Preload only a likely
@@ -79,3 +94,17 @@ impression counts over the same period.
 Automated tests use fake SDK callbacks and do not establish live inventory,
 network fill, mediation behavior or real-device impression rates. Those require
 the device procedure above and production measurement over a meaningful cohort.
+
+## Verification recorded on 2026-10-07
+
+| Check | Result |
+| --- | --- |
+| `flutter test --no-pub` | 171 automated tests passed (fake SDK callbacks and widget tests). |
+| `flutter analyze --no-pub` | No issues found. |
+| `flutter build apk --debug --no-pub` in `example/` | Android APK built. |
+| `flutter build ios --no-codesign --no-pub` in `example/` | iOS app built without signing; this does not verify installation or live ad delivery. |
+
+No live-device ad impressions or production AdMob report were supplied, so the
+observed 30–40% result cannot yet be assigned to one metric. The device steps
+above and same-period AdMob request/matched-request/impression counts are the
+remaining evidence needed for that diagnosis.
