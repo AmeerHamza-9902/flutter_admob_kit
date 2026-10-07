@@ -45,8 +45,10 @@ abstract class FullscreenManager<T extends AdWithoutView>
   Timer? _retryTimer;
   Completer<bool>? _loadCompleter;
   bool _requestActive = false;
+  String? _requestId;
   bool _reloadPending = false;
   String? _pendingId;
+  Completer<bool>? _pendingLoadCompleter;
 
   AdState get state => _state;
   bool get isLoading => _state == AdState.loading;
@@ -91,22 +93,26 @@ abstract class FullscreenManager<T extends AdWithoutView>
   /// Reuses the cache or current request. Never replaces a slow active request.
   Future<bool> preload([String? overrideAdUnitId]) {
     if (!_allowed || isShowing) return Future.value(false);
-    if (isReady) {
+    final id = overrideAdUnitId ?? adUnitIdProvider?.call();
+    if (id == null || id.trim().isEmpty) return Future.value(false);
+    if (isReady && _loadedId == id) {
       emit(AdEventType.cacheHit, reason: 'preload');
       return Future.value(true);
+    }
+    if ((isReady && _loadedId != id) || (isLoading && _requestId != id)) {
+      invalidate(force: true);
     }
     if (isLoading) return _loadCompleter!.future;
     if (_requestActive) {
       // Native loads cannot be cancelled. Coalesce changes until it settles.
+      if (_reloadPending && _pendingId != id) _completePendingLoad(false);
       _reloadPending = true;
-      _pendingId = overrideAdUnitId;
-      return Future.value(false);
+      _pendingId = id;
+      return (_pendingLoadCompleter ??= Completer<bool>()).future;
     }
     if (_retryAfter != null && DateTime.now().isBefore(_retryAfter!)) {
       return Future.value(false);
     }
-    final id = overrideAdUnitId ?? adUnitIdProvider?.call();
-    if (id == null || id.trim().isEmpty) return Future.value(false);
     if (_ad != null && isExpired) emit(AdEventType.expired);
     _disposeCached();
     _state = AdState.loading;
@@ -146,6 +152,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
       return;
     }
     _requestActive = true;
+    _requestId = id;
     emit(AdEventType.request, adUnitId: id);
     var settled = false;
     void loaded(T ad) {
@@ -213,7 +220,23 @@ abstract class FullscreenManager<T extends AdWithoutView>
     _reloadPending = false;
     final id = _pendingId;
     _pendingId = null;
-    unawaited(preload(id));
+    final completion = _pendingLoadCompleter;
+    _pendingLoadCompleter = null;
+    unawaited(
+      preload(id).then((result) {
+        if (completion != null && !completion.isCompleted) {
+          completion.complete(result);
+        }
+      }),
+    );
+  }
+
+  void _completePendingLoad(bool result) {
+    final completion = _pendingLoadCompleter;
+    _pendingLoadCompleter = null;
+    if (completion != null && !completion.isCompleted) {
+      completion.complete(result);
+    }
   }
 
   @protected
@@ -231,7 +254,6 @@ abstract class FullscreenManager<T extends AdWithoutView>
         !_allowed ||
         canShowAdsProvider?.call() == false ||
         isShowing ||
-        isLoading ||
         (!ignoreCooldown && isInCooldown)) {
       if (shouldShow) {
         emit(
@@ -242,23 +264,31 @@ abstract class FullscreenManager<T extends AdWithoutView>
               ? 'background'
               : isShowing
               ? 'already_showing'
-              : isLoading
-              ? 'loading'
               : 'cooldown',
         );
       }
       return false;
     }
     emit(AdEventType.opportunity);
+    if (isLoading) {
+      emit(AdEventType.cacheMiss, reason: 'loading');
+      emit(AdEventType.skipped, reason: 'loading');
+      return false;
+    }
     if (!isReady || _ad == null) {
+      final unavailableReason = isExpired && _ad != null
+          ? 'expired'
+          : 'unavailable';
+      emit(AdEventType.cacheMiss, reason: unavailableReason);
       emit(
-        AdEventType.cacheMiss,
-        reason: isExpired && _ad != null ? 'expired' : 'unavailable',
+        AdEventType.skipped,
+        reason: unavailableReason == 'expired'
+            ? 'expired_cache'
+            : 'unavailable_cache',
       );
       unawaited(preload());
       return false;
     }
-    emit(AdEventType.cacheHit, reason: 'presentation');
     final ad = _ad!;
     final id = _loadedId;
     final token = AdOrchestrator.instance.acquireToken(
@@ -272,6 +302,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
       AdOrchestrator.instance.releaseWithToken(token);
       return false;
     }
+    emit(AdEventType.cacheHit, reason: 'presentation');
     _leaseToken = token;
     _state = AdState.showing;
     var closed = false;
@@ -368,6 +399,8 @@ abstract class FullscreenManager<T extends AdWithoutView>
     _retryAttempt = 0;
     _retryAfter = null;
     _reloadPending = false;
+    _pendingId = null;
+    _completePendingLoad(false);
     _completeLoad(false);
     // A presented ad and its lease belong to its closing callback, even if
     // consent, entitlement or configuration changes while it is on screen.
@@ -428,6 +461,8 @@ abstract class FullscreenManager<T extends AdWithoutView>
     _generation++;
     _retryTimer?.cancel();
     _reloadPending = false;
+    _pendingId = null;
+    _completePendingLoad(false);
     _completeLoad(false);
     _state = AdState.disposed;
     if (!showing) _disposeCached();

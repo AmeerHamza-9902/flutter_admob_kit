@@ -122,6 +122,10 @@ class NativePreloadController {
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdLoaded: (ad) {
+          if (entry.loaded) {
+            if (!identical(ad, entry.ad)) ad.dispose();
+            return;
+          }
           if (!entry.valid || !AdMobKit.canRequestAds) {
             fail(ad as NativeAd);
             return;
@@ -134,7 +138,9 @@ class NativePreloadController {
             entry.timer = Timer(const Duration(minutes: 2), fail);
           }
         },
-        onAdFailedToLoad: (ad, _) => fail(ad as NativeAd),
+        onAdFailedToLoad: (ad, _) {
+          if (!entry.loaded) fail(ad as NativeAd);
+        },
         onAdImpression: (_) => report(AdEventType.impression),
         onAdClicked: (_) => report(AdEventType.clicked),
       ),

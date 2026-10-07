@@ -93,7 +93,13 @@ class BannerPreloadController {
       request: const AdRequest(),
       listener: BannerAdListener(
         onAdLoaded: (ad) async {
+          if (entry.loadCallbackActive) {
+            if (!identical(ad, entry.ad)) ad.dispose();
+            return;
+          }
+          entry.loadCallbackActive = true;
           if (!entry.valid || !AdMobKit.canRequestAds) {
+            if (!identical(ad, entry.ad)) ad.dispose();
             fail();
             return;
           }
@@ -122,7 +128,9 @@ class BannerPreloadController {
             entry.timer = Timer(const Duration(minutes: 2), fail);
           }
         },
-        onAdFailedToLoad: (_, _) => fail(),
+        onAdFailedToLoad: (_, _) {
+          if (!entry.loaded) fail();
+        },
         onAdImpression: (_) => report(AdEventType.impression),
         onAdClicked: (_) => report(AdEventType.clicked),
       ),
@@ -272,6 +280,7 @@ class _PendingBanner {
   Timer? timer;
   bool valid = true;
   bool loaded = false;
+  bool loadCallbackActive = false;
   bool claimed = false;
   bool matches(AdSize target, String targetUnit) =>
       valid &&

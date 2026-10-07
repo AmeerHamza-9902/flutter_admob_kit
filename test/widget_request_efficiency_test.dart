@@ -207,6 +207,30 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('duplicate native load callback keeps cached handoff', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = NativePreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadMediumNative();
+    await tester.pump();
+    final id = loads('Native').single.arguments['adId'] as int;
+    await event(id, 'onAdLoaded');
+    expect(await pending, true);
+    await event(id, 'onAdLoaded');
+    await tester.pump();
+    expect(loads('Native'), hasLength(1));
+    final claimed = await controller.take(
+      template: NativeTemplate.mediumNative,
+      style: const NativeAdStyle(),
+      unit: 'native-1',
+    );
+    expect(claimed, isNotNull);
+    claimed!.release();
+    await claimed.ad.dispose();
+  });
+
   testWidgets(
     'bigNative height defaults to 280 and resizes without another request',
     (tester) async {
@@ -518,6 +542,26 @@ void main() {
     await event(loads('Banner').single.arguments['adId'] as int, 'onAdLoaded');
     expect(await second, true);
     controller.dispose();
+  });
+
+  testWidgets('duplicate banner load callback keeps cached handoff', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final pending = controller.preloadLarge();
+    await tester.pump();
+    final id = loads('Banner').single.arguments['adId'] as int;
+    await event(id, 'onAdLoaded');
+    expect(await pending, true);
+    await event(id, 'onAdLoaded');
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    final claimed = await controller.take(AdSize.largeBanner, 'banner-1');
+    expect(claimed, isNotNull);
+    claimed!.release();
+    await claimed.ad.dispose();
   });
 
   testWidgets('onboarding joins pending preload rather than requesting twice', (

@@ -45,7 +45,8 @@ The following ratios answer different questions:
 Compare the same format, placement, platform and time window. The second ratio
 is the 90%+ optimization target, not a fill or revenue guarantee. `opportunity`
 is emitted after basic eligibility gates and before cache/lease checks; a
-`cacheMiss` identifies an eligible opportunity without a ready ad. A show result
+`cacheMiss` identifies an eligible opportunity without a ready ad, including
+one that arrives while a request is still loading. A show result
 or `presentationAccepted` must never be reported as an impression.
 
 The exact AdMob request match rate comes from AdMob reporting, not these client

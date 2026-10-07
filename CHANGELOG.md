@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Keep fullscreen cached ads tied to their requested ad unit, and defer a new
+  unit's request until the previous native request settles, sharing a wait for
+  the replacement and settling it on disposal. Count eligible
+  opportunities that arrive during loading as cache misses. Ignore duplicate
+  banner/native preload load callbacks without evicting a valid cached ad.
+
 - Add a configurable 12-second default readiness wait with per-call overrides
   for fullscreen and banner/native preload controllers. A wait timeout leaves
   the native request in flight and never presents a late ad automatically.

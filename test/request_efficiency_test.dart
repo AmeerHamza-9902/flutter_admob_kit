@@ -163,6 +163,86 @@ void main() {
         manager.dispose();
       });
       test(
+        'new override ID never reuses a ready ad from another unit',
+        () async {
+          final dynamic manager = make();
+          final dynamic oldAd = ad();
+          manager.setAdForTesting(oldAd);
+          final Future<bool> replacement = manager.preload('new-unit');
+          expect(oldAd.disposals, 1);
+          expect(manager.callbacks.length, 1);
+          expect(manager.isReady, false);
+          manager.callbacks.single.onAdLoaded(ad());
+          expect(await replacement, true);
+          manager.dispose();
+        },
+      );
+      test('override during in-flight load waits for stale callback', () async {
+        final dynamic manager = make();
+        final Future<bool> old = manager.preload();
+        final Future<bool> replacement = manager.preload('new-unit');
+        final Future<bool> shared = manager.preload('new-unit');
+        expect(await old, false);
+        expect(manager.callbacks.length, 1);
+        final dynamic stale = ad();
+        manager.callbacks.first.onAdLoaded(stale);
+        expect(stale.disposals, 1);
+        expect(manager.callbacks.length, 2);
+        manager.callbacks.last.onAdLoaded(ad());
+        expect(await replacement, true);
+        expect(await shared, true);
+        expect(manager.isReady, true);
+        manager.dispose();
+      });
+      test('queued replacement wait settles on disposal', () async {
+        final dynamic manager = make();
+        final old = manager.preload();
+        final replacement = manager.preload('new-unit');
+        manager.dispose();
+        expect(await old, false);
+        expect(await replacement, false);
+        expect(manager.callbacks.length, 1);
+      });
+      test(
+        'duplicate loaded callback cannot replace or dispose ready ad',
+        () async {
+          final dynamic manager = make();
+          final Future<bool> pending = manager.preload();
+          final dynamic first = ad();
+          manager.callbacks.single.onAdLoaded(first);
+          expect(await pending, true);
+          manager.callbacks.single.onAdLoaded(first);
+          expect(first.disposals, 0);
+          final dynamic duplicate = ad();
+          manager.callbacks.single.onAdLoaded(duplicate);
+          expect(duplicate.disposals, 1);
+          expect(manager.isReady, true);
+          manager.dispose();
+        },
+      );
+      test('show during load records eligible cache miss once', () async {
+        final dynamic manager = make();
+        final events = <AdEvent>[];
+        manager.onEvent = events.add;
+        final pending = manager.preload();
+        expect(await manager.show(true), false);
+        expect(
+          events.where((event) => event.type == AdEventType.opportunity),
+          hasLength(1),
+        );
+        expect(
+          events.where(
+            (event) =>
+                event.type == AdEventType.cacheMiss &&
+                event.reason == 'loading',
+          ),
+          hasLength(1),
+        );
+        expect(manager.callbacks.length, 1);
+        manager.dispose();
+        expect(await pending, false);
+      });
+      test(
         'slow load, repeated show/preload and show(false) make one request',
         () async {
           final dynamic manager = make();
