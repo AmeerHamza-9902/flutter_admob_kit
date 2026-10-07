@@ -131,13 +131,13 @@ await AdMobKit.rewarded.show(true, onReward: (reward) {
 
 Each fullscreen format has one cache and one load. Initialization preloads configured formats after consent; closing a consumed ad requests one replacement. Repeated preload/show calls reuse the current load/cache. When unavailable, `show(true)` may prime a load but returns immediately without waiting for a slow network. It never auto-shows a late result after the opportunity has passed.
 
-For a splash or another flow that deliberately waits, call `await AdMobKit.appOpen.waitUntilReady()` before `show(true)`. The default wait limit is `AdMobConfig.adReadinessTimeout` (12 seconds); override one opportunity with `waitUntilReady(timeout: const Duration(seconds: 5))`. A `false` result means the ad was unavailable before the deadline. The underlying SDK request continues and its late result can serve a later opportunity; it never appears automatically. Consent UI and SDK initialization are outside this timer. Banner and native preload controllers also expose `waitUntilReady(...)` with the same global default and a per-call `timeout` override. Normal navigation should use cached ads immediately and should not await readiness.
+For a splash or another flow that deliberately waits, call `await AdMobKit.appOpen.waitUntilReady()` before `show(true)`. The default wait limit is `AdMobConfig.adReadinessTimeout` (12 seconds); override one opportunity with `waitUntilReady(timeout: const Duration(seconds: 5))`. A `false` result means the ad was unavailable before the deadline. The underlying SDK request continues and its late result can serve a later opportunity; it never appears automatically. Consent UI and SDK initialization are outside this timer. Normal navigation should use cached ads immediately and should not await readiness.
 
 If an ad-unit change happens during a native fullscreen request, the replacement waits for that request to settle. Callers waiting for the replacement share one future; cancellation, eligibility invalidation, or manager disposal settles them without starting overlapping requests.
 
 Failures retry at **30, 60, and 120 seconds**, with one timer. After exhaustion, automatic retries stop; fullscreen opportunities cannot start a new cycle for five minutes. Disposal, entitlement, and consent/config invalidation cancel retries. No watchdog starts a second request merely because a native load is slow. An invalidated fullscreen request must settle before a replacement is issued.
 
-Interstitial/rewarded cache age is capped at one hour and App Open at four hours; shorter configured values are supported. Expiry is checked on use/preload. There is no continuous expiry refresh timer. `autoPreload: false` disables eager initialization/config/eligibility preloads; explicit show/preload and post-consumption replacement retain their documented behavior.
+Interstitial/rewarded cache age is capped at one hour and App Open at four hours; shorter configured values are supported. Expiry is checked on use. There is no continuous expiry refresh timer.
 
 ### Delivery diagnostics
 
@@ -185,28 +185,13 @@ const NativeAdWidget.mediumNative(); // Horizontal card; default height 128.
 const NativeAdWidget.bigNative(); // Large splash card; 280 Android / 320 iOS.
 ```
 
-### Preload an upcoming banner on splash
+### Library-managed preload
 
-Keep one controller in the parent that owns both routes. After `AdMobKit.initialize` and consent complete, preload only if onboarding will actually be visited:
+Applications only place `BannerAdWidget` and `NativeAdWidget`; they do not create preload controllers or call `preload()`. After initialization and consent, the library warms one default `bigNative`, one default `mediumNative`, and one `large` banner when their ad unit IDs are configured. A widget takes the matching ready ad and the library prepares one replacement for a later visit. Each ad belongs to exactly one visible widget. An in-flight request is shared, so the widget shows its normal loading placeholder until the SDK responds.
 
-```dart
-final onboardingBanner = BannerPreloadController();
+Other banner sizes, adaptive widths, native `small`, custom styles, and per-widget ad-unit overrides are learned on first use and then cached by their exact format. A first visit to one of those placements may load visibly: the library cannot know its width or style before the widget exists. Cache entries expire after two minutes unused; pending requests time out after one minute. Entitlement, consent and ad-unit changes clear unused ads. The older controller API remains available for source compatibility but is no longer needed for normal integration.
 
-// Splash: start loading without delaying navigation.
-unawaited(onboardingBanner.preloadLarge()); // import dart:async
-
-// Onboarding: pass the SAME controller and matching banner format.
-BannerAdWidget.large(preloadController: onboardingBanner);
-
-// Parent disposal (after the routes no longer need the controller):
-onboardingBanner.dispose();
-```
-
-For other formats use `preloadMediumRectangle()`, `preloadSmall(width: destinationWidth)`, or `preloadInlineAdaptive(width: destinationWidth, maxHeight: 250)` with the matching widget and maximum height. Account for destination padding/safe areas in the width. Ready ads are handed to one placement; widgets joining an in-flight preload wait for the same request. A second placement gets its own ad. Size mismatches discard the unused preload and load the correct size. After handoff the widget owns disposal; cancelling a pending destination releases its reserved load.
-
-Unused loaded ads expire after two minutes without automatic replenishment. Pending loads time out after one minute. Consent/entitlement/configuration changes invalidate unused preloads. There is no background retry loop or automatic splash request; failed/missing preloads fall back to the existing bounded widget retry flow. Do not await preload to block navigation. Slow networks can still leave a loading placeholder.
-
-Preloading cannot guarantee 80% match/show rate or CTR. Loading an ad that the user never reaches can lower show rate, so preload only the next confirmed placement. SDK impression/click callbacks remain the source of events; no impressions or clicks are simulated. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
+Preloading cannot guarantee match rate, show rate, or CTR; those also depend on inventory and user behavior. Automatic warm requests for screens never visited can lower show rate, so measure actual AdMob reports and adjust placements accordingly. SDK impression/click callbacks remain the source of events. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
 
 Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on Android and a 320 minimum on iOS. `mediumNative` is a horizontal card that defaults to 128dp: media on the left and headline, advertiser, body, AdChoices and CTA on the right. Its Android media and optional text adapt to the supplied height. Missing optional assets collapse cleanly. On iOS, `bigNative` uses Google's official medium template and `mediumNative` uses the official compact template.
 
@@ -232,19 +217,8 @@ native card and its horizontal loading skeleton. Any positive finite height
 can be supplied; the Android card reduces optional copy at compact sizes so
 its headline and CTA have room. Keep ad assets readable at the chosen size.
 
-To show an upcoming native placement immediately, create one controller per
-destination, preload while the user is on the preceding screen, and pass that
-same controller to the destination widget:
-
-```dart
-final settingsNative = NativePreloadController();
-unawaited(settingsNative.preloadMediumNative());
-
-NativeAdWidget.mediumNative(preloadController: settingsNative);
-```
-
-Repeated matching preload calls share one request. Each loaded native view can
-be handed to one widget only; use a separate controller for each placement.
+The widget uses the library-owned cache automatically. It never shares the same
+loaded native view between two visible placements.
 
 Both bundled Android factories register once per Flutter engine before a custom native request. No `MainActivity` changes or manual registration are required. Native SDK asset registration retains click/impression tracking and AdChoices. The former `NativeAdWidget.medium()` constructor remains as a deprecated compatibility alias for `bigNative()`.
 

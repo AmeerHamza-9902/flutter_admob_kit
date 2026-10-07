@@ -308,8 +308,25 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) return;
     }
     _resolvedSize = targetSize;
-    final preload = widget.preloadController;
+    final managed =
+        widget.preloadController == null &&
+        AdMobKit.managedInlinePreloadEnabled;
+    final preload =
+        widget.preloadController ??
+        (managed ? AdMobKit.bannerCache(targetSize, unitId) : null);
     if (preload != null) {
+      if (managed) {
+        final ready = await preload.preload(size: targetSize, adUnitId: unitId);
+        if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
+          return;
+        }
+        if (!ready) {
+          setState(() => _hasFailed = true);
+          retryLoad(() => _load(retry: true));
+          widget.onAdFailed?.call();
+          return;
+        }
+      }
       final token = Object();
       _claimController = preload;
       _claimToken = token;
@@ -332,6 +349,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           _hasFailed = false;
         });
         widget.onAdLoaded?.call();
+        if (managed) {
+          AdMobKit.replenishBanner(targetSize, unitId);
+        }
         return;
       }
     }

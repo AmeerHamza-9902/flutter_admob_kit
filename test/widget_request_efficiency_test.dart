@@ -837,4 +837,47 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+
+  testWidgets('default initialization warms library-owned inline ads', (
+    tester,
+  ) async {
+    await AdMobKit.initialize(
+      config: const AdMobConfig(
+        android: AdPlatformConfig(banner: 'banner-1', native: 'native-1'),
+      ),
+    );
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    expect(loads('Banner').single.arguments['size'], AdSize.largeBanner);
+    expect(loads('Native'), hasLength(2));
+
+    final bannerId = loads('Banner').single.arguments['adId'] as int;
+    await event(bannerId, 'onAdLoaded');
+    await tester.pumpWidget(const MaterialApp(home: BannerAdWidget.large()));
+    await tester.pump();
+    expect(find.byType(AdWidget), findsOneWidget);
+    expect(loads('Banner'), hasLength(2)); // One replacement in the cache.
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    final medium = loads('Native').singleWhere(
+      (call) =>
+          call.arguments['factoryId'] == 'flutter_admob_kit/medium_native',
+    );
+    await event(medium.arguments['adId'] as int, 'onAdLoaded');
+    await tester.pumpWidget(
+      const MaterialApp(home: NativeAdWidget.mediumNative()),
+    );
+    await tester.pump();
+    expect(find.byType(AdWidget), findsOneWidget);
+    expect(
+      loads('Native').where(
+        (call) =>
+            call.arguments['factoryId'] == 'flutter_admob_kit/medium_native',
+      ),
+      hasLength(2),
+    );
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    AdMobKit.resetForTesting();
+  });
 }

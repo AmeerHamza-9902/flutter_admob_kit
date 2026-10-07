@@ -5,10 +5,13 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'ad_config.dart';
 import 'ad_state.dart';
 import 'app_open/app_open_manager.dart';
+import 'banner/banner_preload_controller.dart';
 import 'consent_manager.dart';
 import 'interstitial/interstitial_manager.dart';
 import 'lifecycle_manager.dart';
 import 'rewarded/rewarded_manager.dart';
+import 'native/native_preload_controller.dart';
+import 'native/native_templates.dart';
 
 class _ConfigChangeNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
@@ -25,6 +28,12 @@ class AdMobKit {
   static RewardedManager? _rewarded;
   static AppOpenManager? _appOpen;
   static LifecycleManager? _lifecycleManager;
+  static final Map<
+    (NativeTemplate, NativeAdStyle, String),
+    NativePreloadController
+  >
+  _nativeCache = {};
+  static final Map<(String, String), BannerPreloadController> _bannerCache = {};
 
   static final _ConfigChangeNotifier _configNotifier = _ConfigChangeNotifier();
 
@@ -184,6 +193,7 @@ class AdMobKit {
       _autoPreload = autoPreload;
       _configNotifier.notify();
       if (autoPreload) _preload();
+      _warmInlineAds();
     } catch (e) {
       _initFuture = null;
       _isInitialized = false;
@@ -192,6 +202,7 @@ class AdMobKit {
   }
 
   static bool _autoPreload = true;
+  static bool get managedInlinePreloadEnabled => _autoPreload;
 
   /// All formats share this gate, including when UMP is managed by the host.
   static bool get canRequestAds =>
@@ -204,6 +215,84 @@ class AdMobKit {
     unawaited(_appOpen!.preload());
   }
 
+  /// Library-owned cache: at most one pending ad per exact placement shape.
+  /// Widgets consume it directly; applications do not manage preload objects.
+  static NativePreloadController nativeCache(
+    NativeTemplate template,
+    NativeAdStyle style,
+    String unit,
+  ) {
+    final key = (template, style, unit);
+    final controller = _nativeCache.putIfAbsent(
+      key,
+      NativePreloadController.new,
+    );
+    unawaited(
+      controller.preload(template: template, style: style, adUnitId: unit),
+    );
+    return controller;
+  }
+
+  static BannerPreloadController bannerCache(AdSize size, String unit) {
+    final shape =
+        '${size.runtimeType}:${size.width}:${size.height}'
+        '${size is InlineAdaptiveSize ? ':${size.maxHeight}:${size.orientation}' : ''}';
+    final controller = _bannerCache.putIfAbsent((
+      shape,
+      unit,
+    ), BannerPreloadController.new);
+    unawaited(controller.preload(size: size, adUnitId: unit));
+    return controller;
+  }
+
+  static void replenishNative(
+    NativeTemplate template,
+    NativeAdStyle style,
+    String unit,
+  ) {
+    if (!canRequestAds) return;
+    unawaited(
+      nativeCache(
+        template,
+        style,
+        unit,
+      ).preload(template: template, style: style, adUnitId: unit),
+    );
+  }
+
+  static void replenishBanner(AdSize size, String unit) {
+    if (!canRequestAds) return;
+    unawaited(bannerCache(size, unit).preload(size: size, adUnitId: unit));
+  }
+
+  static void _warmInlineAds() {
+    if (!canRequestAds || !_autoPreload) return;
+    final nativeUnit = _config.nativeId;
+    if (nativeUnit != null && nativeUnit.isNotEmpty) {
+      for (final template in [
+        NativeTemplate.bigNative,
+        NativeTemplate.mediumNative,
+      ]) {
+        nativeCache(template, const NativeAdStyle(), nativeUnit);
+      }
+    }
+    final bannerUnit = _config.bannerId;
+    if (bannerUnit != null && bannerUnit.isNotEmpty) {
+      bannerCache(AdSize.largeBanner, bannerUnit);
+    }
+  }
+
+  static void _clearInlineAds() {
+    for (final controller in _nativeCache.values) {
+      controller.dispose();
+    }
+    _nativeCache.clear();
+    for (final controller in _bannerCache.values) {
+      controller.dispose();
+    }
+    _bannerCache.clear();
+  }
+
   static void _invalidateAll() {
     _interstitial?.invalidate(force: true);
     _rewarded?.invalidate(force: true);
@@ -211,9 +300,13 @@ class AdMobKit {
   }
 
   static void _onConsentChanged() {
-    if (!canRequestAds) _invalidateAll();
+    if (!canRequestAds) {
+      _invalidateAll();
+      _clearInlineAds();
+    }
     _configNotifier.notify();
     if (_autoPreload) _preload();
+    _warmInlineAds();
   }
 
   /// Sets the user's entitlement status.
@@ -224,9 +317,13 @@ class AdMobKit {
   static void setEntitled(bool entitled) {
     if (isEntitled == entitled) return;
     _config = _config.copyWith(isEntitled: entitled);
-    if (entitled) _invalidateAll();
+    if (entitled) {
+      _invalidateAll();
+      _clearInlineAds();
+    }
     _configNotifier.notify();
     if (!entitled && _autoPreload) _preload();
+    if (!entitled) _warmInlineAds();
   }
 
   /// Updates code-owned configuration, preserving active presentations.
@@ -238,6 +335,11 @@ class AdMobKit {
       isEntitled: old.isEntitled || newConfig.isEntitled,
     );
     _config = newConfig;
+    if (old.nativeId != newConfig.nativeId ||
+        old.bannerId != newConfig.bannerId ||
+        old.testMode != newConfig.testMode) {
+      _clearInlineAds();
+    }
     _lifecycleManager?.isEnabled = newConfig.autoResumeAppOpen;
     _interstitial?.cooldown = newConfig.interstitialCooldown;
     _interstitial?.adExpiry = newConfig.interstitialExpiry;
@@ -274,6 +376,7 @@ class AdMobKit {
       unawaited(consent.requestConsent(parameters: _consentParameters));
     }
     _configNotifier.notify();
+    _warmInlineAds();
     if (_autoPreload && canRequestAds) {
       if (old.isEntitled && !newConfig.isEntitled) {
         _preload();
@@ -321,6 +424,7 @@ class AdMobKit {
   /// Resets internal state (useful for unit tests).
   @visibleForTesting
   static void resetForTesting() {
+    _clearInlineAds();
     ConsentManager.instance.removeListener(_onConsentChanged);
     _lifecycleManager?.stop();
     _lifecycleManager = null;

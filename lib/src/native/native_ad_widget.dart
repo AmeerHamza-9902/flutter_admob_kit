@@ -253,8 +253,29 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (mounted) setState(() {});
 
     final style = widget.style ?? const NativeAdStyle();
-    final controller = widget.preloadController;
+    final managed =
+        widget.preloadController == null &&
+        AdMobKit.managedInlinePreloadEnabled;
+    final controller =
+        widget.preloadController ??
+        (managed ? AdMobKit.nativeCache(widget.template, style, unitId) : null);
     if (controller != null) {
+      if (managed) {
+        final ready = await controller.preload(
+          template: widget.template,
+          style: style,
+          adUnitId: unitId,
+        );
+        if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
+          return;
+        }
+        if (!ready) {
+          setState(() => _hasFailed = true);
+          retryLoad(() => _load(retry: true));
+          widget.onAdFailed?.call();
+          return;
+        }
+      }
       final token = Object();
       _claimController = controller;
       _claimToken = token;
@@ -278,6 +299,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
         });
         resetRetry();
         widget.onAdLoaded?.call();
+        if (managed) {
+          AdMobKit.replenishNative(widget.template, style, unitId);
+        }
         return;
       }
       _claimController = null;

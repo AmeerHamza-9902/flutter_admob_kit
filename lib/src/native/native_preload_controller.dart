@@ -53,19 +53,6 @@ class NativePreloadController {
     }
     clear();
 
-    final customTemplate =
-        !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android &&
-        template != NativeTemplate.small;
-    if (customTemplate) {
-      try {
-        await _templates.invokeMethod<void>('ensureRegistered');
-      } catch (_) {
-        return false;
-      }
-    }
-    if (_disposed || !AdMobKit.canRequestAds) return false;
-
     final entry = _PendingNative(
       template,
       style,
@@ -74,6 +61,23 @@ class NativePreloadController {
       AdMobKit.config.testMode,
     );
     _pending = entry;
+
+    final customTemplate =
+        !kIsWeb &&
+        defaultTargetPlatform == TargetPlatform.android &&
+        template != NativeTemplate.small;
+    if (customTemplate) {
+      try {
+        await _templates.invokeMethod<void>('ensureRegistered');
+      } catch (_) {
+        if (identical(_pending, entry)) clear();
+        return false;
+      }
+    }
+    if (_disposed || !AdMobKit.canRequestAds || !entry.valid) {
+      if (identical(_pending, entry)) clear();
+      return false;
+    }
 
     void fail([NativeAd? ad]) {
       if (!entry.valid) {
