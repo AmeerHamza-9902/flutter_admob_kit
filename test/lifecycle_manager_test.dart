@@ -18,6 +18,8 @@ class _FakeAppOpenManager extends AppOpenManager {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('LifecycleManager', () {
     setUp(() {
       AdOrchestrator.instance.reset();
@@ -110,6 +112,26 @@ void main() {
       lifecycle.dispose();
       appOpen.dispose();
     });
+
+    test(
+      'completed foreground fullscreen does not suppress a later quick resume',
+      () async {
+        final appOpen = _FakeAppOpenManager();
+        final lifecycle = LifecycleManager(appOpenManager: appOpen)..start();
+        final token = AdOrchestrator.instance.acquireToken('interstitial')!;
+        AdOrchestrator.instance.releaseWithToken(token);
+
+        // Let the foreground presentation become lifecycle history. There is
+        // deliberately no minimum background duration before this resume.
+        await Future<void>.delayed(Duration.zero);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+
+        expect(appOpen.showCallCount, 1);
+        lifecycle.dispose();
+        appOpen.dispose();
+      },
+    );
 
     test(
       'fullscreen shown during a background cycle suppresses its resume',

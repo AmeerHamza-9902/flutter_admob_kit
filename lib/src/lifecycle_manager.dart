@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
 import 'ad_orchestrator.dart';
@@ -19,6 +21,7 @@ class LifecycleManager with WidgetsBindingObserver {
     if (_isObserving) return;
     _isObserving = true;
     WidgetsBinding.instance.addObserver(this);
+    AdOrchestrator.instance.addListener(_syncPresentationBaseline);
   }
 
   /// Stops listening to app lifecycle transitions.
@@ -26,11 +29,34 @@ class LifecycleManager with WidgetsBindingObserver {
     if (!_isObserving) return;
     _isObserving = false;
     WidgetsBinding.instance.removeObserver(this);
+    AdOrchestrator.instance.removeListener(_syncPresentationBaseline);
   }
 
   bool _wasInBackground = false;
   bool _backgroundCycleStarted = false;
+  bool _presentationSyncScheduled = false;
   int _lastPresentation;
+
+  /// A fullscreen ad completed while the app remained in the foreground.
+  ///
+  /// Keep that presentation out of the next genuine background cycle. The
+  /// microtask delay still lets lifecycle callbacks caused by the fullscreen
+  /// ad mark the current cycle as interrupted before the baseline is advanced.
+  void _syncPresentationBaseline() {
+    final orchestrator = AdOrchestrator.instance;
+    if (orchestrator.isAnyFullscreenShowing || _presentationSyncScheduled) {
+      return;
+    }
+    _presentationSyncScheduled = true;
+    scheduleMicrotask(() {
+      _presentationSyncScheduled = false;
+      if (_backgroundCycleStarted ||
+          AdOrchestrator.instance.isAnyFullscreenShowing) {
+        return;
+      }
+      _lastPresentation = AdOrchestrator.instance.presentationGeneration;
+    });
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {

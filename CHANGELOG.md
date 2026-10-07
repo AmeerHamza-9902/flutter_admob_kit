@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Show a primed resume App Open ad after genuine background returns of any duration, including sub-second returns, without letting an earlier foreground fullscreen ad suppress the next resume.
+
 - Suppress resume App Open for fullscreen-ad lifecycle cycles even when dismissal arrives before background/resume callbacks; preserve the next genuine resume and paywall suppression.
 
 - Add opt-in `BannerPreloadController` for splash-to-next-screen handoff, pending-request reuse, exact format/size matching, single-placement ownership, short cache expiry and consent/configuration invalidation.
