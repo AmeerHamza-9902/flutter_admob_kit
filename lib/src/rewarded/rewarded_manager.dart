@@ -6,6 +6,8 @@ import '../fullscreen_manager.dart';
 /// Owns one rewarded cache and one request at a time.
 class RewardedManager extends FullscreenManager<RewardedAd> {
   RewardedManager({
+    super.placementId,
+    super.requestQueue,
     super.adUnitIdProvider,
     super.isEntitledProvider,
     super.canRequestAdsProvider,

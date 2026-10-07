@@ -4,6 +4,7 @@ library;
 export 'src/ad_config.dart';
 export 'src/ad_orchestrator.dart';
 export 'src/ad_state.dart';
+export 'src/fullscreen_placement.dart';
 export 'src/admob_kit.dart';
 export 'src/app_open/app_open_manager.dart';
 export 'src/banner/banner_ad_widget.dart';

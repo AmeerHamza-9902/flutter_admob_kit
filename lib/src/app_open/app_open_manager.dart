@@ -6,6 +6,8 @@ import '../fullscreen_manager.dart';
 /// Owns one appOpen cache and one request at a time.
 class AppOpenManager extends FullscreenManager<AppOpenAd> {
   AppOpenManager({
+    super.placementId,
+    super.requestQueue,
     super.adUnitIdProvider,
     super.isEntitledProvider,
     super.canRequestAdsProvider,

@@ -1,6 +1,9 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 
+import 'ad_state.dart';
+import 'fullscreen_placement.dart';
+
 /// Platform-specific AdMob Ad Unit ID configuration.
 class AdPlatformConfig {
   const AdPlatformConfig({
@@ -132,6 +135,20 @@ class AdMobConfig {
   String? get nativeId => testMode
       ? (_isIos ? _testIosNative : _testAndroidNative)
       : _activePlatformConfig?.native;
+
+  /// Resolves a registered fullscreen placement for the current platform.
+  /// In test mode each format uses Google's official platform test unit.
+  String? unitIdFor(FullscreenPlacement placement) {
+    if (testMode) {
+      return switch (placement.format) {
+        AdFormat.interstitial => interstitialId,
+        AdFormat.rewarded => rewardedId,
+        AdFormat.appOpen => appOpenId,
+        _ => null,
+      };
+    }
+    return _isIos ? placement.iosId : placement.androidId;
+  }
 
   bool get _isIos {
     if (kIsWeb) return false;

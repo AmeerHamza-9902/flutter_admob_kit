@@ -50,6 +50,7 @@ class AdEvent {
     required this.type,
     required this.timestamp,
     this.adUnitId,
+    this.placementId,
     this.errorMessage,
     this.rewardAmount,
     this.rewardType,
@@ -63,6 +64,9 @@ class AdEvent {
   final AdEventType type;
   final DateTime timestamp;
   final String? adUnitId;
+
+  /// Logical placement name when the ad belongs to a registered placement.
+  final String? placementId;
   final String? errorMessage;
   final num? rewardAmount;
   final String? rewardType;

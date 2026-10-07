@@ -4,6 +4,8 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_config.dart';
 import 'ad_state.dart';
+import 'fullscreen_placement.dart';
+import 'fullscreen_request_queue.dart';
 import 'app_open/app_open_manager.dart';
 import 'banner/banner_preload_controller.dart';
 import 'banner/banner_size_key.dart';
@@ -29,6 +31,11 @@ class AdMobKit {
   static RewardedManager? _rewarded;
   static AppOpenManager? _appOpen;
   static LifecycleManager? _lifecycleManager;
+  static FullscreenRequestQueue? _requestQueue;
+  static final Map<(AdFormat, String), FullscreenPlacement> _placements = {};
+  static final Map<String, InterstitialManager> _namedInterstitials = {};
+  static final Map<String, RewardedManager> _namedRewarded = {};
+  static final Map<String, AppOpenManager> _namedAppOpen = {};
   static final Map<
     (NativeTemplate, NativeAdStyle, String),
     NativePreloadController
@@ -68,6 +75,78 @@ class AdMobKit {
   static AppOpenManager get appOpen {
     _ensureInitialized();
     return _appOpen!;
+  }
+
+  /// Returns the independent cache for a registered interstitial placement.
+  static InterstitialManager interstitialFor(String id) {
+    _ensureInitialized();
+    return _namedInterstitials[id] ??
+        (throw StateError('Interstitial placement "$id" is not registered.'));
+  }
+
+  /// Returns the independent cache for a registered rewarded placement.
+  static RewardedManager rewardedFor(String id) {
+    _ensureInitialized();
+    return _namedRewarded[id] ??
+        (throw StateError('Rewarded placement "$id" is not registered.'));
+  }
+
+  /// Returns the independent cache for a registered manual App Open placement.
+  /// Automatic resume continues to use the default [appOpen] manager.
+  static AppOpenManager appOpenFor(String id) {
+    _ensureInitialized();
+    return _namedAppOpen[id] ??
+        (throw StateError('App Open placement "$id" is not registered.'));
+  }
+
+  /// Registers named fullscreen opportunities before or after initialization.
+  ///
+  /// Registering the same placement twice reuses its cache. Changing its unit
+  /// IDs invalidates the old cache and starts one replacement when eligible.
+  /// With autoPreload enabled, the library preloads registered placements.
+  static void registerFullscreenPlacements(
+    Iterable<FullscreenPlacement> placements,
+  ) {
+    final incoming = placements.toList();
+    final batch = <(AdFormat, String), FullscreenPlacement>{};
+    for (final placement in incoming) {
+      placement.validate();
+      final key = (placement.format, placement.id);
+      final prior = batch[key];
+      if (prior != null && prior != placement) {
+        throw ArgumentError(
+          'Conflicting placement "${placement.id}" in one registration.',
+        );
+      }
+      batch[key] = placement;
+    }
+    for (final entry in batch.entries) {
+      final key = entry.key;
+      final placement = entry.value;
+      final previous = _placements[key];
+      if (previous == placement) continue;
+      _placements[key] = placement;
+      if (!_isInitialized) continue;
+      _ensureNamedManager(placement);
+      if (previous != null) _invalidateNamed(placement);
+      if (_autoPreload && canRequestAds) _preloadNamed(placement);
+    }
+  }
+
+  /// Releases a named placement when an app no longer offers that opportunity.
+  /// Any in-flight load is ignored when it completes.
+  static void unregisterFullscreenPlacement(AdFormat format, String id) {
+    if (_placements.remove((format, id)) == null) return;
+    switch (format) {
+      case AdFormat.interstitial:
+        _namedInterstitials.remove(id)?.dispose();
+      case AdFormat.rewarded:
+        _namedRewarded.remove(id)?.dispose();
+      case AdFormat.appOpen:
+        _namedAppOpen.remove(id)?.dispose();
+      case AdFormat.banner || AdFormat.native:
+        break;
+    }
   }
 
   /// The active [ConsentManager] instance for GDPR and privacy consent.
@@ -139,6 +218,8 @@ class AdMobKit {
       await MobileAds.instance.initialize();
       if (!_config.enableUmpConsent) await consent.canRequestAds();
 
+      _requestQueue = FullscreenRequestQueue();
+
       bool canRequest() => canRequestAds;
       bool canShow() {
         final state = WidgetsBinding.instance.lifecycleState;
@@ -155,6 +236,7 @@ class AdMobKit {
       }
 
       _interstitial = InterstitialManager(
+        requestQueue: _requestQueue,
         adUnitIdProvider: () => _config.interstitialId,
         cooldown: _config.interstitialCooldown,
         adExpiry: _config.interstitialExpiry,
@@ -165,6 +247,7 @@ class AdMobKit {
       )..onEvent = _handleEvent;
 
       _rewarded = RewardedManager(
+        requestQueue: _requestQueue,
         adUnitIdProvider: () => _config.rewardedId,
         adExpiry: _config.rewardedExpiry,
         readinessTimeout: _config.adReadinessTimeout,
@@ -174,6 +257,7 @@ class AdMobKit {
       )..onEvent = _handleEvent;
 
       _appOpen = AppOpenManager(
+        requestQueue: _requestQueue,
         adUnitIdProvider: () => _config.appOpenId,
         cooldown: _config.appOpenCooldown,
         adExpiry: _config.appOpenExpiry,
@@ -182,6 +266,10 @@ class AdMobKit {
         canRequestAdsProvider: canRequest,
         canShowAdsProvider: canShowAppOpen,
       )..onEvent = _handleEvent;
+
+      for (final placement in _placements.values) {
+        _ensureNamedManager(placement);
+      }
 
       _lifecycleManager = LifecycleManager(
         appOpenManager: _appOpen!,
@@ -196,6 +284,19 @@ class AdMobKit {
       if (autoPreload) _preload();
       _warmInlineAds();
     } catch (e) {
+      ConsentManager.instance.removeListener(_onConsentChanged);
+      _clearInlineAds();
+      _lifecycleManager?.stop();
+      _lifecycleManager = null;
+      _requestQueue?.dispose();
+      _requestQueue = null;
+      _interstitial?.dispose();
+      _interstitial = null;
+      _rewarded?.dispose();
+      _rewarded = null;
+      _appOpen?.dispose();
+      _appOpen = null;
+      _disposeNamedManagers();
       _initFuture = null;
       _isInitialized = false;
       rethrow;
@@ -209,11 +310,102 @@ class AdMobKit {
   static bool get canRequestAds =>
       _isInitialized && !isEntitled && ConsentManager.instance.isConsentSafe;
 
+  static bool _canShowFullscreen() {
+    final state = WidgetsBinding.instance.lifecycleState;
+    return state == null ||
+        state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
+  }
+
+  static void _ensureNamedManager(FullscreenPlacement placement) {
+    final id = placement.id;
+    String? unit() => _config.unitIdFor(_placements[(placement.format, id)]!);
+    bool eligible() => canRequestAds;
+    switch (placement.format) {
+      case AdFormat.interstitial:
+        _namedInterstitials.putIfAbsent(
+          id,
+          () => InterstitialManager(
+            requestQueue: _requestQueue,
+            placementId: id,
+            adUnitIdProvider: unit,
+            cooldown: _config.interstitialCooldown,
+            adExpiry: _config.interstitialExpiry,
+            readinessTimeout: _config.adReadinessTimeout,
+            isEntitledProvider: () => isEntitled,
+            canRequestAdsProvider: eligible,
+            canShowAdsProvider: _canShowFullscreen,
+          )..onEvent = _handleEvent,
+        );
+      case AdFormat.rewarded:
+        _namedRewarded.putIfAbsent(
+          id,
+          () => RewardedManager(
+            requestQueue: _requestQueue,
+            placementId: id,
+            adUnitIdProvider: unit,
+            adExpiry: _config.rewardedExpiry,
+            readinessTimeout: _config.adReadinessTimeout,
+            isEntitledProvider: () => isEntitled,
+            canRequestAdsProvider: eligible,
+            canShowAdsProvider: _canShowFullscreen,
+          )..onEvent = _handleEvent,
+        );
+      case AdFormat.appOpen:
+        _namedAppOpen.putIfAbsent(
+          id,
+          () => AppOpenManager(
+            requestQueue: _requestQueue,
+            placementId: id,
+            adUnitIdProvider: unit,
+            cooldown: _config.appOpenCooldown,
+            adExpiry: _config.appOpenExpiry,
+            readinessTimeout: _config.adReadinessTimeout,
+            isEntitledProvider: () => isEntitled,
+            canRequestAdsProvider: eligible,
+            canShowAdsProvider: _canShowFullscreen,
+          )..onEvent = _handleEvent,
+        );
+      case AdFormat.banner || AdFormat.native:
+        throw ArgumentError.value(placement.format, 'format');
+    }
+  }
+
+  static void _invalidateNamed(FullscreenPlacement placement) {
+    switch (placement.format) {
+      case AdFormat.interstitial:
+        _namedInterstitials[placement.id]?.invalidate(force: true);
+      case AdFormat.rewarded:
+        _namedRewarded[placement.id]?.invalidate(force: true);
+      case AdFormat.appOpen:
+        _namedAppOpen[placement.id]?.invalidate(force: true);
+      case AdFormat.banner || AdFormat.native:
+        break;
+    }
+  }
+
+  static void _preloadNamed(FullscreenPlacement placement) {
+    switch (placement.format) {
+      case AdFormat.interstitial:
+        unawaited(_namedInterstitials[placement.id]!.preload());
+      case AdFormat.rewarded:
+        unawaited(_namedRewarded[placement.id]!.preload());
+      case AdFormat.appOpen:
+        unawaited(_namedAppOpen[placement.id]!.preload());
+      case AdFormat.banner || AdFormat.native:
+        break;
+    }
+  }
+
   static void _preload() {
     if (!canRequestAds) return;
+    // App Open is often needed at startup; give it the first request slot.
+    unawaited(_appOpen!.preload());
     unawaited(_interstitial!.preload());
     unawaited(_rewarded!.preload());
-    unawaited(_appOpen!.preload());
+    for (final placement in _placements.values) {
+      _preloadNamed(placement);
+    }
   }
 
   /// Library-owned cache: at most one pending ad per exact placement shape.
@@ -309,6 +501,15 @@ class AdMobKit {
     _interstitial?.invalidate(force: true);
     _rewarded?.invalidate(force: true);
     _appOpen?.invalidate(force: true);
+    for (final manager in _namedInterstitials.values) {
+      manager.invalidate(force: true);
+    }
+    for (final manager in _namedRewarded.values) {
+      manager.invalidate(force: true);
+    }
+    for (final manager in _namedAppOpen.values) {
+      manager.invalidate(force: true);
+    }
   }
 
   static void _onConsentChanged() {
@@ -361,6 +562,20 @@ class AdMobKit {
     _appOpen?.cooldown = newConfig.appOpenCooldown;
     _appOpen?.adExpiry = newConfig.appOpenExpiry;
     _appOpen?.readinessTimeout = newConfig.adReadinessTimeout;
+    for (final manager in _namedInterstitials.values) {
+      manager.cooldown = newConfig.interstitialCooldown;
+      manager.adExpiry = newConfig.interstitialExpiry;
+      manager.readinessTimeout = newConfig.adReadinessTimeout;
+    }
+    for (final manager in _namedRewarded.values) {
+      manager.adExpiry = newConfig.rewardedExpiry;
+      manager.readinessTimeout = newConfig.adReadinessTimeout;
+    }
+    for (final manager in _namedAppOpen.values) {
+      manager.cooldown = newConfig.appOpenCooldown;
+      manager.adExpiry = newConfig.appOpenExpiry;
+      manager.readinessTimeout = newConfig.adReadinessTimeout;
+    }
     final modeChanged = old.testMode != newConfig.testMode;
     final interstitialChanged =
         modeChanged ||
@@ -383,6 +598,11 @@ class AdMobKit {
     if (modeChanged || old.appOpenId != newConfig.appOpenId) {
       _appOpen?.invalidate(force: true);
     }
+    if (modeChanged) {
+      for (final placement in _placements.values) {
+        _invalidateNamed(placement);
+      }
+    }
     if (isEntitled) _invalidateAll();
     if (!old.enableUmpConsent && newConfig.enableUmpConsent) {
       unawaited(consent.requestConsent(parameters: _consentParameters));
@@ -396,6 +616,11 @@ class AdMobKit {
         if (interstitialChanged) unawaited(_interstitial!.preload());
         if (rewardedChanged) unawaited(_rewarded!.preload());
         if (appOpenChanged) unawaited(_appOpen!.preload());
+        if (modeChanged || old.isEntitled != newConfig.isEntitled) {
+          for (final placement in _placements.values) {
+            _preloadNamed(placement);
+          }
+        }
       }
     }
   }
@@ -440,12 +665,16 @@ class AdMobKit {
     ConsentManager.instance.removeListener(_onConsentChanged);
     _lifecycleManager?.stop();
     _lifecycleManager = null;
+    _requestQueue?.dispose();
+    _requestQueue = null;
     _interstitial?.dispose();
     _interstitial = null;
     _rewarded?.dispose();
     _rewarded = null;
     _appOpen?.dispose();
     _appOpen = null;
+    _disposeNamedManagers();
+    _placements.clear();
     _eventListeners.clear();
     _isInitialized = false;
     _initFuture = null;
@@ -454,5 +683,20 @@ class AdMobKit {
     _consentParameters = null;
     _config = const AdMobConfig();
     _configNotifier.notify();
+  }
+
+  static void _disposeNamedManagers() {
+    for (final manager in _namedInterstitials.values) {
+      manager.dispose();
+    }
+    for (final manager in _namedRewarded.values) {
+      manager.dispose();
+    }
+    for (final manager in _namedAppOpen.values) {
+      manager.dispose();
+    }
+    _namedInterstitials.clear();
+    _namedRewarded.clear();
+    _namedAppOpen.clear();
   }
 }

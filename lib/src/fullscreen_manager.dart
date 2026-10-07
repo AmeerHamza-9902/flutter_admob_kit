@@ -5,6 +5,7 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import 'ad_orchestrator.dart';
 import 'ad_state.dart';
+import 'fullscreen_request_queue.dart';
 import 'retry_policy.dart';
 
 /// Shared single-slot lifecycle for the three fullscreen formats.
@@ -12,6 +13,8 @@ abstract class FullscreenManager<T extends AdWithoutView>
     extends ChangeNotifier {
   FullscreenManager({
     required this.format,
+    this.placementId,
+    this.requestQueue,
     this.adUnitIdProvider,
     this.isEntitledProvider,
     this.canRequestAdsProvider,
@@ -23,6 +26,8 @@ abstract class FullscreenManager<T extends AdWithoutView>
   });
 
   final AdFormat format;
+  final String? placementId;
+  final FullscreenRequestQueue? requestQueue;
   final ValueGetter<String?>? adUnitIdProvider;
   final ValueGetter<bool>? isEntitledProvider;
   final ValueGetter<bool>? canRequestAdsProvider;
@@ -157,7 +162,6 @@ abstract class FullscreenManager<T extends AdWithoutView>
     }
     _requestActive = true;
     _requestId = id;
-    emit(AdEventType.request, adUnitId: id);
     var settled = false;
     void loaded(T ad) {
       if (settled) {
@@ -222,10 +226,47 @@ abstract class FullscreenManager<T extends AdWithoutView>
       emit(AdEventType.loadFailed, adUnitId: id, errorMessage: error.message);
     }
 
-    try {
-      requestAd(id, loaded, failed);
-    } catch (error) {
-      failed(LoadAdError(-1, 'flutter_admob_kit', '$error', null));
+    void start(FullscreenRequestLease? lease) {
+      if (gen != _generation || !_allowed) {
+        _requestActive = false;
+        if (gen == _generation) invalidate(force: true);
+        _resumePending();
+        lease?.release();
+        return;
+      }
+      emit(AdEventType.request, adUnitId: id);
+      try {
+        requestAd(
+          id,
+          (ad) {
+            try {
+              loaded(ad);
+            } finally {
+              lease?.release();
+            }
+          },
+          (error) {
+            try {
+              failed(error);
+            } finally {
+              lease?.release();
+            }
+          },
+        );
+      } catch (error) {
+        try {
+          failed(LoadAdError(-1, 'flutter_admob_kit', '$error', null));
+        } finally {
+          lease?.release();
+        }
+      }
+    }
+
+    final queue = requestQueue;
+    if (queue == null) {
+      start(null);
+    } else {
+      queue.enqueue(start);
     }
   }
 
@@ -476,6 +517,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
           type: type,
           timestamp: DateTime.now(),
           adUnitId: adUnitId ?? _loadedId,
+          placementId: placementId,
           errorMessage: errorMessage,
           rewardAmount: rewardAmount,
           rewardType: rewardType,

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add named interstitial, rewarded and manual App Open placements with separate
+  caches per unit, automatic eligible preloading, live unit-ID replacement and
+  `AdEvent.placementId`. Bound initial fullscreen load attempts with a shared
+  two-slot FIFO queue and let stalled slots yield after 20 seconds without
+  duplicating the underlying request. The default-format API remains available.
+
 - Forward Google Mobile Ads paid-value callbacks for fullscreen, banner and
   native ads (including library-managed preloads) through the local `AdEvent`
   stream with micros, currency and precision. The callback is account-dependent

@@ -6,6 +6,8 @@ import '../fullscreen_manager.dart';
 /// Owns one interstitial cache and one request at a time.
 class InterstitialManager extends FullscreenManager<InterstitialAd> {
   InterstitialManager({
+    super.placementId,
+    super.requestQueue,
     super.adUnitIdProvider,
     super.isEntitledProvider,
     super.canRequestAdsProvider,

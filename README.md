@@ -129,7 +129,31 @@ await AdMobKit.rewarded.show(true, onReward: (reward) {
 
 `show()` reports whether the SDK accepted a presentation attempt; it is **not** an impression or a dismissal future. Actual `shown`, `impression`, `clicked`, and `dismissed` events come from SDK callbacks. Reward callbacks are deduplicated per presented ad and can arrive after dismissal with some mediation adapters.
 
-Each fullscreen format has one cache and one load. Initialization preloads configured formats after consent; closing a consumed ad requests one replacement. Repeated preload/show calls reuse the current load/cache. When unavailable, `show(true)` may prime a load but returns immediately without waiting for a slow network. It never auto-shows a late result after the opportunity has passed.
+Each default fullscreen format has one cache and one load. Initialization preloads configured formats after consent; closing a consumed ad requests one replacement. Repeated preload/show calls reuse the current load/cache. When unavailable, `show(true)` may prime a load but returns immediately without waiting for a slow network. It never auto-shows a late result after the opportunity has passed.
+
+For apps with different fullscreen ad units on different screens, register named placements before or after initialization:
+
+```dart
+AdMobKit.registerFullscreenPlacements(const [
+  FullscreenPlacement.interstitial(
+    id: 'settings',
+    androidId: 'YOUR_ANDROID_SETTINGS_UNIT',
+    iosId: 'YOUR_IOS_SETTINGS_UNIT',
+  ),
+  FullscreenPlacement.interstitial(
+    id: 'history',
+    androidId: 'YOUR_ANDROID_HISTORY_UNIT',
+    iosId: 'YOUR_IOS_HISTORY_UNIT',
+  ),
+]);
+
+// Once initialization and consent are complete:
+final accepted = await AdMobKit.interstitialFor('settings').show(true);
+```
+
+Each name has its own cache, request lifecycle, and `AdEvent.placementId`. Rewarded and manual App Open placements use `FullscreenPlacement.rewarded` / `.appOpen` with `AdMobKit.rewardedFor(id)` / `AdMobKit.appOpenFor(id)`. Automatic resume continues to use the default `AdMobKit.appOpen`. The library primes registered placements when ads are allowed; register only likely opportunities, because every distinct unit can make a request. Registering the same configuration again does nothing; supplying new IDs for a name invalidates its old ad without disturbing other placements. Call `AdMobKit.unregisterFullscreenPlacement(AdFormat.interstitial, 'settings')` when a dynamic placement is removed. Premium and consent changes clear all caches. Test mode substitutes Google's official unit IDs on each platform.
+
+Fullscreen SDK load attempts share a library-owned FIFO queue with two active request slots. The default App Open request enters first; named placements follow registration order. A slot is released by its SDK callback, or after 20 seconds if that callback stalls, so later placements can still load. A stalled native request itself is not duplicated; the watchdog may temporarily allow more than two native requests in flight after a timeout. App Open, interstitial and rewarded presentation still share one fullscreen lock.
 
 For a splash or another flow that deliberately waits, call `await AdMobKit.appOpen.waitUntilReady()` before `show(true)`. The default wait limit is `AdMobConfig.adReadinessTimeout` (12 seconds); override one opportunity with `waitUntilReady(timeout: const Duration(seconds: 5))`. A `false` result means the ad was unavailable before the deadline. The underlying SDK request continues and its late result can serve a later opportunity; it never appears automatically. Consent UI and SDK initialization are outside this timer. Normal navigation should use cached ads immediately and should not await readiness.
 
@@ -145,7 +169,7 @@ Interstitial/rewarded cache age is capped at one hour and App Open at four hours
 
 When the Google Mobile Ads SDK supplies impression-level revenue, every format also emits `AdEventType.paid` with `valueMicros`, `currencyCode`, and `precision`. For example, `valueMicros / 1000000` converts to the reported currency unit. This is an SDK estimate, not a guaranteed payout; the callback may be unavailable for an account or impression. The library keeps the event local so the app can choose its own analytics destination. Never count a paid event as an extra impression.
 
-Calculate a **client load-success proxy** as loaded requests / completed requests; use AdMob reporting for its exact request match rate. Calculate **loaded-ad show rate at eligible opportunities** as accepted presentations / `cacheHit` events whose `reason` is `presentation`, **SDK impression rate** as SDK impressions / accepted presentations, and **impressions per eligible session** as SDK impressions / eligible sessions. Segment by format, placement, platform, consent state and network. The 90%+ target applies only to the second ratio; inventory, user flow and network can still limit every metric. Do not count a cache hit whose reason is `preload` as a presentation opportunity. App code should log session and placement identifiers separately if those cuts are needed.
+Calculate a **client load-success proxy** as loaded requests / completed requests; use AdMob reporting for its exact request match rate. Calculate **loaded-ad show rate at eligible opportunities** as accepted presentations / `cacheHit` events whose `reason` is `presentation`, **SDK impression rate** as SDK impressions / accepted presentations, and **impressions per eligible session** as SDK impressions / eligible sessions. Segment by format, `AdEvent.placementId`, platform, consent state and network. The 90%+ target applies only to the second ratio; inventory, user flow and network can still limit every metric. Do not count a cache hit whose reason is `preload` as a presentation opportunity. App code should log session identifiers separately if those cuts are needed.
 
 The [delivery audit and real-device test procedure](doc/DELIVERY_AUDIT.md) lists the main non-impression paths and a test-ad checklist for both platforms.
 
@@ -274,7 +298,7 @@ flutter run
 
 The example includes native test app IDs; production apps must supply their own app and ad unit IDs. See [example setup](example/README.md).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 179 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 187 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 
