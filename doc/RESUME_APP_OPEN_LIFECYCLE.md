@@ -4,13 +4,13 @@
 
 | Placement | Load trigger | Show trigger | Eligibility |
 | --- | --- | --- | --- |
-| Resume App Open | App startup or a host-selected foreground preload | First genuine foreground return after `hidden` or `paused` | SDK initialized, consent allows requests, free user, remote/code flag enabled, no paywall, and no fullscreen lease |
+| Resume App Open | App startup or a host-selected foreground preload | First foreground return after `inactive`, `hidden`, or `paused` | SDK initialized, consent allows requests, free user, remote/code flag enabled, no paywall, and no fullscreen lease |
 
 ## Lifecycle behavior
 
 1. The host primes one App Open ad while the app is in the foreground.
-2. `hidden` or `paused` starts a background cycle. There is no minimum background duration, so a sub-second return is eligible.
-3. The returning foreground `inactive` transition presents the primed ad as early as the OS permits. `resumed` is the fallback when a platform omits that intermediate event, and the cycle can present only once.
+2. `hidden` or `paused` starts a background cycle. A quick `inactive → resumed` Recent Apps cycle is also eligible when Android omits both events.
+3. The first safe returning `resumed` callback presents the primed ad. There is no minimum background duration.
 4. A lifecycle cycle created by an interstitial, rewarded, or App Open presentation is suppressed so fullscreen ads cannot chain.
 5. A fullscreen presentation completed earlier while the app stayed foreground is recorded as history and does not suppress a later real background return.
 6. If no ad is ready, the user continues without blocking and the manager starts the next preload in the foreground.
@@ -35,4 +35,4 @@ The library already re-primes App Open after dismissal. The consuming app explic
 - [x] Paywall state suppresses resume App Open.
 - [x] Entitlement, consent, freshness, readiness, and shared fullscreen lease gates remain active.
 - [x] Android test mode uses Google's current App Open demo unit (`9257395921`).
-- [x] Foreground `inactive` starts presentation before `resumed` without a duplicate call.
+- [x] Quick `inactive → resumed` Recent Apps returns present without requiring `hidden` or `paused`.

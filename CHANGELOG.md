@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-- Start a primed resume App Open presentation during the foreground `inactive` transition, with `resumed` fallback and duplicate suppression, reducing the visible SDK handoff delay.
+- Recognize very quick Android Recent Apps `inactive → resumed` transitions even
+  when the OS omits `hidden` and `paused`, then present at the first safe
+  `resumed` callback.
 
 - Correct the Android App Open demo unit to Google's current official test ID so test-mode resume requests do not fail with `Publisher data not found`.
 

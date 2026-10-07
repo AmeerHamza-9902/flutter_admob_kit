@@ -62,28 +62,24 @@ void main() {
       appOpen.dispose();
     });
 
-    test(
-      'foreground inactive starts App Open before resumed without duplicate',
-      () {
-        final appOpen = _FakeAppOpenManager();
-        final lifecycle = LifecycleManager(
-          appOpenManager: appOpen,
-          isEnabled: true,
-        );
+    test('quick inactive-resumed cycle triggers App Open', () {
+      final appOpen = _FakeAppOpenManager();
+      final lifecycle = LifecycleManager(
+        appOpenManager: appOpen,
+        isEnabled: true,
+      );
 
-        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
-        lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
-        expect(appOpen.showCallCount, 1);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      expect(appOpen.showCallCount, 0);
 
-        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
-        expect(appOpen.showCallCount, 1);
+      lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+      expect(appOpen.showCallCount, 1);
 
-        lifecycle.dispose();
-        appOpen.dispose();
-      },
-    );
+      lifecycle.dispose();
+      appOpen.dispose();
+    });
 
-    test('inactive while leaving foreground does not trigger App Open', () {
+    test('inactive waits until the app is active before presenting', () {
       final appOpen = _FakeAppOpenManager();
       final lifecycle = LifecycleManager(appOpenManager: appOpen);
 

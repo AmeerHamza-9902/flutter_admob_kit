@@ -34,8 +34,8 @@ class LifecycleManager with WidgetsBindingObserver {
 
   bool _wasInBackground = false;
   bool _backgroundCycleStarted = false;
+  bool _quickInactiveCandidate = false;
   bool _presentationSyncScheduled = false;
-  bool _resumePresentationStarted = false;
   int _lastPresentation;
 
   /// A fullscreen ad completed while the app remained in the foreground.
@@ -61,7 +61,12 @@ class LifecycleManager with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
+    if (state == AppLifecycleState.inactive && !_backgroundCycleStarted) {
+      final orchestrator = AdOrchestrator.instance;
+      _quickInactiveCandidate =
+          !orchestrator.isAnyFullscreenShowing &&
+          orchestrator.presentationGeneration == _lastPresentation;
+    } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       final orchestrator = AdOrchestrator.instance;
       final interrupted =
@@ -74,20 +79,11 @@ class LifecycleManager with WidgetsBindingObserver {
         _wasInBackground = false;
       }
       _lastPresentation = orchestrator.presentationGeneration;
-    } else if (state == AppLifecycleState.inactive &&
-        _backgroundCycleStarted &&
-        !_resumePresentationStarted) {
-      // On Android and iOS the foreground path reaches inactive before
-      // resumed. Start the already-primed App Open presentation here so the
-      // SDK can build its fullscreen surface during the system transition.
-      _resumePresentationStarted = _presentForCurrentBackgroundCycle();
     } else if (state == AppLifecycleState.resumed) {
-      if (!_resumePresentationStarted) {
-        _resumePresentationStarted = _presentForCurrentBackgroundCycle();
-      }
+      _presentForCurrentBackgroundCycle();
       _wasInBackground = false;
       _backgroundCycleStarted = false;
-      _resumePresentationStarted = false;
+      _quickInactiveCandidate = false;
       _lastPresentation = AdOrchestrator.instance.presentationGeneration;
     }
   }
@@ -95,7 +91,7 @@ class LifecycleManager with WidgetsBindingObserver {
   bool _presentForCurrentBackgroundCycle() {
     final orchestrator = AdOrchestrator.instance;
     final genuineResume =
-        _wasInBackground &&
+        (_wasInBackground || _quickInactiveCandidate) &&
         orchestrator.presentationGeneration == _lastPresentation;
     if (!genuineResume || !isEnabled) return false;
 
