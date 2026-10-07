@@ -28,6 +28,7 @@ class NativeAdWidget extends StatefulWidget {
     this.height,
     this.showShimmer = true,
     this.placeholder,
+    this.keepAlive = true,
     this.onAdLoaded,
     this.onAdFailed,
   });
@@ -42,6 +43,7 @@ class NativeAdWidget extends StatefulWidget {
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
+    this.keepAlive = true,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.bigNative;
@@ -54,6 +56,7 @@ class NativeAdWidget extends StatefulWidget {
     this.height = 128.0,
     this.showShimmer = true,
     this.placeholder,
+    this.keepAlive = true,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.mediumNative;
@@ -67,6 +70,7 @@ class NativeAdWidget extends StatefulWidget {
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
+    this.keepAlive = true,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.bigNative;
@@ -81,6 +85,7 @@ class NativeAdWidget extends StatefulWidget {
     this.height = 90.0,
     this.showShimmer = true,
     this.placeholder,
+    this.keepAlive = true,
     this.onAdLoaded,
     this.onAdFailed,
   }) : template = NativeTemplate.small;
@@ -104,6 +109,9 @@ class NativeAdWidget extends StatefulWidget {
   /// Custom placeholder widget shown while loading.
   final Widget? placeholder;
 
+  /// Whether to keep this native ad alive in scrollables or tab views.
+  final bool keepAlive;
+
   /// Callback when the native ad finishes loading successfully.
   final VoidCallback? onAdLoaded;
 
@@ -115,7 +123,7 @@ class NativeAdWidget extends StatefulWidget {
 }
 
 class _NativeAdWidgetState extends State<NativeAdWidget>
-    with InlineAdRetry<NativeAdWidget> {
+    with InlineAdRetry<NativeAdWidget>, AutomaticKeepAliveClientMixin {
   static const _templates = MethodChannel('flutter_admob_kit/native_templates');
   NativeAd? _ad;
   bool _isLoaded = false;
@@ -333,7 +341,11 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   }
 
   @override
+  bool get wantKeepAlive => widget.keepAlive;
+
+  @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (!AdMobKit.canRequestAds || _hasFailed) {
       return const SizedBox.shrink();
     }
