@@ -57,6 +57,16 @@ class TestInterstitialAd extends Fake implements InterstitialAd {
   Future<void> show() async {}
 }
 
+class TestFailingInterstitialAd extends TestInterstitialAd {
+  @override
+  Future<void> show() async {
+    fullScreenContentCallback!.onAdFailedToShowFullScreenContent!(
+      this,
+      AdError(1, 'sdk', 'failed to present'),
+    );
+  }
+}
+
 class TestRewardedAd extends Fake implements RewardedAd {
   @override
   FullScreenContentCallback<RewardedAd>? fullScreenContentCallback;
@@ -123,6 +133,35 @@ void main() {
     };
     group(format, () {
       setUp(AdOrchestrator.instance.reset);
+      testWidgets('readiness timeout keeps one request and retains late ad', (
+        tester,
+      ) async {
+        final dynamic manager = make();
+        final events = <AdEventType>[];
+        manager.onEvent = (AdEvent event) => events.add(event.type);
+        final Future<bool> wait = manager.waitUntilReady(
+          timeout: const Duration(milliseconds: 100),
+        );
+        expect(manager.callbacks.length, 1);
+        await tester.pump(const Duration(milliseconds: 101));
+        expect(await wait, false);
+        expect(events, contains(AdEventType.waitTimedOut));
+        final Future<bool> second = manager.waitUntilReady();
+        expect(manager.callbacks.length, 1);
+        manager.callbacks.single.onAdLoaded(ad());
+        expect(await second, true);
+        expect(manager.isReady, true);
+        expect(events, contains(AdEventType.loaded));
+        manager.dispose();
+      });
+      test('readiness wait settles when eligibility invalidates', () async {
+        final dynamic manager = make();
+        final Future<bool> wait = manager.waitUntilReady();
+        expect(manager.callbacks.length, 1);
+        manager.invalidate(force: true);
+        expect(await wait, false);
+        manager.dispose();
+      });
       test(
         'slow load, repeated show/preload and show(false) make one request',
         () async {
@@ -304,10 +343,34 @@ void main() {
     manager.onEvent = events.add;
     manager.setAdForTesting(ad);
     expect(await manager.show(true), true);
-    expect(events, isEmpty);
+    expect(
+      events.where((event) => event.type == AdEventType.impression),
+      isEmpty,
+    );
+    expect(
+      events.map((event) => event.type),
+      contains(AdEventType.presentationAccepted),
+    );
     ad.fullScreenContentCallback!.onAdImpression!(ad);
-    expect(events.single.type, AdEventType.impression);
+    expect(
+      events.where((event) => event.type == AdEventType.impression),
+      hasLength(1),
+    );
     ad.fullScreenContentCallback!.onAdDismissedFullScreenContent!(ad);
+    manager.dispose();
+  });
+
+  test('synchronous SDK show failure is not counted as acceptance', () async {
+    AdOrchestrator.instance.reset();
+    final manager = TestInterstitial(adUnitIdProvider: () => 'unit');
+    final ad = TestFailingInterstitialAd();
+    final events = <AdEventType>[];
+    manager.onEvent = (event) => events.add(event.type);
+    manager.setAdForTesting(ad);
+    expect(await manager.show(true), false);
+    expect(events, contains(AdEventType.presentationFailed));
+    expect(events, isNot(contains(AdEventType.presentationAccepted)));
+    expect(AdOrchestrator.instance.isAnyFullscreenShowing, false);
     manager.dispose();
   });
 

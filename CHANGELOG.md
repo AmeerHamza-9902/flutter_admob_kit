@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Add a configurable 12-second default readiness wait with per-call overrides
+  for fullscreen and banner/native preload controllers. A wait timeout leaves
+  the native request in flight and never presents a late ad automatically.
+- Add optional delivery diagnostics separating requests, cache state, eligible
+  opportunities, accepted presentations, SDK impressions, invalidations,
+  failures and skip reasons. This adds `AdEventType` values; clients with an
+  exhaustive switch over that enum must handle the new cases. Dispose
+  duplicate stale fullscreen callbacks.
+- Settle readiness waits on invalidation and fix pending native claim cleanup
+  when consent or entitlement changes.
+
 - Match the `mediumNative` loading shimmer and Android layout to any positive
   developer-specified height; use a compact horizontal skeleton without overflow.
 

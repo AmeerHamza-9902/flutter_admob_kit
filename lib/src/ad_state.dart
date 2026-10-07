@@ -21,8 +21,18 @@ enum AdFormat { interstitial, rewarded, appOpen, banner, native }
 
 /// Event types emitted during the lifecycle of an advertisement.
 enum AdEventType {
+  request,
   loaded,
   loadFailed,
+  cacheHit,
+  cacheMiss,
+  opportunity,
+  presentationAccepted,
+  presentationFailed,
+  expired,
+  invalidated,
+  waitTimedOut,
+  skipped,
   shown,
   dismissed,
   clicked,
@@ -40,6 +50,7 @@ class AdEvent {
     this.errorMessage,
     this.rewardAmount,
     this.rewardType,
+    this.reason,
   });
 
   final AdFormat format;
@@ -49,6 +60,9 @@ class AdEvent {
   final String? errorMessage;
   final num? rewardAmount;
   final String? rewardType;
+
+  /// Optional local diagnostic reason; never represents an SDK impression.
+  final String? reason;
 
   @override
   String toString() =>

@@ -193,6 +193,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (!mounted) return;
 
     if (!AdMobKit.canRequestAds) {
+      _cancelClaim();
       resetRetry();
       _loadGeneration++;
       _ad?.dispose();
@@ -214,6 +215,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
 
   Future<void> _load({bool retry = false}) async {
     if (!mounted) return;
+    _cancelClaim();
     if (!retry) resetRetry();
     final gen = ++_loadGeneration;
 
@@ -302,6 +304,15 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
       if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) return;
     }
 
+    AdMobKit.reportEvent(
+      AdEvent(
+        format: AdFormat.native,
+        type: AdEventType.request,
+        timestamp: DateTime.now(),
+        adUnitId: unitId,
+      ),
+    );
+
     final nativeAd = NativeAd(
       adUnitId: unitId,
       nativeTemplateStyle: templateStyle,
@@ -363,6 +374,15 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
           if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
             return;
           }
+          AdMobKit.reportEvent(
+            AdEvent(
+              format: AdFormat.native,
+              type: AdEventType.loadFailed,
+              timestamp: DateTime.now(),
+              adUnitId: unitId,
+              errorMessage: error.message,
+            ),
+          );
           setState(() {
             _ad = null;
             _isLoaded = false;
@@ -377,9 +397,18 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     _ad = nativeAd;
     try {
       await nativeAd.load();
-    } catch (_) {
+    } catch (error) {
       await nativeAd.dispose();
       if (!mounted || gen != _loadGeneration) return;
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.native,
+          type: AdEventType.loadFailed,
+          timestamp: DateTime.now(),
+          adUnitId: unitId,
+          errorMessage: '$error',
+        ),
+      );
       setState(() {
         _ad = null;
         _isLoaded = false;

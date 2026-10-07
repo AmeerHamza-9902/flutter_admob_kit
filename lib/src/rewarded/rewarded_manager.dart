@@ -13,6 +13,7 @@ class RewardedManager extends FullscreenManager<RewardedAd> {
     super.adExpiry = const Duration(hours: 1),
     super.cooldown = const Duration(seconds: 0),
     super.retryPolicy,
+    super.readinessTimeout,
   }) : super(format: AdFormat.rewarded);
 
   @protected

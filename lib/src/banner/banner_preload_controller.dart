@@ -56,6 +56,15 @@ class BannerPreloadController {
     final entry = _PendingBanner(size, unit, AdMobKit.config.testMode);
     _pending = entry;
     void fail() {
+      if (!entry.valid) return;
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.banner,
+          type: entry.loaded ? AdEventType.expired : AdEventType.loadFailed,
+          timestamp: DateTime.now(),
+          adUnitId: unit,
+        ),
+      );
       if (!entry.ready.isCompleted) entry.ready.complete(null);
       entry.valid = false;
       entry.timer?.cancel();
@@ -105,6 +114,7 @@ class BannerPreloadController {
             return;
           }
           entry.actualSize = actual;
+          entry.loaded = true;
           report(AdEventType.loaded);
           if (!entry.ready.isCompleted) entry.ready.complete(ad as BannerAd);
           entry.timer?.cancel();
@@ -119,12 +129,47 @@ class BannerPreloadController {
     );
     entry.ad = ad;
     entry.timer = Timer(const Duration(minutes: 1), fail);
+    report(AdEventType.request);
     try {
       await ad.load();
     } catch (_) {
       fail();
     }
     return await entry.ready.future != null;
+  }
+
+  /// Bounds only the caller's wait; the pending banner keeps loading.
+  Future<bool> waitUntilReady({
+    required AdSize size,
+    String? adUnitId,
+    Duration? timeout,
+  }) {
+    final limit = timeout ?? AdMobKit.config.adReadinessTimeout;
+    if (limit <= Duration.zero) {
+      final unit = adUnitId ?? AdMobKit.config.bannerId;
+      final entry = _pending;
+      return Future.value(
+        unit != null &&
+            entry != null &&
+            entry.loaded &&
+            entry.matches(size, unit),
+      );
+    }
+    return preload(size: size, adUnitId: adUnitId).timeout(
+      limit,
+      onTimeout: () {
+        AdMobKit.reportEvent(
+          AdEvent(
+            format: AdFormat.banner,
+            type: AdEventType.waitTimedOut,
+            timestamp: DateTime.now(),
+            adUnitId: adUnitId ?? AdMobKit.config.bannerId,
+            reason: 'readiness_timeout',
+          ),
+        );
+        return false;
+      },
+    );
   }
 
   /// Internal handoff: a loaded/pending ad can belong to only one widget.
@@ -135,6 +180,14 @@ class BannerPreloadController {
   }) async {
     final entry = _pending;
     if (_disposed || entry == null || entry.claimed) {
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.banner,
+          type: AdEventType.cacheMiss,
+          timestamp: DateTime.now(),
+          adUnitId: unit,
+        ),
+      );
       return null;
     }
     if (!entry.matches(size, unit)) {
@@ -147,6 +200,14 @@ class BannerPreloadController {
     if (identical(_pending, entry)) _pending = null;
     entry.timer?.cancel();
     if (ad == null || !entry.valid || !AdMobKit.canRequestAds) return null;
+    AdMobKit.reportEvent(
+      AdEvent(
+        format: AdFormat.banner,
+        type: AdEventType.cacheHit,
+        timestamp: DateTime.now(),
+        adUnitId: unit,
+      ),
+    );
     return (
       ad: ad,
       size: entry.actualSize!,
@@ -174,6 +235,16 @@ class BannerPreloadController {
     final entry = _pending;
     _pending = null;
     if (entry == null) return;
+    if (entry.valid && entry.ready.isCompleted && !entry.claimed) {
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.banner,
+          type: AdEventType.invalidated,
+          timestamp: DateTime.now(),
+          adUnitId: entry.unit,
+        ),
+      );
+    }
     entry.valid = false;
     entry.timer?.cancel();
     entry.ad?.dispose();
@@ -200,6 +271,7 @@ class _PendingBanner {
   AdSize? actualSize;
   Timer? timer;
   bool valid = true;
+  bool loaded = false;
   bool claimed = false;
   bool matches(AdSize target, String targetUnit) =>
       valid &&

@@ -13,6 +13,7 @@ class InterstitialManager extends FullscreenManager<InterstitialAd> {
     super.adExpiry = const Duration(hours: 1),
     super.cooldown = Duration.zero,
     super.retryPolicy,
+    super.readinessTimeout,
   }) : super(format: AdFormat.interstitial);
 
   @protected
@@ -46,13 +47,6 @@ class InterstitialManager extends FullscreenManager<InterstitialAd> {
     ad.fullScreenContentCallback = callback;
   }
 
-  Future<bool> show([
-    bool shouldShow = true,
-    bool ignoreCooldown = false,
-  ]) =>
-      present(
-        shouldShow,
-        (ad) => ad.show(),
-        ignoreCooldown: ignoreCooldown,
-      );
+  Future<bool> show([bool shouldShow = true, bool ignoreCooldown = false]) =>
+      present(shouldShow, (ad) => ad.show(), ignoreCooldown: ignoreCooldown);
 }

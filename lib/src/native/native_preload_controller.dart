@@ -76,7 +76,18 @@ class NativePreloadController {
     _pending = entry;
 
     void fail([NativeAd? ad]) {
-      if (!entry.valid) return;
+      if (!entry.valid) {
+        if (ad != null && !identical(ad, entry.ad)) ad.dispose();
+        return;
+      }
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.native,
+          type: entry.loaded ? AdEventType.expired : AdEventType.loadFailed,
+          timestamp: DateTime.now(),
+          adUnitId: unit,
+        ),
+      );
       entry.valid = false;
       entry.timer?.cancel();
       (ad ?? entry.ad)?.dispose();
@@ -116,6 +127,7 @@ class NativePreloadController {
             return;
           }
           report(AdEventType.loaded);
+          entry.loaded = true;
           if (!entry.ready.isCompleted) entry.ready.complete(ad as NativeAd);
           entry.timer?.cancel();
           if (!entry.claimed) {
@@ -129,12 +141,52 @@ class NativePreloadController {
     );
     entry.ad = ad;
     entry.timer = Timer(const Duration(minutes: 1), fail);
+    report(AdEventType.request);
     try {
       await ad.load();
     } catch (_) {
       fail(ad);
     }
     return await entry.ready.future != null;
+  }
+
+  /// Bounds only the caller's wait; a late native ad remains available.
+  Future<bool> waitUntilReady({
+    required NativeTemplate template,
+    String? adUnitId,
+    NativeAdStyle style = const NativeAdStyle(),
+    Duration? timeout,
+  }) {
+    final limit = timeout ?? AdMobKit.config.adReadinessTimeout;
+    if (limit <= Duration.zero) {
+      final unit = adUnitId ?? AdMobKit.config.nativeId;
+      final entry = _pending;
+      return Future.value(
+        unit != null &&
+            entry != null &&
+            entry.loaded &&
+            entry.matches(template, style, unit),
+      );
+    }
+    return preload(
+      template: template,
+      adUnitId: adUnitId,
+      style: style,
+    ).timeout(
+      limit,
+      onTimeout: () {
+        AdMobKit.reportEvent(
+          AdEvent(
+            format: AdFormat.native,
+            type: AdEventType.waitTimedOut,
+            timestamp: DateTime.now(),
+            adUnitId: adUnitId ?? AdMobKit.config.nativeId,
+            reason: 'readiness_timeout',
+          ),
+        );
+        return false;
+      },
+    );
   }
 
   Future<({NativeAd ad, void Function() release})?> take({
@@ -144,7 +196,17 @@ class NativePreloadController {
     Object? owner,
   }) async {
     final entry = _pending;
-    if (_disposed || entry == null || entry.claimed) return null;
+    if (_disposed || entry == null || entry.claimed) {
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.native,
+          type: AdEventType.cacheMiss,
+          timestamp: DateTime.now(),
+          adUnitId: unit,
+        ),
+      );
+      return null;
+    }
     if (!entry.matches(template, style, unit)) {
       clear();
       return null;
@@ -155,6 +217,14 @@ class NativePreloadController {
     if (identical(_pending, entry)) _pending = null;
     entry.timer?.cancel();
     if (ad == null || !entry.valid || !AdMobKit.canRequestAds) return null;
+    AdMobKit.reportEvent(
+      AdEvent(
+        format: AdFormat.native,
+        type: AdEventType.cacheHit,
+        timestamp: DateTime.now(),
+        adUnitId: unit,
+      ),
+    );
     return (ad: ad, release: () => entry.valid = false);
   }
 
@@ -176,6 +246,16 @@ class NativePreloadController {
     final entry = _pending;
     _pending = null;
     if (entry == null) return;
+    if (entry.valid && entry.ready.isCompleted && !entry.claimed) {
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.native,
+          type: AdEventType.invalidated,
+          timestamp: DateTime.now(),
+          adUnitId: entry.unit,
+        ),
+      );
+    }
     entry.valid = false;
     entry.timer?.cancel();
     entry.ad?.dispose();
@@ -208,6 +288,7 @@ class _PendingNative {
   Object? owner;
   Timer? timer;
   bool valid = true;
+  bool loaded = false;
   bool claimed = false;
 
   bool matches(

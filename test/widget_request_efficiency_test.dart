@@ -188,6 +188,25 @@ void main() {
     controller.dispose();
   });
 
+  testWidgets('native readiness timeout retains one late load', (tester) async {
+    await initialize();
+    final controller = NativePreloadController();
+    addTearDown(controller.dispose);
+    final wait = controller.waitUntilReady(
+      template: NativeTemplate.mediumNative,
+      timeout: const Duration(milliseconds: 100),
+    );
+    await tester.pump();
+    expect(loads('Native'), hasLength(1));
+    await tester.pump(const Duration(milliseconds: 101));
+    expect(await wait, false);
+    final second = controller.preloadMediumNative();
+    expect(loads('Native'), hasLength(1));
+    await event(loads('Native').single.arguments['adId'] as int, 'onAdLoaded');
+    expect(await second, true);
+    controller.dispose();
+  });
+
   testWidgets(
     'bigNative height defaults to 280 and resizes without another request',
     (tester) async {
@@ -480,6 +499,25 @@ void main() {
     expect(loads('Banner'), hasLength(1));
     expect(find.byType(AdWidget), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets('banner readiness timeout retains one late load', (tester) async {
+    await initialize();
+    final controller = BannerPreloadController();
+    addTearDown(controller.dispose);
+    final wait = controller.waitUntilReady(
+      size: AdSize.largeBanner,
+      timeout: const Duration(milliseconds: 100),
+    );
+    await tester.pump();
+    expect(loads('Banner'), hasLength(1));
+    await tester.pump(const Duration(milliseconds: 101));
+    expect(await wait, false);
+    final second = controller.preloadLarge();
+    expect(loads('Banner'), hasLength(1));
+    await event(loads('Banner').single.arguments['adId'] as int, 'onAdLoaded');
+    expect(await second, true);
+    controller.dispose();
   });
 
   testWidgets('onboarding joins pending preload rather than requesting twice', (

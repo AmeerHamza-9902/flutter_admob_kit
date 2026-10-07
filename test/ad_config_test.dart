@@ -52,5 +52,16 @@ void main() {
       expect(updated.isEntitled, isTrue);
       expect(updated.testMode, isTrue);
     });
+
+    test('readiness timeout defaults to 12 seconds and can be overridden', () {
+      const config = AdMobConfig();
+      expect(config.adReadinessTimeout, const Duration(seconds: 12));
+      expect(
+        config
+            .copyWith(adReadinessTimeout: const Duration(seconds: 5))
+            .adReadinessTimeout,
+        const Duration(seconds: 5),
+      );
+    });
   });
 }

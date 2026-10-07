@@ -19,6 +19,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
     required this.adExpiry,
     this.cooldown = Duration.zero,
     this.retryPolicy = const RetryPolicy(),
+    this.readinessTimeout = const Duration(seconds: 12),
   });
 
   final AdFormat format;
@@ -29,6 +30,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
   Duration adExpiry;
   Duration cooldown;
   RetryPolicy retryPolicy;
+  Duration readinessTimeout;
   void Function(AdEvent event)? onEvent;
 
   T? _ad;
@@ -71,15 +73,28 @@ abstract class FullscreenManager<T extends AdWithoutView>
     _lastShownAt = null;
     notifyListeners();
   }
+
   bool get _allowed =>
       _state != AdState.disposed &&
       isEntitledProvider?.call() != true &&
       canRequestAdsProvider?.call() != false;
 
+  String get _ineligibilityReason {
+    if (_state == AdState.disposed) return 'disposed';
+    if (isEntitledProvider?.call() == true) return 'premium';
+    if (canRequestAdsProvider?.call() == false) {
+      return 'consent_or_initialization';
+    }
+    return 'ineligible';
+  }
+
   /// Reuses the cache or current request. Never replaces a slow active request.
   Future<bool> preload([String? overrideAdUnitId]) {
     if (!_allowed || isShowing) return Future.value(false);
-    if (isReady) return Future.value(true);
+    if (isReady) {
+      emit(AdEventType.cacheHit, reason: 'preload');
+      return Future.value(true);
+    }
     if (isLoading) return _loadCompleter!.future;
     if (_requestActive) {
       // Native loads cannot be cancelled. Coalesce changes until it settles.
@@ -92,6 +107,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
     }
     final id = overrideAdUnitId ?? adUnitIdProvider?.call();
     if (id == null || id.trim().isEmpty) return Future.value(false);
+    if (_ad != null && isExpired) emit(AdEventType.expired);
     _disposeCached();
     _state = AdState.loading;
     final completion = _loadCompleter = Completer<bool>();
@@ -99,6 +115,21 @@ abstract class FullscreenManager<T extends AdWithoutView>
     notifyListeners();
     _fetch(id, gen);
     return completion.future;
+  }
+
+  /// Explicitly waits for a ready ad. Ordinary [show] calls remain immediate.
+  /// Timeout only ends this caller's wait; a late SDK load remains in the cache.
+  Future<bool> waitUntilReady({Duration? timeout}) async {
+    if (isReady) return true;
+    final limit = timeout ?? readinessTimeout;
+    if (limit <= Duration.zero) return false;
+    return preload().timeout(
+      limit,
+      onTimeout: () {
+        emit(AdEventType.waitTimedOut, reason: 'readiness_timeout');
+        return false;
+      },
+    );
   }
 
   @protected
@@ -115,9 +146,13 @@ abstract class FullscreenManager<T extends AdWithoutView>
       return;
     }
     _requestActive = true;
+    emit(AdEventType.request, adUnitId: id);
     var settled = false;
     void loaded(T ad) {
-      if (settled) return;
+      if (settled) {
+        if (!identical(_ad, ad)) _disposeAd(ad);
+        return;
+      }
       settled = true;
       _requestActive = false;
       if (gen != _generation || !_allowed) {
@@ -198,18 +233,41 @@ abstract class FullscreenManager<T extends AdWithoutView>
         isShowing ||
         isLoading ||
         (!ignoreCooldown && isInCooldown)) {
+      if (shouldShow) {
+        emit(
+          AdEventType.skipped,
+          reason: !_allowed
+              ? _ineligibilityReason
+              : canShowAdsProvider?.call() == false
+              ? 'background'
+              : isShowing
+              ? 'already_showing'
+              : isLoading
+              ? 'loading'
+              : 'cooldown',
+        );
+      }
       return false;
     }
+    emit(AdEventType.opportunity);
     if (!isReady || _ad == null) {
+      emit(
+        AdEventType.cacheMiss,
+        reason: isExpired && _ad != null ? 'expired' : 'unavailable',
+      );
       unawaited(preload());
       return false;
     }
+    emit(AdEventType.cacheHit, reason: 'presentation');
     final ad = _ad!;
     final id = _loadedId;
     final token = AdOrchestrator.instance.acquireToken(
       format == AdFormat.appOpen ? 'app_open' : format.name,
     );
-    if (token == null) return false;
+    if (token == null) {
+      emit(AdEventType.skipped, reason: 'active_fullscreen');
+      return false;
+    }
     if (!identical(_ad, ad) || !isReady || !_allowed) {
       AdOrchestrator.instance.releaseWithToken(token);
       return false;
@@ -217,10 +275,21 @@ abstract class FullscreenManager<T extends AdWithoutView>
     _leaseToken = token;
     _state = AdState.showing;
     var closed = false;
+    var failedPresentation = false;
     void close({String? error}) {
       if (closed) return;
-      if (error != null) onPresentationFailed?.call();
       closed = true;
+      if (error != null) {
+        failedPresentation = true;
+        emit(AdEventType.presentationFailed, adUnitId: id, errorMessage: error);
+        try {
+          onPresentationFailed?.call();
+        } catch (callbackError) {
+          debugPrint(
+            'flutter_admob_kit: presentation failure callback failed: $callbackError',
+          );
+        }
+      }
       AdOrchestrator.instance.releaseWithToken(token);
       if (_leaseToken == token) _leaseToken = null;
       _disposeAd(ad);
@@ -236,34 +305,40 @@ abstract class FullscreenManager<T extends AdWithoutView>
       unawaited(preload());
     }
 
-    setContentCallback(
-      ad,
-      FullScreenContentCallback<T>(
-        onAdShowedFullScreenContent: (_) {
-          if (closed || _state == AdState.disposed) return;
-          _lastShownAt = DateTime.now();
-          emit(AdEventType.shown, adUnitId: id);
-        },
-        onAdDismissedFullScreenContent: (_) => close(),
-        onAdFailedToShowFullScreenContent: (_, error) =>
-            close(error: error.message),
-        onAdClicked: (_) {
-          if (!closed) emit(AdEventType.clicked, adUnitId: id);
-        },
-        onAdImpression: (_) {
-          if (!closed) emit(AdEventType.impression, adUnitId: id);
-        },
-      ),
-    );
+    try {
+      setContentCallback(
+        ad,
+        FullScreenContentCallback<T>(
+          onAdShowedFullScreenContent: (_) {
+            if (closed || _state == AdState.disposed) return;
+            _lastShownAt = DateTime.now();
+            emit(AdEventType.shown, adUnitId: id);
+          },
+          onAdDismissedFullScreenContent: (_) => close(),
+          onAdFailedToShowFullScreenContent: (_, error) =>
+              close(error: error.message),
+          onAdClicked: (_) {
+            if (!closed) emit(AdEventType.clicked, adUnitId: id);
+          },
+          onAdImpression: (_) {
+            if (!closed) emit(AdEventType.impression, adUnitId: id);
+          },
+        ),
+      );
+    } catch (error) {
+      close(error: '$error');
+      return false;
+    }
     notifyListeners();
     // A listener can synchronously revoke eligibility during the transition.
     if (!_allowed || canShowAdsProvider?.call() == false) {
-      onPresentationFailed?.call();
-      close();
+      close(error: 'presentation eligibility changed');
       return false;
     }
     try {
       await show(ad);
+      if (failedPresentation) return false;
+      emit(AdEventType.presentationAccepted, adUnitId: id);
       return true;
     } catch (error) {
       close(error: '$error');
@@ -283,6 +358,9 @@ abstract class FullscreenManager<T extends AdWithoutView>
     if (_state == AdState.disposed) return;
     if (!force && newAdUnitId != null && _loadedId == newAdUnitId && isReady) {
       return;
+    }
+    if (_ad != null && !isShowing) {
+      emit(AdEventType.invalidated, reason: 'configuration_or_eligibility');
     }
     _generation++;
     _retryTimer?.cancel();
@@ -322,6 +400,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
     String? errorMessage,
     num? rewardAmount,
     String? rewardType,
+    String? reason,
   }) {
     if (_state == AdState.disposed) return;
     try {
@@ -334,6 +413,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
           errorMessage: errorMessage,
           rewardAmount: rewardAmount,
           rewardType: rewardType,
+          reason: reason,
         ),
       );
     } catch (error) {

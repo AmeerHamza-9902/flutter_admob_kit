@@ -46,6 +46,7 @@ class AdMobConfig {
     this.appOpenCooldown = const Duration(seconds: 10),
     this.appOpenExpiry = const Duration(hours: 4),
     this.rewardedExpiry = const Duration(hours: 1),
+    this.adReadinessTimeout = const Duration(seconds: 12),
     this.autoResumeAppOpen = true,
     this.isEntitled = false,
   });
@@ -76,6 +77,10 @@ class AdMobConfig {
 
   /// Maximum lifespan before a cached Rewarded ad is considered stale.
   final Duration rewardedExpiry;
+
+  /// Maximum time for an explicit wait for an ad to become ready. A timed-out
+  /// wait does not cancel the underlying SDK request or display a late ad.
+  final Duration adReadinessTimeout;
 
   /// Automatically presents App Open ads when returning from background.
   final bool autoResumeAppOpen;
@@ -149,6 +154,7 @@ class AdMobConfig {
     Duration? appOpenCooldown,
     Duration? appOpenExpiry,
     Duration? rewardedExpiry,
+    Duration? adReadinessTimeout,
     bool? autoResumeAppOpen,
     bool? isEntitled,
   }) {
@@ -162,6 +168,7 @@ class AdMobConfig {
       appOpenCooldown: appOpenCooldown ?? this.appOpenCooldown,
       appOpenExpiry: appOpenExpiry ?? this.appOpenExpiry,
       rewardedExpiry: rewardedExpiry ?? this.rewardedExpiry,
+      adReadinessTimeout: adReadinessTimeout ?? this.adReadinessTimeout,
       autoResumeAppOpen: autoResumeAppOpen ?? this.autoResumeAppOpen,
       isEntitled: isEntitled ?? this.isEntitled,
     );

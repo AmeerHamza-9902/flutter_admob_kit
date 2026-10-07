@@ -51,6 +51,7 @@ Future<void> main() async {
     config: const AdMobConfig(
       testMode: true, // Use test ads during development.
       enableUmpConsent: true, // Default; resolves the required UMP form.
+      adReadinessTimeout: Duration(seconds: 12), // Default explicit wait.
       android: AdPlatformConfig(
         interstitial: 'YOUR_ANDROID_INTERSTITIAL_UNIT_ID',
         rewarded: 'YOUR_ANDROID_REWARDED_UNIT_ID',
@@ -130,9 +131,19 @@ await AdMobKit.rewarded.show(true, onReward: (reward) {
 
 Each fullscreen format has one cache and one load. Initialization preloads configured formats after consent; closing a consumed ad requests one replacement. Repeated preload/show calls reuse the current load/cache. When unavailable, `show(true)` may prime a load but returns immediately without waiting for a slow network. It never auto-shows a late result after the opportunity has passed.
 
+For a splash or another flow that deliberately waits, call `await AdMobKit.appOpen.waitUntilReady()` before `show(true)`. The default wait limit is `AdMobConfig.adReadinessTimeout` (12 seconds); override one opportunity with `waitUntilReady(timeout: const Duration(seconds: 5))`. A `false` result means the ad was unavailable before the deadline. The underlying SDK request continues and its late result can serve a later opportunity; it never appears automatically. Consent UI and SDK initialization are outside this timer. Banner and native preload controllers also expose `waitUntilReady(...)` with the same global default and a per-call `timeout` override. Normal navigation should use cached ads immediately and should not await readiness.
+
 Failures retry at **30, 60, and 120 seconds**, with one timer. After exhaustion, automatic retries stop; fullscreen opportunities cannot start a new cycle for five minutes. Disposal, entitlement, and consent/config invalidation cancel retries. No watchdog starts a second request merely because a native load is slow. An invalidated fullscreen request must settle before a replacement is issued.
 
 Interstitial/rewarded cache age is capped at one hour and App Open at four hours; shorter configured values are supported. Expiry is checked on use/preload. There is no continuous expiry refresh timer. `autoPreload: false` disables eager initialization/config/eligibility preloads; explicit show/preload and post-consumption replacement retain their documented behavior.
+
+### Delivery diagnostics
+
+`AdMobKit.addEventListener(listener)` is optional and local. `AdEventType.request`, `loaded`, `loadFailed`, `cacheHit`, `cacheMiss`, `opportunity`, `presentationAccepted`, `presentationFailed`, `impression`, `dismissed`, `expired`, `invalidated`, `waitTimedOut`, and `skipped` help trace the fullscreen path. `AdEvent.reason` explains skips such as background state, cooldown, active fullscreen presentation, or unavailable cache. Banner/native preload events cover requests, loads, failures, cache handoff and SDK impressions. Keep listeners lightweight and remove them with `removeEventListener` when no longer needed. Only the SDK `impression` callback confirms an impression; `presentationAccepted` is not a substitute.
+
+Calculate a **client load-success proxy** as loaded requests / completed requests; use AdMob reporting for its exact request match rate. Calculate **loaded-ad show rate at eligible opportunities** as accepted presentations / `cacheHit` events whose `reason` is `presentation`, **SDK impression rate** as SDK impressions / accepted presentations, and **impressions per eligible session** as SDK impressions / eligible sessions. Segment by format, placement, platform, consent state and network. The 90%+ target applies only to the second ratio; inventory, user flow and network can still limit every metric. Do not count a cache hit whose reason is `preload` as a presentation opportunity. App code should log session and placement identifiers separately if those cuts are needed.
+
+The [delivery audit and real-device test procedure](doc/DELIVERY_AUDIT.md) lists the main non-impression paths and a test-ad checklist for both platforms.
 
 ## App Open
 

@@ -13,6 +13,7 @@ class AppOpenManager extends FullscreenManager<AppOpenAd> {
     super.adExpiry = const Duration(hours: 4),
     super.cooldown = const Duration(seconds: 10),
     super.retryPolicy,
+    super.readinessTimeout,
   }) : super(format: AdFormat.appOpen);
 
   bool _manualPaywall = false;
@@ -76,6 +77,11 @@ class AppOpenManager extends FullscreenManager<AppOpenAd> {
     ad.fullScreenContentCallback = callback;
   }
 
-  Future<bool> show([bool shouldShow = true]) =>
-      present(shouldShow && !isInPaywall, (ad) => ad.show());
+  Future<bool> show([bool shouldShow = true]) {
+    if (shouldShow && isInPaywall) {
+      emit(AdEventType.skipped, reason: 'paywall');
+      return Future.value(false);
+    }
+    return present(shouldShow, (ad) => ad.show());
+  }
 }

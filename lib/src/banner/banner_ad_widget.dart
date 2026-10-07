@@ -336,6 +336,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       }
     }
 
+    AdMobKit.reportEvent(
+      AdEvent(
+        format: AdFormat.banner,
+        type: AdEventType.request,
+        timestamp: DateTime.now(),
+        adUnitId: unitId,
+      ),
+    );
+
     final banner = BannerAd(
       adUnitId: unitId,
       size: targetSize,
@@ -417,6 +426,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) {
             return;
           }
+          AdMobKit.reportEvent(
+            AdEvent(
+              format: AdFormat.banner,
+              type: AdEventType.loadFailed,
+              timestamp: DateTime.now(),
+              adUnitId: unitId,
+              errorMessage: error.message,
+            ),
+          );
           setState(() {
             _ad = null;
             _isLoaded = false;
@@ -431,9 +449,18 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     _ad = banner;
     try {
       await banner.load();
-    } catch (_) {
+    } catch (error) {
       await banner.dispose();
       if (!mounted || gen != _loadGeneration) return;
+      AdMobKit.reportEvent(
+        AdEvent(
+          format: AdFormat.banner,
+          type: AdEventType.loadFailed,
+          timestamp: DateTime.now(),
+          adUnitId: unitId,
+          errorMessage: '$error',
+        ),
+      );
       setState(() {
         _ad = null;
         _isLoaded = false;

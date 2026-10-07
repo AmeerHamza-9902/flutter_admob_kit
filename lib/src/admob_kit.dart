@@ -148,6 +148,7 @@ class AdMobKit {
         adUnitIdProvider: () => _config.interstitialId,
         cooldown: _config.interstitialCooldown,
         adExpiry: _config.interstitialExpiry,
+        readinessTimeout: _config.adReadinessTimeout,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
         canShowAdsProvider: canShow,
@@ -156,6 +157,7 @@ class AdMobKit {
       _rewarded = RewardedManager(
         adUnitIdProvider: () => _config.rewardedId,
         adExpiry: _config.rewardedExpiry,
+        readinessTimeout: _config.adReadinessTimeout,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
         canShowAdsProvider: canShow,
@@ -165,6 +167,7 @@ class AdMobKit {
         adUnitIdProvider: () => _config.appOpenId,
         cooldown: _config.appOpenCooldown,
         adExpiry: _config.appOpenExpiry,
+        readinessTimeout: _config.adReadinessTimeout,
         isEntitledProvider: () => isEntitled,
         canRequestAdsProvider: canRequest,
         canShowAdsProvider: canShowAppOpen,
@@ -233,9 +236,12 @@ class AdMobKit {
     _lifecycleManager?.isEnabled = newConfig.autoResumeAppOpen;
     _interstitial?.cooldown = newConfig.interstitialCooldown;
     _interstitial?.adExpiry = newConfig.interstitialExpiry;
+    _interstitial?.readinessTimeout = newConfig.adReadinessTimeout;
     _rewarded?.adExpiry = newConfig.rewardedExpiry;
+    _rewarded?.readinessTimeout = newConfig.adReadinessTimeout;
     _appOpen?.cooldown = newConfig.appOpenCooldown;
     _appOpen?.adExpiry = newConfig.appOpenExpiry;
+    _appOpen?.readinessTimeout = newConfig.adReadinessTimeout;
     final modeChanged = old.testMode != newConfig.testMode;
     final interstitialChanged =
         modeChanged ||
