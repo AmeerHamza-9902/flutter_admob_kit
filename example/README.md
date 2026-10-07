@@ -2,6 +2,10 @@
 
 Android and iOS host projects use official Google test AdMob app IDs. All ad unit IDs are selected through `AdMobConfig(testMode: true)`.
 
+The home screen demonstrates both `bigNative` and `mediumNative(height: 130)`
+alongside a banner and fullscreen controls. Scroll to inspect the two native
+cards after the test ads load.
+
 Run from this directory:
 
 ```sh
