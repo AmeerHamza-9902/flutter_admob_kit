@@ -108,8 +108,9 @@ class NativeAdWidget extends StatefulWidget {
   /// Optional ready/pending native ad prepared for this exact placement.
   final NativePreloadController? preloadController;
 
-  /// Container height. mediumNative uses any positive finite height (128 by
-  /// default). The other templates keep their platform minimum heights.
+  /// Container height. mediumNative defaults to 128 and keeps that minimum so
+  /// its video MediaView can remain at least 120x120dp after card margins.
+  /// Larger values are respected; the other templates use their own minimums.
   final double? height;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -156,8 +157,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   double get _targetHeight {
     if (widget.template == NativeTemplate.mediumNative) {
       final requested = widget.height;
-      return requested != null && requested.isFinite && requested > 0
-          ? requested
+      return requested != null && requested.isFinite
+          ? requested.clamp(128.0, double.infinity)
           : 128.0;
     }
     final minimum = switch (widget.template) {

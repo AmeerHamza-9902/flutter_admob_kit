@@ -3,6 +3,7 @@ package dev.admobkit.flutter_admob_kit;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.text.Layout;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
@@ -85,7 +86,7 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
             int cardHeight = bottom - top;
             RelativeLayout.LayoutParams mediaParams =
                 (RelativeLayout.LayoutParams) mediaContainer.getLayoutParams();
-            int targetMediaWidth = Math.min(dp(120), cardHeight);
+            int targetMediaWidth = dp(120);
             if (mediaParams.width != targetMediaWidth) {
                 mediaParams.width = targetMediaWidth;
                 mediaContainer.setLayoutParams(mediaParams);
@@ -100,6 +101,23 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
             if (ctaParams.height != targetCtaHeight) {
                 ctaParams.height = targetCtaHeight;
                 cta.setLayoutParams(ctaParams);
+            }
+            if (body.getVisibility() == View.VISIBLE) {
+                body.post(() -> {
+                    if (body.getVisibility() != View.VISIBLE) return;
+                    Layout textLayout = body.getLayout();
+                    if (textLayout == null || textLayout.getLineCount() == 0) return;
+                    int lastLine = textLayout.getLineCount() - 1;
+                    int visibleCharacters = textLayout.getLineEnd(lastLine)
+                        - textLayout.getEllipsisCount(lastLine);
+                    int requiredCharacters = Math.min(90, body.getText().length());
+                    if (visibleCharacters < requiredCharacters
+                            || body.getBottom() > cta.getTop()) {
+                        // Body is optional. Never display it with less than the
+                        // policy-required first 90 characters visible.
+                        body.setVisibility(View.GONE);
+                    }
+                });
             }
         });
 

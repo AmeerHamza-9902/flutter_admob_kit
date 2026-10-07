@@ -1,13 +1,16 @@
 package dev.admobkit.flutter_admob_kit;
 
 import android.content.Context;
+import android.text.Layout;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Allocates spare height to media and reduces text lines before clipping assets. */
+/** Allocates spare height to media while preserving required headline copy. */
 public final class ResponsiveNativeCard extends LinearLayout {
+    private int lastAvailableHeight = -1;
+
     public ResponsiveNativeCard(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
@@ -19,20 +22,35 @@ public final class ResponsiveNativeCard extends LinearLayout {
         View media = findViewById(R.id.ad_media_container);
         headline.setMaxLines(3);
         body.setMaxLines(2);
+        int available = MeasureSpec.getSize(heightSpec);
+        if (available != lastAvailableHeight && body.getText().length() > 0) {
+            body.setVisibility(View.VISIBLE);
+        }
+        lastAvailableHeight = available;
         super.onMeasure(widthSpec, heightSpec);
         if (MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED
                 || media.getVisibility() == View.GONE) return;
 
-        int available = MeasureSpec.getSize(heightSpec);
-        while (requiredHeight() > available) {
-            if (headline.getMaxLines() > 1) {
-                headline.setMaxLines(headline.getMaxLines() - 1);
-            } else if (body.getMaxLines() > 1) {
-                body.setMaxLines(1);
-            } else {
-                break;
-            }
+        if (requiredHeight() > available && body.getVisibility() == View.VISIBLE) {
+            // Body is optional; shrinking the required headline can truncate
+            // it before Google's first-25-character display minimum.
+            body.setVisibility(View.GONE);
             super.onMeasure(widthSpec, heightSpec);
+        }
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        TextView body = findViewById(R.id.ad_body);
+        if (body.getVisibility() != View.VISIBLE) return;
+        Layout textLayout = body.getLayout();
+        if (textLayout == null || textLayout.getLineCount() == 0) return;
+        int lastLine = textLayout.getLineCount() - 1;
+        int visibleCharacters = textLayout.getLineEnd(lastLine)
+            - textLayout.getEllipsisCount(lastLine);
+        if (visibleCharacters < Math.min(90, body.getText().length())) {
+            body.setVisibility(View.GONE);
         }
     }
 

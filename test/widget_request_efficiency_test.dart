@@ -208,7 +208,10 @@ void main() {
         tester.widget<AdShimmerPlaceholder>(shimmer).variant,
         AdShimmerVariant.nativeHorizontal,
       );
-      expect(tester.getSize(shimmer).height, height);
+      expect(
+        tester.getSize(shimmer).height,
+        height.clamp(128.0, double.infinity),
+      );
       expect(tester.takeException(), isNull);
     }
     expect(loads('Native'), hasLength(1));

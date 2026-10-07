@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Keep Android `mediumNative` media at least 120×120dp and allow three headline
+  lines. Both bundled Android layouts hide optional body copy when the card
+  cannot show its first 90 characters; the large layout no longer shortens its
+  required headline to make room. Clamp smaller requested medium card heights
+  to 128dp for video support.
+
 - Add named interstitial, rewarded and manual App Open placements with separate
   caches per unit, automatic eligible preloading, live unit-ID replacement and
   `AdEvent.placementId`. Bound initial fullscreen load attempts with a shared
