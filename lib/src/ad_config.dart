@@ -41,7 +41,7 @@ class AdMobConfig {
     this.ios,
     this.testMode = false,
     this.enableUmpConsent = true,
-    this.interstitialCooldown = const Duration(seconds: 30),
+    this.interstitialCooldown = Duration.zero,
     this.interstitialExpiry = const Duration(hours: 1),
     this.appOpenCooldown = const Duration(seconds: 10),
     this.appOpenExpiry = const Duration(hours: 4),

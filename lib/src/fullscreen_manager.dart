@@ -63,7 +63,14 @@ abstract class FullscreenManager<T extends AdWithoutView>
               : adExpiry);
   bool get isInCooldown =>
       _lastShownAt != null &&
+      cooldown > Duration.zero &&
       DateTime.now().difference(_lastShownAt!) < cooldown;
+
+  /// Clears the last shown timestamp, effectively resetting any active cooldown.
+  void resetCooldown() {
+    _lastShownAt = null;
+    notifyListeners();
+  }
   bool get _allowed =>
       _state != AdState.disposed &&
       isEntitledProvider?.call() != true &&
@@ -183,13 +190,14 @@ abstract class FullscreenManager<T extends AdWithoutView>
     bool shouldShow,
     Future<void> Function(T) show, {
     VoidCallback? onPresentationFailed,
+    bool ignoreCooldown = false,
   }) async {
     if (!shouldShow ||
         !_allowed ||
         canShowAdsProvider?.call() == false ||
         isShowing ||
         isLoading ||
-        isInCooldown) {
+        (!ignoreCooldown && isInCooldown)) {
       return false;
     }
     if (!isReady || _ad == null) {

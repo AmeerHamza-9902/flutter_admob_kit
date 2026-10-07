@@ -83,6 +83,20 @@ void main() {
       manager.dispose();
     });
 
+    test('default cooldown is Duration.zero and resetCooldown clears cooldown', () {
+      final manager = _FakeInterstitialManager(
+        adUnitIdProvider: () => 'test-id',
+      );
+
+      expect(manager.cooldown, Duration.zero);
+      expect(manager.isInCooldown, isFalse);
+
+      manager.resetCooldown();
+      expect(manager.isInCooldown, isFalse);
+
+      manager.dispose();
+    });
+
     test('expiry marks stale ads as expired', () {
       final manager = _FakeInterstitialManager(
         adUnitIdProvider: () => 'test-id',

@@ -132,7 +132,9 @@ class AdMobKit {
       bool canRequest() => canRequestAds;
       bool canShow() {
         final state = WidgetsBinding.instance.lifecycleState;
-        return state == null || state == AppLifecycleState.resumed;
+        return state == null ||
+            state == AppLifecycleState.resumed ||
+            state == AppLifecycleState.inactive;
       }
 
       bool canShowAppOpen() {
