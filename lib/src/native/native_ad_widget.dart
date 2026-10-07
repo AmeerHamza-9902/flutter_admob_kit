@@ -298,10 +298,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
           _hasFailed = false;
         });
         resetRetry();
-        widget.onAdLoaded?.call();
         if (managed) {
           AdMobKit.replenishNative(widget.template, style, unitId);
         }
+        widget.onAdLoaded?.call();
         return;
       }
       _claimController = null;

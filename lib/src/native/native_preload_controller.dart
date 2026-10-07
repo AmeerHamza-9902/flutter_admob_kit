@@ -13,9 +13,12 @@ import 'native_templates.dart';
 /// Create a separate controller for each destination placement. A native ad
 /// can be handed to only one [NativeAdWidget].
 class NativePreloadController {
-  NativePreloadController() {
+  NativePreloadController({this.onIdle}) {
     AdMobKit.configNotifier.addListener(_configurationChanged);
   }
+
+  /// Called when an unused cached ad expires, fails, or is cleared.
+  final void Function()? onIdle;
 
   static const _templates = MethodChannel('flutter_admob_kit/native_templates');
   _PendingNative? _pending;
@@ -96,7 +99,10 @@ class NativePreloadController {
       entry.timer?.cancel();
       (ad ?? entry.ad)?.dispose();
       if (!entry.ready.isCompleted) entry.ready.complete(null);
-      if (identical(_pending, entry)) _pending = null;
+      if (identical(_pending, entry)) {
+        _pending = null;
+        if (!_disposed) onIdle?.call();
+      }
     }
 
     void report(AdEventType type) {
@@ -270,6 +276,7 @@ class NativePreloadController {
     entry.timer?.cancel();
     entry.ad?.dispose();
     if (!entry.ready.isCompleted) entry.ready.complete(null);
+    if (!_disposed) onIdle?.call();
   }
 
   void dispose() {

@@ -880,4 +880,63 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     AdMobKit.resetForTesting();
   });
+
+  testWidgets('expired library cache controllers release their listeners', (
+    tester,
+  ) async {
+    await initialize();
+    final native = AdMobKit.nativeCache(
+      NativeTemplate.mediumNative,
+      const NativeAdStyle(),
+      'native-1',
+    );
+    final banner = AdMobKit.bannerCache(AdSize.largeBanner, 'banner-1');
+    await tester.pump();
+    await event(loads('Native').single.arguments['adId'] as int, 'onAdLoaded');
+    await event(loads('Banner').single.arguments['adId'] as int, 'onAdLoaded');
+
+    await tester.pump(const Duration(minutes: 2, seconds: 1));
+    expect(
+      identical(
+        native,
+        AdMobKit.nativeCache(
+          NativeTemplate.mediumNative,
+          const NativeAdStyle(),
+          'native-1',
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      identical(banner, AdMobKit.bannerCache(AdSize.largeBanner, 'banner-1')),
+      isFalse,
+    );
+    AdMobKit.resetForTesting();
+  });
+
+  testWidgets('adaptive banner cache keeps SDK orientations separate', (
+    tester,
+  ) async {
+    await initialize();
+    final portrait = AdMobKit.bannerCache(
+      AnchoredAdaptiveBannerAdSize(
+        Orientation.portrait,
+        width: 320,
+        height: 50,
+      ),
+      'banner-1',
+    );
+    final landscape = AdMobKit.bannerCache(
+      AnchoredAdaptiveBannerAdSize(
+        Orientation.landscape,
+        width: 320,
+        height: 50,
+      ),
+      'banner-1',
+    );
+    expect(identical(portrait, landscape), isFalse);
+    await tester.pump();
+    expect(loads('Banner'), hasLength(2));
+    AdMobKit.resetForTesting();
+  });
 }

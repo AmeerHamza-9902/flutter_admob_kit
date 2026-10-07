@@ -1,6 +1,6 @@
 # flutter_admob_kit
 
-A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Configuration stays in Dart. There is no Remote Config, analytics backend, custom network client, or extra preload pool.
+A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Configuration stays in Dart. The library manages short-lived ad caches without a Remote Config or analytics backend.
 
 ## Features
 

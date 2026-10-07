@@ -22,6 +22,8 @@ class AppOpenManager extends FullscreenManager<AppOpenAd> {
   bool get isInPaywall => _manualPaywall || _paywallCount > 0;
   bool get isResumeSuppressed => _resumeSuppressionCount > 0;
   set isInPaywall(bool value) => _manualPaywall = value;
+  @override
+  bool get canPresentNow => !isInPaywall;
   void enterPaywall() => _paywallCount++;
   void leavePaywall() {
     if (_paywallCount > 0) _paywallCount--;

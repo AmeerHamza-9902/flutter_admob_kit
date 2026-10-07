@@ -52,6 +52,7 @@ class _FakeAppOpenAd extends Fake implements AppOpenAd {
   @override
   FullScreenContentCallback<AppOpenAd>? fullScreenContentCallback;
   bool isDisposed = false;
+  bool wasShown = false;
 
   @override
   Future<void> dispose() async {
@@ -59,7 +60,9 @@ class _FakeAppOpenAd extends Fake implements AppOpenAd {
   }
 
   @override
-  Future<void> show() async {}
+  Future<void> show() async {
+    wasShown = true;
+  }
 }
 
 class _TestAppOpenManager extends AppOpenManager {
@@ -226,5 +229,24 @@ void main() {
         manager.dispose();
       },
     );
+
+    test('App Open rechecks paywall after an opportunity listener', () async {
+      final manager = _TestAppOpenManager(
+        adUnitIdProvider: () => 'appopen-unit',
+      );
+      final ad = _FakeAppOpenAd();
+      manager.setAdForTesting(ad);
+      manager.onEvent = (event) {
+        if (event.type == AdEventType.opportunity) manager.enterPaywall();
+      };
+
+      expect(await manager.show(true), isFalse);
+      expect(ad.wasShown, isFalse);
+      expect(ad.isDisposed, isFalse);
+      expect(manager.isReady, isTrue);
+      expect(AdOrchestrator.instance.isAnyFullscreenShowing, isFalse);
+      manager.leavePaywall();
+      manager.dispose();
+    });
   });
 }

@@ -5,13 +5,17 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../ad_state.dart';
 import '../admob_kit.dart';
 import 'banner_manager.dart';
+import 'banner_size_key.dart';
 
 /// Owns one short-lived banner for an upcoming placement.
 /// Preload only after initialization/consent, close to the expected navigation.
 class BannerPreloadController {
-  BannerPreloadController() {
+  BannerPreloadController({this.onIdle}) {
     AdMobKit.configNotifier.addListener(_configurationChanged);
   }
+
+  /// Called when an unused cached ad expires, fails, or is cleared.
+  final void Function()? onIdle;
 
   _PendingBanner? _pending;
   bool _disposed = false;
@@ -69,7 +73,10 @@ class BannerPreloadController {
       entry.valid = false;
       entry.timer?.cancel();
       entry.ad?.dispose();
-      if (identical(_pending, entry)) _pending = null;
+      if (identical(_pending, entry)) {
+        _pending = null;
+        if (!_disposed) onIdle?.call();
+      }
     }
 
     void report(AdEventType type) {
@@ -257,6 +264,7 @@ class BannerPreloadController {
     entry.timer?.cancel();
     entry.ad?.dispose();
     if (!entry.ready.isCompleted) entry.ready.complete(null);
+    if (!_disposed) onIdle?.call();
   }
 
   void dispose() {
@@ -286,10 +294,5 @@ class _PendingBanner {
       valid &&
       unit == targetUnit &&
       testMode == AdMobKit.config.testMode &&
-      size.runtimeType == target.runtimeType &&
-      size == target &&
-      (size is! InlineAdaptiveSize ||
-          (target is InlineAdaptiveSize &&
-              (size as InlineAdaptiveSize).maxHeight == target.maxHeight &&
-              (size as InlineAdaptiveSize).orientation == target.orientation));
+      bannerSizeKey(size) == bannerSizeKey(target);
 }

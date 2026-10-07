@@ -81,6 +81,10 @@ abstract class FullscreenManager<T extends AdWithoutView>
       isEntitledProvider?.call() != true &&
       canRequestAdsProvider?.call() != false;
 
+  /// Placement-specific gate checked again after synchronous event listeners.
+  @protected
+  bool get canPresentNow => true;
+
   String get _ineligibilityReason {
     if (_state == AdState.disposed) return 'disposed';
     if (isEntitledProvider?.call() == true) return 'premium';
@@ -252,6 +256,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
   }) async {
     if (!shouldShow ||
         !_allowed ||
+        !canPresentNow ||
         canShowAdsProvider?.call() == false ||
         isShowing ||
         (!ignoreCooldown && isInCooldown)) {
@@ -260,6 +265,8 @@ abstract class FullscreenManager<T extends AdWithoutView>
           AdEventType.skipped,
           reason: !_allowed
               ? _ineligibilityReason
+              : !canPresentNow
+              ? 'placement_blocked'
               : canShowAdsProvider?.call() == false
               ? 'background'
               : isShowing
@@ -270,6 +277,19 @@ abstract class FullscreenManager<T extends AdWithoutView>
       return false;
     }
     emit(AdEventType.opportunity);
+    // Event listeners are synchronous and may change route or eligibility.
+    // Keep a ready ad cached if the opportunity disappears before ownership.
+    if (!_allowed || !canPresentNow || canShowAdsProvider?.call() == false) {
+      emit(
+        AdEventType.skipped,
+        reason: !_allowed
+            ? _ineligibilityReason
+            : !canPresentNow
+            ? 'placement_blocked'
+            : 'background',
+      );
+      return false;
+    }
     if (isLoading) {
       emit(AdEventType.cacheMiss, reason: 'loading');
       emit(AdEventType.skipped, reason: 'loading');
@@ -362,7 +382,7 @@ abstract class FullscreenManager<T extends AdWithoutView>
     }
     notifyListeners();
     // A listener can synchronously revoke eligibility during the transition.
-    if (!_allowed || canShowAdsProvider?.call() == false) {
+    if (!_allowed || !canPresentNow || canShowAdsProvider?.call() == false) {
       close(error: 'presentation eligibility changed');
       return false;
     }

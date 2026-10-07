@@ -348,10 +348,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           _isLoaded = true;
           _hasFailed = false;
         });
-        widget.onAdLoaded?.call();
         if (managed) {
           AdMobKit.replenishBanner(targetSize, unitId);
         }
+        widget.onAdLoaded?.call();
         return;
       }
     }
