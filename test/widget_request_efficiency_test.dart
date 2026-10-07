@@ -79,13 +79,13 @@ void main() {
     await done.future;
   }
 
-  testWidgets('Android medium uses bundled factory and developer style', (
+  testWidgets('Android bigNative uses bundled factory and developer style', (
     tester,
   ) async {
     await initialize();
     await tester.pumpWidget(
       const MaterialApp(
-        home: NativeAdWidget.medium(
+        home: NativeAdWidget.bigNative(
           style: NativeAdStyle(
             backgroundColor: Colors.black,
             primaryTextColor: Colors.white,
@@ -96,22 +96,57 @@ void main() {
     );
     await tester.pump();
     final args = loads('Native').single.arguments as Map;
-    expect(args['factoryId'], 'flutter_admob_kit/medium');
+    expect(args['factoryId'], 'flutter_admob_kit/big_native');
     expect(args['nativeTemplateStyle'], isNull);
     expect(args['customOptions']['backgroundColor'], Colors.black.toARGB32());
     expect(args['customOptions']['primaryTextColor'], Colors.white.toARGB32());
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('Android mediumNative uses horizontal bundled factory', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: NativeAdWidget.mediumNative(
+            style: NativeAdStyle(
+              backgroundColor: Colors.amber,
+              secondaryTextColor: Colors.black,
+              callToActionColor: Colors.red,
+            ),
+            showShimmer: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final args = loads('Native').single.arguments as Map;
+    expect(args['factoryId'], 'flutter_admob_kit/medium_native');
+    expect(args['nativeTemplateStyle'], isNull);
+    expect(args['customOptions']['backgroundColor'], Colors.amber.toARGB32());
+    expect(
+      args['customOptions']['secondaryTextColor'],
+      Colors.black.toARGB32(),
+    );
+    expect(args['customOptions']['callToActionColor'], Colors.red.toARGB32());
+    expect(tester.getSize(find.byType(NativeAdWidget)).height, 128);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
-    'medium height defaults to 280 and resizes without another request',
+    'bigNative height defaults to 280 and resizes without another request',
     (tester) async {
       await initialize();
       Future<void> show(double? height) async {
         await tester.pumpWidget(
           MaterialApp(
             home: Center(
-              child: NativeAdWidget.medium(height: height, showShimmer: true),
+              child: NativeAdWidget.bigNative(
+                height: height,
+                showShimmer: true,
+              ),
             ),
           ),
         );
@@ -143,7 +178,7 @@ void main() {
         );
     await tester.pumpWidget(
       MaterialApp(
-        home: NativeAdWidget.medium(
+        home: NativeAdWidget.bigNative(
           onAdFailed: () => failed++,
           showShimmer: false,
         ),
@@ -166,7 +201,7 @@ void main() {
           (_) => setup.future,
         );
     await tester.pumpWidget(
-      const MaterialApp(home: NativeAdWidget.medium(showShimmer: false)),
+      const MaterialApp(home: NativeAdWidget.bigNative(showShimmer: false)),
     );
     await tester.pumpWidget(const SizedBox.shrink());
     setup.complete();

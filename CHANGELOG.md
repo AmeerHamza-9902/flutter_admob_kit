@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Rename the large splash native template to `bigNative`, add the horizontal
+  120dp `mediumNative` template, and support the same background, text, CTA,
+  and corner styling on both bundled Android layouts. Keep `medium()` as a
+  deprecated compatibility alias for `bigNative()`.
+
 - Ignore notification-shade-only `inactive → resumed` transitions and add a
   scoped resume suppression API for camera, gallery, picker, and permission UI.
 

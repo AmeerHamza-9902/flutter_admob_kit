@@ -239,14 +239,18 @@ void main() {
       },
     );
 
-    test('NativeAdWidget provides only small and medium constructors', () {
+    test('NativeAdWidget exposes small, mediumNative and bigNative', () {
       const smallWidget = NativeAdWidget.small();
       expect(smallWidget.template, NativeTemplate.small);
       expect(smallWidget.height, 90.0);
 
-      const mediumWidget = NativeAdWidget.medium();
-      expect(mediumWidget.template, NativeTemplate.medium);
-      expect(mediumWidget.height, 280.0);
+      const mediumWidget = NativeAdWidget.mediumNative();
+      expect(mediumWidget.template, NativeTemplate.mediumNative);
+      expect(mediumWidget.height, 128.0);
+
+      const bigWidget = NativeAdWidget.bigNative();
+      expect(bigWidget.template, NativeTemplate.bigNative);
+      expect(bigWidget.height, 280.0);
     });
   });
 }

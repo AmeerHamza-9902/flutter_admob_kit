@@ -14,7 +14,7 @@ void main() {
     expect(
       const NativeAdStyle(
         backgroundColor: null,
-      ).toGoogleTemplateStyle(NativeTemplate.medium).mainBackgroundColor,
+      ).toGoogleTemplateStyle(NativeTemplate.bigNative).mainBackgroundColor,
       Colors.white,
     );
   });
@@ -36,7 +36,7 @@ void main() {
     expect(options['primaryTextColor'], Colors.white.toARGB32());
     expect(options['secondaryTextColor'], Colors.grey.toARGB32());
     expect(
-      style.toGoogleTemplateStyle(NativeTemplate.medium).mainBackgroundColor,
+      style.toGoogleTemplateStyle(NativeTemplate.bigNative).mainBackgroundColor,
       Colors.black,
     );
     expect(

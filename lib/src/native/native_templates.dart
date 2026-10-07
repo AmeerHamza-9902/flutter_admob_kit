@@ -6,8 +6,14 @@ enum NativeTemplate {
   /// Small compact native card (icon + headline + CTA button). Ideal for list rows (height ~90dp).
   small,
 
-  /// Medium native ad card (full-width media on top + icon + headline + body + CTA).
-  /// Bundled Android media/header/CTA layout; official iOS medium template.
+  /// Horizontal 120dp card with media, text and CTA.
+  mediumNative,
+
+  /// Large media/header/CTA card used for prominent placements such as splash.
+  bigNative,
+
+  /// Compatibility alias for the former large `medium` template.
+  @Deprecated('Use NativeTemplate.bigNative instead.')
   medium,
 }
 
@@ -33,7 +39,7 @@ class NativeAdStyle {
   final Color? backgroundColor;
 
   /// Corner radius of the ad container (and official-template CTA).
-  /// The bundled Android medium CTA uses a fixed 10dp radius.
+  /// Corner radius used by bundled Android cards and CTAs.
   final double cornerRadius;
 
   /// Background color of the Call To Action button.
@@ -50,7 +56,9 @@ class NativeAdStyle {
 
   /// Converts this style to the official [NativeTemplateStyle] used by Google Mobile Ads.
   NativeTemplateStyle toGoogleTemplateStyle(NativeTemplate template) {
-    final isSmall = template == NativeTemplate.small;
+    final isSmall =
+        template == NativeTemplate.small ||
+        template == NativeTemplate.mediumNative;
     return NativeTemplateStyle(
       templateType: isSmall ? TemplateType.small : TemplateType.medium,
       mainBackgroundColor: backgroundColor ?? Colors.white,

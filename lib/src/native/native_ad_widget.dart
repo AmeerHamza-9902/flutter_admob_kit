@@ -11,18 +11,19 @@ import 'native_templates.dart';
 
 /// Drop-in, zero-boilerplate Native Ad widget with built-in templates.
 ///
-/// Uses the configured Native Ad Unit ID and bundled Android medium layout.
+/// Uses the configured Native Ad Unit ID and bundled Android layouts.
 /// Small ads and iOS use Google's native templates. Owns loading and disposal.
 ///
 /// ```dart
-/// const NativeAdWidget.medium()
+/// const NativeAdWidget.bigNative()
+/// const NativeAdWidget.mediumNative()
 /// const NativeAdWidget.small()
 /// ```
 class NativeAdWidget extends StatefulWidget {
   const NativeAdWidget({
     super.key,
     this.adUnitId,
-    this.template = NativeTemplate.medium,
+    this.template = NativeTemplate.bigNative,
     this.style,
     this.height,
     this.showShimmer = true,
@@ -31,9 +32,34 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   });
 
-  /// Factory constructor for a medium native ad card (media view + headline + body + CTA).
+  /// Large native card with full-width media, details and CTA.
   ///
   /// Height is at least `280.0` on Android and `320.0` on iOS.
+  const NativeAdWidget.bigNative({
+    super.key,
+    this.adUnitId,
+    this.style,
+    this.height = 280.0,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.bigNative;
+
+  /// Horizontal native card with 120dp media, text and CTA.
+  const NativeAdWidget.mediumNative({
+    super.key,
+    this.adUnitId,
+    this.style,
+    this.height = 128.0,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.mediumNative;
+
+  /// Compatibility alias for the former large `medium` constructor.
+  @Deprecated('Use NativeAdWidget.bigNative instead.')
   const NativeAdWidget.medium({
     super.key,
     this.adUnitId,
@@ -43,7 +69,7 @@ class NativeAdWidget extends StatefulWidget {
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
-  }) : template = NativeTemplate.medium;
+  }) : template = NativeTemplate.bigNative;
 
   /// Factory constructor for a compact small native ad row (icon + headline + CTA).
   ///
@@ -68,8 +94,8 @@ class NativeAdWidget extends StatefulWidget {
   /// Custom visual styling (background, text color, CTA color, corner radius).
   final NativeAdStyle? style;
 
-  /// Container height. Minimum 280 for Android medium, 320 for iOS medium,
-  /// and 90 for small templates.
+  /// Container height. Minimum 280 for Android bigNative, 320 for iOS
+  /// bigNative, 128 for mediumNative, and 90 for small templates.
   final double? height;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -99,11 +125,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   bool? _activeTestMode;
 
   double get _targetHeight {
-    final minimum = widget.template == NativeTemplate.small
-        ? 90.0
-        : (!kIsWeb && defaultTargetPlatform == TargetPlatform.android
-              ? 280.0
-              : 320.0);
+    final minimum = switch (widget.template) {
+      NativeTemplate.small => 90.0,
+      NativeTemplate.mediumNative => 128.0,
+      NativeTemplate.bigNative || NativeTemplate.medium =>
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+            ? 280.0
+            : 320.0,
+    };
     return (widget.height ?? minimum).clamp(minimum, double.infinity);
   }
 
@@ -185,14 +214,14 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (mounted) setState(() {});
 
     final style = widget.style ?? const NativeAdStyle();
-    final customMedium =
+    final customTemplate =
         !kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android &&
-        widget.template == NativeTemplate.medium;
-    final templateStyle = customMedium
+        widget.template != NativeTemplate.small;
+    final templateStyle = customTemplate
         ? null
         : style.toGoogleTemplateStyle(widget.template);
-    if (customMedium) {
+    if (customTemplate) {
       try {
         await _templates.invokeMethod<void>('ensureRegistered');
       } catch (_) {
@@ -209,8 +238,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     final nativeAd = NativeAd(
       adUnitId: unitId,
       nativeTemplateStyle: templateStyle,
-      factoryId: customMedium ? 'flutter_admob_kit/medium' : null,
-      customOptions: customMedium ? style.toNativeOptions() : null,
+      factoryId: customTemplate
+          ? widget.template == NativeTemplate.mediumNative
+                ? 'flutter_admob_kit/medium_native'
+                : 'flutter_admob_kit/big_native'
+          : null,
+      customOptions: customTemplate ? style.toNativeOptions() : null,
       request: const AdRequest(),
       listener: NativeAdListener(
         onAdImpression: (_) {

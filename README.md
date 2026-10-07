@@ -168,7 +168,8 @@ const BannerAdWidget.inlineAdaptiveLarge(); // Full width, maximum height 250dp.
 const BannerAdWidget.inlineAdaptiveLarge(maxHeight: 300); // Custom height cap.
 const BannerAdWidget(size: AdSize.largeBanner); // Custom supported fixed size.
 const NativeAdWidget.small(); // Minimum height 90.
-const NativeAdWidget.medium(); // Default height 280 Android / minimum 320 iOS.
+const NativeAdWidget.mediumNative(); // Horizontal card; minimum height 128.
+const NativeAdWidget.bigNative(); // Large splash card; 280 Android / 320 iOS.
 ```
 
 ### Preload an upcoming banner on splash
@@ -194,12 +195,12 @@ Unused loaded ads expire after two minutes without automatic replenishment. Pend
 
 Preloading cannot guarantee 80% match/show rate or CTR. Loading an ad that the user never reaches can lower show rate, so preload only the next confirmed placement. SDK impression/click callbacks remain the source of events; no impressions or clicks are simulated. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
 
-Native templates default to a white background. The Android medium card uses a square-corner media area (minimum 120dp), a 52dp icon with headline/body and Ad attribution, an SDK AdChoices view, and a full-width 50dp CTA with 10dp corners. Headlines use 16sp and up to three lines; descriptions use 13sp and at most two lines, with ellipsis rather than shrinking text. Long headlines (including roughly 24 words) may still be truncated depending on width and text scaling. Android medium defaults to 280 logical pixels (also its minimum). Custom taller heights expand the media area; text uses up to three headline lines and two body lines when space permits, reducing to one line each in compact cards while retaining the 16sp headline size. Height-only rebuilds resize the existing ad without requesting another ad. Rating stars/numeric score and store name appear only when provided by the native SDK; the wrapper does not fetch Play Store data or invent ratings. Missing optional ad assets are hidden; app icons, advertiser names and CTA labels come from the actual ad. Dark headline/body defaults keep the white card readable. Small templates and iOS continue using Google's official layouts with a white default background.
+Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on Android and a 320 minimum on iOS. `mediumNative` is the horizontal 128dp card: 120dp media on the left and headline, advertiser, two-line body, AdChoices and CTA on the right. Missing optional assets collapse cleanly. On iOS, `bigNative` uses Google's official medium template and `mediumNative` uses the official compact template.
 
 Developers can override the same style properties:
 
 ```dart
-const NativeAdWidget.medium(
+const NativeAdWidget.mediumNative(
   style: NativeAdStyle(
     backgroundColor: Color(0xFF101827),
     primaryTextColor: Colors.white,
@@ -209,9 +210,11 @@ const NativeAdWidget.medium(
     cornerRadius: 12,
   ),
 );
+
+const NativeAdWidget.bigNative(style: NativeAdStyle(/* same options */));
 ```
 
-The bundled Android factory registers once per Flutter engine before a medium native request. No `MainActivity` changes or manual factory registration are required. After switching from the published Dart-only package to this repository version, fully rebuild the app to register the added Android plugin. Native SDK asset registration retains click/impression tracking and AdChoices.
+Both bundled Android factories register once per Flutter engine before a custom native request. No `MainActivity` changes or manual registration are required. Native SDK asset registration retains click/impression tracking and AdChoices. The former `NativeAdWidget.medium()` constructor remains as a deprecated compatibility alias for `bigNative()`.
 
 Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. `large` and `mediumRectangle` enable this by default; set `fitToWidth: false` to retain their native 320×100 and 300×250 sizes respectively. Inline/anchored adaptive constructors fill the available width using SDK sizing, without scaling by default. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Custom heights are clamped to the template minimum. See [Google's template sizing](https://developers.google.com/admob/flutter/native/templates).
 

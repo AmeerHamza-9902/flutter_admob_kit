@@ -141,7 +141,7 @@ void main() {
         );
 
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: NativeAdWidget.medium())),
+          const MaterialApp(home: Scaffold(body: NativeAdWidget.bigNative())),
         );
         await tester.pump();
 
@@ -199,7 +199,7 @@ void main() {
         );
 
         await tester.pumpWidget(
-          const MaterialApp(home: Scaffold(body: NativeAdWidget.medium())),
+          const MaterialApp(home: Scaffold(body: NativeAdWidget.bigNative())),
         );
         await tester.pump();
 

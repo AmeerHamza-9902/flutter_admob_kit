@@ -192,7 +192,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                const NativeAdWidget.medium(),
+                const NativeAdWidget.bigNative(),
               ],
             ),
           ),
