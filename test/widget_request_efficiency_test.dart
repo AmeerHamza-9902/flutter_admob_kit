@@ -62,7 +62,12 @@ void main() {
   );
   List<MethodCall> loads(String kind) =>
       calls.where((c) => c.method == 'load${kind}Ad').toList();
-  Future<void> event(int id, String name, {LoadAdError? error}) async {
+  Future<void> event(
+    int id,
+    String name, {
+    LoadAdError? error,
+    Map<String, Object>? details,
+  }) async {
     final done = Completer<void>();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .handlePlatformMessage(
@@ -72,12 +77,63 @@ void main() {
               'adId': id,
               'eventName': name,
               'loadAdError': ?error,
+              ...?details,
             }),
           ),
           (_) => done.complete(),
         );
     await done.future;
   }
+
+  testWidgets('forwards banner and native SDK paid events with exact units', (
+    tester,
+  ) async {
+    await initialize();
+    final paid = <AdEvent>[];
+    AdMobKit.addEventListener((value) {
+      if (value.type == AdEventType.paid) paid.add(value);
+    });
+    await tester.pumpWidget(
+      const MaterialApp(home: BannerAdWidget(showShimmer: false)),
+    );
+    await tester.pump();
+    final bannerId = loads('Banner').single.arguments['adId'] as int;
+    await event(
+      bannerId,
+      'onPaidEvent',
+      details: {'valueMicros': 2500, 'precision': 1, 'currencyCode': 'USD'},
+    );
+    await tester.pumpWidget(
+      const MaterialApp(home: NativeAdWidget.bigNative(showShimmer: false)),
+    );
+    await tester.pump();
+    final nativeId = loads('Native').single.arguments['adId'] as int;
+    await event(
+      nativeId,
+      'onPaidEvent',
+      details: {'valueMicros': 3200, 'precision': 3, 'currencyCode': 'EUR'},
+    );
+    expect(paid, hasLength(2));
+    expect(
+      (
+        paid[0].format,
+        paid[0].adUnitId,
+        paid[0].valueMicros,
+        paid[0].precision,
+      ),
+      (AdFormat.banner, 'banner-1', 2500.0, 'estimated'),
+    );
+    expect(
+      (
+        paid[1].format,
+        paid[1].adUnitId,
+        paid[1].currencyCode,
+        paid[1].precision,
+      ),
+      (AdFormat.native, 'native-1', 'EUR', 'precise'),
+    );
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('Android bigNative uses bundled factory and developer style', (
     tester,

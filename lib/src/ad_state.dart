@@ -37,6 +37,9 @@ enum AdEventType {
   dismissed,
   clicked,
   impression,
+
+  /// SDK-reported estimated revenue for an ad, when available.
+  paid,
   rewardEarned,
 }
 
@@ -51,6 +54,9 @@ class AdEvent {
     this.rewardAmount,
     this.rewardType,
     this.reason,
+    this.valueMicros,
+    this.currencyCode,
+    this.precision,
   });
 
   final AdFormat format;
@@ -63,6 +69,12 @@ class AdEvent {
 
   /// Optional local diagnostic reason; never represents an SDK impression.
   final String? reason;
+
+  /// SDK-reported revenue in micros (1,000,000 micros = one currency unit).
+  /// Only populated for [AdEventType.paid].
+  final double? valueMicros;
+  final String? currencyCode;
+  final String? precision;
 
   @override
   String toString() =>

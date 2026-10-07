@@ -348,6 +348,21 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
       customOptions: customTemplate ? style.toNativeOptions() : null,
       request: const AdRequest(),
       listener: NativeAdListener(
+        onPaidEvent: (_, valueMicros, precision, currencyCode) {
+          if (mounted && gen == _loadGeneration) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.native,
+                type: AdEventType.paid,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+                valueMicros: valueMicros,
+                currencyCode: currencyCode,
+                precision: precision.name,
+              ),
+            );
+          }
+        },
         onAdImpression: (_) {
           if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
             AdMobKit.reportEvent(

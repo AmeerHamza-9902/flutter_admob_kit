@@ -370,6 +370,21 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       size: targetSize,
       request: const AdRequest(),
       listener: BannerAdListener(
+        onPaidEvent: (_, valueMicros, precision, currencyCode) {
+          if (mounted && gen == _loadGeneration) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.banner,
+                type: AdEventType.paid,
+                timestamp: DateTime.now(),
+                adUnitId: unitId,
+                valueMicros: valueMicros,
+                currencyCode: currencyCode,
+                precision: precision.name,
+              ),
+            );
+          }
+        },
         onAdImpression: (_) {
           if (mounted && gen == _loadGeneration && AdMobKit.canRequestAds) {
             AdMobKit.reportEvent(

@@ -99,6 +99,21 @@ class BannerPreloadController {
       size: size,
       request: const AdRequest(),
       listener: BannerAdListener(
+        onPaidEvent: (_, valueMicros, precision, currencyCode) {
+          if (entry.valid && entry.testMode == AdMobKit.config.testMode) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.banner,
+                type: AdEventType.paid,
+                timestamp: DateTime.now(),
+                adUnitId: unit,
+                valueMicros: valueMicros,
+                currencyCode: currencyCode,
+                precision: precision.name,
+              ),
+            );
+          }
+        },
         onAdLoaded: (ad) async {
           if (entry.loadCallbackActive) {
             if (!identical(ad, entry.ad)) ad.dispose();

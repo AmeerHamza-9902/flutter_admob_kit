@@ -47,6 +47,8 @@ class TestAppOpen extends AppOpenManager {
 class TestInterstitialAd extends Fake implements InterstitialAd {
   @override
   FullScreenContentCallback<InterstitialAd>? fullScreenContentCallback;
+  @override
+  OnPaidEventCallback? onPaidEvent;
   int disposals = 0;
   @override
   Future<void> dispose() async {
@@ -70,6 +72,8 @@ class TestFailingInterstitialAd extends TestInterstitialAd {
 class TestRewardedAd extends Fake implements RewardedAd {
   @override
   FullScreenContentCallback<RewardedAd>? fullScreenContentCallback;
+  @override
+  OnPaidEventCallback? onPaidEvent;
   OnUserEarnedRewardCallback? reward;
   int disposals = 0;
   @override
@@ -88,6 +92,8 @@ class TestRewardedAd extends Fake implements RewardedAd {
 class TestAppOpenAd extends Fake implements AppOpenAd {
   @override
   FullScreenContentCallback<AppOpenAd>? fullScreenContentCallback;
+  @override
+  OnPaidEventCallback? onPaidEvent;
   int disposals = 0;
   @override
   Future<void> dispose() async {
@@ -133,6 +139,35 @@ void main() {
     };
     group(format, () {
       setUp(AdOrchestrator.instance.reset);
+      test('forwards SDK paid value only while its ad is owned', () async {
+        final dynamic manager = make();
+        final events = <AdEvent>[];
+        manager.onEvent = (AdEvent event) => events.add(event);
+        final Future<bool> loading = manager.preload();
+        final dynamic loadedAd = ad();
+        manager.callbacks.single.onAdLoaded(loadedAd);
+        expect(await loading, true);
+        loadedAd.onPaidEvent!(
+          loadedAd,
+          1234567.0,
+          PrecisionType.estimated,
+          'USD',
+        );
+        final paid = events.singleWhere(
+          (event) => event.type == AdEventType.paid,
+        );
+        expect(paid.adUnitId, 'unit');
+        expect(paid.valueMicros, 1234567.0);
+        expect(paid.currencyCode, 'USD');
+        expect(paid.precision, 'estimated');
+        manager.invalidate(force: true);
+        loadedAd.onPaidEvent!(loadedAd, 2.0, PrecisionType.precise, 'USD');
+        expect(
+          events.where((event) => event.type == AdEventType.paid),
+          hasLength(1),
+        );
+        manager.dispose();
+      });
       testWidgets('readiness timeout keeps one request and retains late ad', (
         tester,
       ) async {

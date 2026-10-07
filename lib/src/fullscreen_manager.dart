@@ -173,6 +173,16 @@ abstract class FullscreenManager<T extends AdWithoutView>
         return;
       }
       _ad = ad;
+      ad.onPaidEvent = (_, valueMicros, precision, currencyCode) {
+        if (_state == AdState.disposed || !identical(_ad, ad)) return;
+        emit(
+          AdEventType.paid,
+          adUnitId: id,
+          valueMicros: valueMicros,
+          currencyCode: currencyCode,
+          precision: precision.name,
+        );
+      };
       _loadedId = id;
       _loadedAt = DateTime.now();
       _state = AdState.ready;
@@ -454,6 +464,9 @@ abstract class FullscreenManager<T extends AdWithoutView>
     num? rewardAmount,
     String? rewardType,
     String? reason,
+    double? valueMicros,
+    String? currencyCode,
+    String? precision,
   }) {
     if (_state == AdState.disposed) return;
     try {
@@ -467,6 +480,9 @@ abstract class FullscreenManager<T extends AdWithoutView>
           rewardAmount: rewardAmount,
           rewardType: rewardType,
           reason: reason,
+          valueMicros: valueMicros,
+          currencyCode: currencyCode,
+          precision: precision,
         ),
       );
     } catch (error) {

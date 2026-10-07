@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Forward Google Mobile Ads paid-value callbacks for fullscreen, banner and
+  native ads (including library-managed preloads) through the local `AdEvent`
+  stream with micros, currency and precision. The callback is account-dependent
+  and does not alter ad requests or presentation. Exhaustive `AdEventType`
+  switches must handle the new `paid` value.
+
 - Preserve premium entitlement across routine `updateConfig` calls; only an
   explicit `setEntitled(false)` re-enables ad eligibility.
 

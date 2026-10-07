@@ -131,6 +131,21 @@ class NativePreloadController {
       customOptions: customTemplate ? style.toNativeOptions() : null,
       request: const AdRequest(),
       listener: NativeAdListener(
+        onPaidEvent: (_, valueMicros, precision, currencyCode) {
+          if (entry.valid) {
+            AdMobKit.reportEvent(
+              AdEvent(
+                format: AdFormat.native,
+                type: AdEventType.paid,
+                timestamp: DateTime.now(),
+                adUnitId: unit,
+                valueMicros: valueMicros,
+                currencyCode: currencyCode,
+                precision: precision.name,
+              ),
+            );
+          }
+        },
         onAdLoaded: (ad) {
           if (entry.loaded) {
             if (!identical(ad, entry.ad)) ad.dispose();
