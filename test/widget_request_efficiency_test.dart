@@ -135,6 +135,30 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('mediumNative shimmer fits each configured height', (
+    tester,
+  ) async {
+    await initialize();
+    for (final height in [72.0, 130.0, 220.0]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Center(child: NativeAdWidget.mediumNative(height: height)),
+        ),
+      );
+      await tester.pump();
+      final shimmer = find.byType(AdShimmerPlaceholder);
+      expect(shimmer, findsOneWidget);
+      expect(
+        tester.widget<AdShimmerPlaceholder>(shimmer).variant,
+        AdShimmerVariant.nativeHorizontal,
+      );
+      expect(tester.getSize(shimmer).height, height);
+      expect(tester.takeException(), isNull);
+    }
+    expect(loads('Native'), hasLength(1));
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('mediumNative consumes a destination preload without reloading', (
     tester,
   ) async {

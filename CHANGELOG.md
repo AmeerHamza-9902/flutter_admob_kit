@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Match the `mediumNative` loading shimmer and Android layout to any positive
+  developer-specified height; use a compact horizontal skeleton without overflow.
+
 - Add `NativePreloadController` so high-probability destination screens can
   receive an already-loaded native view without issuing a second request.
 

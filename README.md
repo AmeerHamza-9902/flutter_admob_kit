@@ -214,6 +214,11 @@ const NativeAdWidget.mediumNative(
 const NativeAdWidget.bigNative(style: NativeAdStyle(/* same options */));
 ```
 
+`mediumNative(height: 130)` reserves exactly 130 logical pixels for both the
+native card and its horizontal loading skeleton. Any positive finite height
+can be supplied; the Android card reduces optional copy at compact sizes so
+its headline and CTA have room. Keep ad assets readable at the chosen size.
+
 To show an upcoming native placement immediately, create one controller per
 destination, preload while the user is on the preceding screen, and pass that
 same controller to the destination widget:
@@ -230,7 +235,7 @@ be handed to one widget only; use a separate controller for each placement.
 
 Both bundled Android factories register once per Flutter engine before a custom native request. No `MainActivity` changes or manual registration are required. Native SDK asset registration retains click/impression tracking and AdChoices. The former `NativeAdWidget.medium()` constructor remains as a deprecated compatibility alias for `bigNative()`.
 
-Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. `large` and `mediumRectangle` enable this by default; set `fitToWidth: false` to retain their native 320×100 and 300×250 sizes respectively. Inline/anchored adaptive constructors fill the available width using SDK sizing, without scaling by default. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Custom heights are clamped to the template minimum. See [Google's template sizing](https://developers.google.com/admob/flutter/native/templates).
+Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. `large` and `mediumRectangle` enable this by default; set `fitToWidth: false` to retain their native 320×100 and 300×250 sizes respectively. Inline/anchored adaptive constructors fill the available width using SDK sizing, without scaling by default. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Big and small template heights retain their minimums; `mediumNative` uses the supplied positive height. See [Google's template sizing](https://developers.google.com/admob/flutter/native/templates).
 
 Each mounted placement owns its native resource, including while loading. Separate visible placements legitimately request separate ads; an `AdWidget` cannot share one native view across placements. Widget retries are bounded to three and cancelled on unmount or invalidation. Successful banners may refresh according to AdMob's SDK/server settings; the wrapper does not add a success refresh loop. Keep stable widget keys to preserve placement resources.
 

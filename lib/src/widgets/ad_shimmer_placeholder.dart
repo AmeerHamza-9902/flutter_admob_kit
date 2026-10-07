@@ -11,6 +11,9 @@ enum AdShimmerVariant {
   /// Small native card with icon, title, and button (~90dp).
   nativeSmall,
 
+  /// Horizontal native card with square media and a compact CTA (~128dp).
+  nativeHorizontal,
+
   /// Medium native ad card with media view, icon, text, and button (~320dp).
   nativeMedium,
 }
@@ -102,6 +105,8 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             return _buildMediumRectanglePlaceholder(gradient);
           case AdShimmerVariant.nativeSmall:
             return _buildNativeSmallPlaceholder(gradient, base);
+          case AdShimmerVariant.nativeHorizontal:
+            return _buildNativeHorizontalPlaceholder(gradient, base);
           case AdShimmerVariant.nativeMedium:
             return _buildNativeMediumPlaceholder(gradient, base);
         }
@@ -202,6 +207,80 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNativeHorizontalPlaceholder(Gradient gradient, Color bg) {
+    final height = widget.height ?? 128.0;
+    return Container(
+      width: widget.width ?? double.infinity,
+      height: height,
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: bg.withValues(alpha: 0.3),
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+        border: Border.all(color: bg.withValues(alpha: 0.5)),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final mediaSize = constraints.maxHeight
+              .clamp(0.0, 120.0)
+              .clamp(0.0, constraints.maxWidth * 0.4);
+          final titleHeight = (constraints.maxHeight * 0.3).clamp(0.0, 18.0);
+          final gap = (constraints.maxHeight * 0.05).clamp(0.0, 5.0);
+          final ctaHeight = (constraints.maxHeight * 0.45).clamp(0.0, 36.0);
+          return Row(
+            children: [
+              Container(
+                width: mediaSize,
+                height: mediaSize,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      height: titleHeight,
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    SizedBox(height: gap),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: 0.8,
+                          child: Container(
+                            height: 12,
+                            decoration: BoxDecoration(
+                              gradient: gradient,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      height: ctaHeight,
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

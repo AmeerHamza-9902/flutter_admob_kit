@@ -7,6 +7,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import com.google.android.gms.ads.nativead.AdChoicesView;
 import com.google.android.gms.ads.nativead.MediaView;
@@ -77,6 +78,31 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         cta.setTextColor(color(options, "callToActionTextColor", Color.WHITE));
         view.setCallToActionView(cta);
 
+        // Keep the mandatory headline and CTA readable when Flutter supplies
+        // a shorter card. Optional copy yields space before assets overlap.
+        card.addOnLayoutChangeListener((v, left, top, right, bottom,
+                oldLeft, oldTop, oldRight, oldBottom) -> {
+            int cardHeight = bottom - top;
+            RelativeLayout.LayoutParams mediaParams =
+                (RelativeLayout.LayoutParams) mediaContainer.getLayoutParams();
+            int targetMediaWidth = Math.min(dp(120), cardHeight);
+            if (mediaParams.width != targetMediaWidth) {
+                mediaParams.width = targetMediaWidth;
+                mediaContainer.setLayoutParams(mediaParams);
+            }
+            body.setVisibility(cardHeight < dp(110) || ad.getBody() == null
+                || ad.getBody().isEmpty() ? View.GONE : View.VISIBLE);
+            advertiser.setVisibility(cardHeight < dp(82) || ad.getAdvertiser() == null
+                || ad.getAdvertiser().isEmpty() ? View.GONE : View.VISIBLE);
+            RelativeLayout.LayoutParams ctaParams =
+                (RelativeLayout.LayoutParams) cta.getLayoutParams();
+            int targetCtaHeight = Math.min(dp(37), Math.max(dp(18), cardHeight - dp(27)));
+            if (ctaParams.height != targetCtaHeight) {
+                ctaParams.height = targetCtaHeight;
+                cta.setLayoutParams(ctaParams);
+            }
+        });
+
         view.setAdChoicesView((AdChoicesView) view.findViewById(R.id.ad_choices_view));
         view.setNativeAd(ad);
         return view;
@@ -86,6 +112,10 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         view.setText(text);
         view.setTextColor(color);
         view.setVisibility(text == null || text.isEmpty() ? View.GONE : View.VISIBLE);
+    }
+
+    private int dp(int value) {
+        return Math.round(value * context.getResources().getDisplayMetrics().density);
     }
 
     private static Number number(Map<String, Object> options, String key, Number fallback) {

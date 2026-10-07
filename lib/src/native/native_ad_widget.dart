@@ -108,8 +108,8 @@ class NativeAdWidget extends StatefulWidget {
   /// Optional ready/pending native ad prepared for this exact placement.
   final NativePreloadController? preloadController;
 
-  /// Container height. Minimum 280 for Android bigNative, 320 for iOS
-  /// bigNative, 128 for mediumNative, and 90 for small templates.
+  /// Container height. mediumNative uses any positive finite height (128 by
+  /// default). The other templates keep their platform minimum heights.
   final double? height;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -154,6 +154,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   }
 
   double get _targetHeight {
+    if (widget.template == NativeTemplate.mediumNative) {
+      final requested = widget.height;
+      return requested != null && requested.isFinite && requested > 0
+          ? requested
+          : 128.0;
+    }
     final minimum = switch (widget.template) {
       NativeTemplate.small => 90.0,
       NativeTemplate.mediumNative => 128.0,
@@ -421,6 +427,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (widget.showShimmer) {
       final AdShimmerVariant variant = widget.template == NativeTemplate.small
           ? AdShimmerVariant.nativeSmall
+          : widget.template == NativeTemplate.mediumNative
+          ? AdShimmerVariant.nativeHorizontal
           : AdShimmerVariant.nativeMedium;
 
       return AdShimmerPlaceholder(
