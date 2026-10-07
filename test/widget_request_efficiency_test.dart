@@ -135,6 +135,35 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('mediumNative consumes a destination preload without reloading', (
+    tester,
+  ) async {
+    await initialize();
+    final controller = NativePreloadController();
+    final ready = controller.preloadMediumNative();
+    await tester.pump();
+    final load = loads('Native').single;
+    await event(load.arguments['adId'] as int, 'onAdLoaded');
+    expect(await ready, isTrue);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Center(
+          child: NativeAdWidget.mediumNative(
+            preloadController: controller,
+            showShimmer: false,
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(loads('Native'), hasLength(1));
+    expect(find.byType(AdWidget), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+  });
+
   testWidgets(
     'bigNative height defaults to 280 and resizes without another request',
     (tester) async {

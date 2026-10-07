@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Add `NativePreloadController` so high-probability destination screens can
+  receive an already-loaded native view without issuing a second request.
+
 - Rename the large splash native template to `bigNative`, add the horizontal
   120dp `mediumNative` template, and support the same background, text, CTA,
   and corner styling on both bundled Android layouts. Keep `medium()` as a

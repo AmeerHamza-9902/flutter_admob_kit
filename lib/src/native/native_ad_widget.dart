@@ -8,6 +8,7 @@ import '../inline_ad_retry.dart';
 import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
 import 'native_templates.dart';
+import 'native_preload_controller.dart';
 
 /// Drop-in, zero-boilerplate Native Ad widget with built-in templates.
 ///
@@ -25,6 +26,7 @@ class NativeAdWidget extends StatefulWidget {
     this.adUnitId,
     this.template = NativeTemplate.bigNative,
     this.style,
+    this.preloadController,
     this.height,
     this.showShimmer = true,
     this.placeholder,
@@ -40,6 +42,7 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
+    this.preloadController,
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
@@ -53,6 +56,7 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
+    this.preloadController,
     this.height = 128.0,
     this.showShimmer = true,
     this.placeholder,
@@ -67,6 +71,7 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
+    this.preloadController,
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
@@ -82,6 +87,7 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
+    this.preloadController,
     this.height = 90.0,
     this.showShimmer = true,
     this.placeholder,
@@ -98,6 +104,9 @@ class NativeAdWidget extends StatefulWidget {
 
   /// Custom visual styling (background, text color, CTA color, corner radius).
   final NativeAdStyle? style;
+
+  /// Optional ready/pending native ad prepared for this exact placement.
+  final NativePreloadController? preloadController;
 
   /// Container height. Minimum 280 for Android bigNative, 320 for iOS
   /// bigNative, 128 for mediumNative, and 90 for small templates.
@@ -131,6 +140,18 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   int _loadGeneration = 0;
   String? _activeAdUnitId;
   bool? _activeTestMode;
+  NativePreloadController? _claimController;
+  Object? _claimToken;
+  void Function()? _releasePreload;
+
+  void _cancelClaim() {
+    _releasePreload?.call();
+    _releasePreload = null;
+    final token = _claimToken;
+    if (token != null) _claimController?.cancelClaim(token);
+    _claimController = null;
+    _claimToken = null;
+  }
 
   double get _targetHeight {
     final minimum = switch (widget.template) {
@@ -156,7 +177,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.template != widget.template ||
-        oldWidget.style != widget.style) {
+        oldWidget.style != widget.style ||
+        oldWidget.preloadController != widget.preloadController) {
       _load();
     }
   }
@@ -214,6 +236,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     }
 
     _ad?.dispose();
+    _cancelClaim();
     _ad = null;
     _isLoaded = false;
     _hasFailed = false;
@@ -222,6 +245,36 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (mounted) setState(() {});
 
     final style = widget.style ?? const NativeAdStyle();
+    final controller = widget.preloadController;
+    if (controller != null) {
+      final token = Object();
+      _claimController = controller;
+      _claimToken = token;
+      final claimed = await controller.take(
+        template: widget.template,
+        style: style,
+        unit: unitId,
+        owner: token,
+      );
+      if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
+        claimed?.ad.dispose();
+        controller.cancelClaim(token);
+        return;
+      }
+      if (claimed != null) {
+        _releasePreload = claimed.release;
+        setState(() {
+          _ad = claimed.ad;
+          _isLoaded = true;
+          _hasFailed = false;
+        });
+        resetRetry();
+        widget.onAdLoaded?.call();
+        return;
+      }
+      _claimController = null;
+      _claimToken = null;
+    }
     final customTemplate =
         !kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android &&
@@ -335,6 +388,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   void dispose() {
     AdMobKit.configNotifier.removeListener(_onConfigChanged);
     _loadGeneration++;
+    _cancelClaim();
     _ad?.dispose();
     _ad = null;
     super.dispose();

@@ -13,6 +13,7 @@ export 'src/consent_manager.dart';
 export 'src/interstitial/interstitial_manager.dart';
 export 'src/lifecycle_manager.dart';
 export 'src/native/native_ad_widget.dart';
+export 'src/native/native_preload_controller.dart';
 export 'src/native/native_templates.dart';
 export 'src/retry_policy.dart';
 export 'src/rewarded/rewarded_manager.dart';

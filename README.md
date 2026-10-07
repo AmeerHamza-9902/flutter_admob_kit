@@ -214,6 +214,20 @@ const NativeAdWidget.mediumNative(
 const NativeAdWidget.bigNative(style: NativeAdStyle(/* same options */));
 ```
 
+To show an upcoming native placement immediately, create one controller per
+destination, preload while the user is on the preceding screen, and pass that
+same controller to the destination widget:
+
+```dart
+final settingsNative = NativePreloadController();
+unawaited(settingsNative.preloadMediumNative());
+
+NativeAdWidget.mediumNative(preloadController: settingsNative);
+```
+
+Repeated matching preload calls share one request. Each loaded native view can
+be handed to one widget only; use a separate controller for each placement.
+
 Both bundled Android factories register once per Flutter engine before a custom native request. No `MainActivity` changes or manual registration are required. Native SDK asset registration retains click/impression tracking and AdChoices. The former `NativeAdWidget.medium()` constructor remains as a deprecated compatibility alias for `bigNative()`.
 
 Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. `large` and `mediumRectangle` enable this by default; set `fitToWidth: false` to retain their native 320×100 and 300×250 sizes respectively. Inline/anchored adaptive constructors fill the available width using SDK sizing, without scaling by default. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Custom heights are clamped to the template minimum. See [Google's template sizing](https://developers.google.com/admob/flutter/native/templates).
