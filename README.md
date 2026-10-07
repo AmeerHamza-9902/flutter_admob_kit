@@ -255,7 +255,7 @@ The guard reuses `AdMobKit.interstitial`; it never creates a second manager. Con
 
 ## Events and practical limits
 
-Use `AdMobKit.addEventListener(listener)` and `removeEventListener(listener)` for optional local lifecycle observation. Banner/native impression and click events are forwarded from native callbacks. No event data is transmitted externally by this package. Paid/revenue callbacks are not currently exposed; no revenue is inferred from load/show calls.
+Use `AdMobKit.addEventListener(listener)` and `removeEventListener(listener)` for optional local lifecycle observation. Banner/native impression, click, and paid-value events are forwarded from SDK callbacks. No event data is transmitted externally by this package, and no revenue is inferred from load/show calls.
 
 The wrapper can reduce duplicate requests and lifecycle losses. It cannot guarantee fill, match rate, show rate, CTR, revenue, or always-ready ads. Demand, geography, account status, inventory, mediation, network conditions, and user behavior remain external factors. Never treat more requests or accidental taps as a monetization strategy.
 
@@ -274,7 +274,7 @@ flutter run
 
 The example includes native test app IDs; production apps must supply their own app and ad unit IDs. See [example setup](example/README.md).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 115 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered; an iOS test banner rendered. Android returned a no-fill response during the smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 179 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 
