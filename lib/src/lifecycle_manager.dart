@@ -62,7 +62,8 @@ class LifecycleManager with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.hidden) {
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.inactive) {
       final orchestrator = AdOrchestrator.instance;
       final interrupted =
           orchestrator.isAnyFullscreenShowing ||

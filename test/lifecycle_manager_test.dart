@@ -62,7 +62,7 @@ void main() {
       appOpen.dispose();
     });
 
-    test('notification shade inactive-resumed cycle does not show App Open', () {
+    test('sub-second inactive-resumed cycle shows App Open', () {
       final appOpen = _FakeAppOpenManager();
       final lifecycle = LifecycleManager(
         appOpenManager: appOpen,
@@ -73,7 +73,7 @@ void main() {
       expect(appOpen.showCallCount, 0);
 
       lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      expect(appOpen.showCallCount, 0);
+      expect(appOpen.showCallCount, 1);
 
       lifecycle.dispose();
       appOpen.dispose();
