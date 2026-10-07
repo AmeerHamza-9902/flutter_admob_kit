@@ -34,7 +34,7 @@ class LifecycleManager with WidgetsBindingObserver {
 
   bool _wasInBackground = false;
   bool _backgroundCycleStarted = false;
-  bool _quickInactiveCandidate = false;
+  bool _backgroundCycleSuppressed = false;
   bool _presentationSyncScheduled = false;
   int _lastPresentation;
 
@@ -61,12 +61,7 @@ class LifecycleManager with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.inactive && !_backgroundCycleStarted) {
-      final orchestrator = AdOrchestrator.instance;
-      _quickInactiveCandidate =
-          !orchestrator.isAnyFullscreenShowing &&
-          orchestrator.presentationGeneration == _lastPresentation;
-    } else if (state == AppLifecycleState.paused ||
+    if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       final orchestrator = AdOrchestrator.instance;
       final interrupted =
@@ -75,6 +70,7 @@ class LifecycleManager with WidgetsBindingObserver {
       if (!_backgroundCycleStarted) {
         _backgroundCycleStarted = true;
         _wasInBackground = !interrupted;
+        _backgroundCycleSuppressed = appOpenManager.isResumeSuppressed;
       } else if (interrupted) {
         _wasInBackground = false;
       }
@@ -83,7 +79,7 @@ class LifecycleManager with WidgetsBindingObserver {
       _presentForCurrentBackgroundCycle();
       _wasInBackground = false;
       _backgroundCycleStarted = false;
-      _quickInactiveCandidate = false;
+      _backgroundCycleSuppressed = false;
       _lastPresentation = AdOrchestrator.instance.presentationGeneration;
     }
   }
@@ -91,7 +87,8 @@ class LifecycleManager with WidgetsBindingObserver {
   bool _presentForCurrentBackgroundCycle() {
     final orchestrator = AdOrchestrator.instance;
     final genuineResume =
-        (_wasInBackground || _quickInactiveCandidate) &&
+        _wasInBackground &&
+        !_backgroundCycleSuppressed &&
         orchestrator.presentationGeneration == _lastPresentation;
     if (!genuineResume || !isEnabled) return false;
 

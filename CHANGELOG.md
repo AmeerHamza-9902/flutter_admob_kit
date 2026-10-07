@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Ignore notification-shade-only `inactive → resumed` transitions and add a
+  scoped resume suppression API for camera, gallery, picker, and permission UI.
+
 - Recognize very quick Android Recent Apps `inactive → resumed` transitions even
   when the OS omits `hidden` and `paused`, then present at the first safe
   `resumed` callback.

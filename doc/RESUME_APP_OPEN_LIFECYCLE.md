@@ -9,11 +9,15 @@
 ## Lifecycle behavior
 
 1. The host primes one App Open ad while the app is in the foreground.
-2. `hidden` or `paused` starts a background cycle. A quick `inactive → resumed` Recent Apps cycle is also eligible when Android omits both events.
+2. `hidden` or `paused` starts a background cycle. An `inactive → resumed` only
+   cycle, such as opening the notification shade, is not eligible.
 3. The first safe returning `resumed` callback presents the primed ad. There is no minimum background duration.
 4. A lifecycle cycle created by an interstitial, rewarded, or App Open presentation is suppressed so fullscreen ads cannot chain.
 5. A fullscreen presentation completed earlier while the app stayed foreground is recorded as history and does not suppress a later real background return.
 6. If no ad is ready, the user continues without blocking and the manager starts the next preload in the foreground.
+7. Camera, gallery, file picker, and permission requests can run through
+   `AdMobKit.appOpen.runWithResumeSuppressed`, which suppresses that external
+   lifecycle cycle even if its future completes just before `resumed`.
 
 ## Callback behavior
 
@@ -35,4 +39,6 @@ The library already re-primes App Open after dismissal. The consuming app explic
 - [x] Paywall state suppresses resume App Open.
 - [x] Entitlement, consent, freshness, readiness, and shared fullscreen lease gates remain active.
 - [x] Android test mode uses Google's current App Open demo unit (`9257395921`).
-- [x] Quick `inactive → resumed` Recent Apps returns present without requiring `hidden` or `paused`.
+- [x] Notification shade and other `inactive`-only UI do not show App Open.
+- [x] Scoped external camera, gallery, picker, and permission flows suppress
+  their resume cycle.

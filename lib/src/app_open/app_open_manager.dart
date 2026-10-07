@@ -17,11 +17,32 @@ class AppOpenManager extends FullscreenManager<AppOpenAd> {
 
   bool _manualPaywall = false;
   int _paywallCount = 0;
+  int _resumeSuppressionCount = 0;
   bool get isInPaywall => _manualPaywall || _paywallCount > 0;
+  bool get isResumeSuppressed => _resumeSuppressionCount > 0;
   set isInPaywall(bool value) => _manualPaywall = value;
   void enterPaywall() => _paywallCount++;
   void leavePaywall() {
     if (_paywallCount > 0) _paywallCount--;
+  }
+
+  /// Prevents automatic resume App Open ads during an external system flow,
+  /// such as camera, gallery, file picker, or runtime permission UI.
+  void enterResumeSuppression() => _resumeSuppressionCount++;
+
+  /// Ends one external-flow suppression scope.
+  void leaveResumeSuppression() {
+    if (_resumeSuppressionCount > 0) _resumeSuppressionCount--;
+  }
+
+  /// Runs [action] while automatic resume App Open presentation is suppressed.
+  Future<R> runWithResumeSuppressed<R>(Future<R> Function() action) async {
+    enterResumeSuppression();
+    try {
+      return await action();
+    } finally {
+      leaveResumeSuppression();
+    }
   }
 
   @protected
