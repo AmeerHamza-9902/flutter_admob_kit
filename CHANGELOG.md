@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Preserve premium entitlement across routine `updateConfig` calls; only an
+  explicit `setEntitled(false)` re-enables ad eligibility.
+
 - Keep fullscreen cached ads tied to their requested ad unit, and defer a new
   unit's request until the previous native request settles, sharing a wait for
   the replacement and settling it on disposal. Count eligible

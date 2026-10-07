@@ -239,6 +239,26 @@ void main() {
       },
     );
 
+    test('updateConfig cannot silently remove premium entitlement', () async {
+      await AdMobKit.initialize(
+        config: const AdMobConfig(enableUmpConsent: false),
+        autoPreload: false,
+      );
+
+      AdMobKit.setEntitled(true);
+      AdMobKit.updateConfig(
+        const AdMobConfig(
+          enableUmpConsent: false,
+          android: AdPlatformConfig(interstitial: 'new-unit'),
+        ),
+      );
+      expect(AdMobKit.isEntitled, isTrue);
+      expect(AdMobKit.canRequestAds, isFalse);
+
+      AdMobKit.setEntitled(false);
+      expect(AdMobKit.isEntitled, isFalse);
+    });
+
     test('NativeAdWidget exposes small, mediumNative and bigNative', () {
       const smallWidget = NativeAdWidget.small();
       expect(smallWidget.template, NativeTemplate.small);

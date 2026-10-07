@@ -232,6 +232,11 @@ class AdMobKit {
   /// Updates code-owned configuration, preserving active presentations.
   static void updateConfig(AdMobConfig newConfig) {
     final old = _config;
+    // Entitlement changes must be explicit through setEntitled(false). A
+    // routine ad-unit/config refresh must never re-enable ads for premium users.
+    newConfig = newConfig.copyWith(
+      isEntitled: old.isEntitled || newConfig.isEntitled,
+    );
     _config = newConfig;
     _lifecycleManager?.isEnabled = newConfig.autoResumeAppOpen;
     _interstitial?.cooldown = newConfig.interstitialCooldown;

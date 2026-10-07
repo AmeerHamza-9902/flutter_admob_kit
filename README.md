@@ -261,7 +261,7 @@ AdMobKit.setEntitled(false); // Eligible automatic preloads may resume.
 AdMobKit.updateConfig(AdMobKit.config.copyWith(testMode: true));
 ```
 
-Entitlement is stored centrally. Cached resources are invalidated and inline placements collapse. Native network work already submitted cannot be recalled; late results are discarded. An already-presented fullscreen ad retains its exact lease until it closes. Changing configuration never forcibly disposes that presentation or releases its lease early.
+Entitlement is stored centrally. Cached resources are invalidated and inline placements collapse. Native network work already submitted cannot be recalled; late results are discarded. An already-presented fullscreen ad retains its exact lease until it closes. Changing configuration never forcibly disposes that presentation or releases its lease early. `updateConfig` preserves an active premium entitlement even if the supplied config has the default `isEntitled: false`; use `setEntitled(false)` explicitly after verifying the user is no longer premium.
 
 ## Paywall close guard
 
