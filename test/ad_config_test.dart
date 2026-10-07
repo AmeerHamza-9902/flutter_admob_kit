@@ -38,7 +38,7 @@ void main() {
 
       expect(config.interstitialId, 'ca-app-pub-3940256099942544/1033173712');
       expect(config.rewardedId, 'ca-app-pub-3940256099942544/5224354917');
-      expect(config.appOpenId, 'ca-app-pub-3940256099942544/9257390910');
+      expect(config.appOpenId, 'ca-app-pub-3940256099942544/9257395921');
       expect(config.bannerId, 'ca-app-pub-3940256099942544/6300978111');
       expect(config.nativeId, 'ca-app-pub-3940256099942544/2247696110');
     });

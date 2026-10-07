@@ -88,7 +88,7 @@ class AdMobConfig {
   static const String _testAndroidRewarded =
       'ca-app-pub-3940256099942544/5224354917';
   static const String _testAndroidAppOpen =
-      'ca-app-pub-3940256099942544/9257390910';
+      'ca-app-pub-3940256099942544/9257395921';
   static const String _testAndroidBanner =
       'ca-app-pub-3940256099942544/6300978111';
   static const String _testAndroidNative =

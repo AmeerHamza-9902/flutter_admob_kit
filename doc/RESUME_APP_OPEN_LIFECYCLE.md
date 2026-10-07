@@ -34,3 +34,4 @@ The library already re-primes App Open after dismissal. The consuming app explic
 - [x] A prior foreground fullscreen ad does not suppress the next genuine resume.
 - [x] Paywall state suppresses resume App Open.
 - [x] Entitlement, consent, freshness, readiness, and shared fullscreen lease gates remain active.
+- [x] Android test mode uses Google's current App Open demo unit (`9257395921`).
