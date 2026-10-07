@@ -32,4 +32,4 @@ No native ad is reloaded from its dismissal callback. Native preloading is initi
 - [x] Entitled or consent-ineligible users do not preload.
 - [x] Configuration changes invalidate unused views.
 - [x] Unmounted or reconfigured widgets release their claim.
-- [x] Fixed-size shimmer preserves the destination layout while fallback loading occurs.
+- [x] Matching-height shimmer preserves the destination layout while fallback loading occurs.

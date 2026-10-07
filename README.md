@@ -168,7 +168,7 @@ const BannerAdWidget.inlineAdaptiveLarge(); // Full width, maximum height 250dp.
 const BannerAdWidget.inlineAdaptiveLarge(maxHeight: 300); // Custom height cap.
 const BannerAdWidget(size: AdSize.largeBanner); // Custom supported fixed size.
 const NativeAdWidget.small(); // Minimum height 90.
-const NativeAdWidget.mediumNative(); // Horizontal card; minimum height 128.
+const NativeAdWidget.mediumNative(); // Horizontal card; default height 128.
 const NativeAdWidget.bigNative(); // Large splash card; 280 Android / 320 iOS.
 ```
 
@@ -195,7 +195,7 @@ Unused loaded ads expire after two minutes without automatic replenishment. Pend
 
 Preloading cannot guarantee 80% match/show rate or CTR. Loading an ad that the user never reaches can lower show rate, so preload only the next confirmed placement. SDK impression/click callbacks remain the source of events; no impressions or clicks are simulated. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
 
-Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on Android and a 320 minimum on iOS. `mediumNative` is the horizontal 128dp card: 120dp media on the left and headline, advertiser, two-line body, AdChoices and CTA on the right. Missing optional assets collapse cleanly. On iOS, `bigNative` uses Google's official medium template and `mediumNative` uses the official compact template.
+Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on Android and a 320 minimum on iOS. `mediumNative` is a horizontal card that defaults to 128dp: media on the left and headline, advertiser, body, AdChoices and CTA on the right. Its Android media and optional text adapt to the supplied height. Missing optional assets collapse cleanly. On iOS, `bigNative` uses Google's official medium template and `mediumNative` uses the official compact template.
 
 Developers can override the same style properties:
 
