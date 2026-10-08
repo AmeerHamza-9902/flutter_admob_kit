@@ -106,7 +106,7 @@ static void Add(UIView *child, UIView *parent) {
 
   UILabel *badge = [[UILabel alloc] init];
   badge.text = @"Ad";
-  badge.font = [UIFont boldSystemFontOfSize:11];
+  badge.font = [UIFont boldSystemFontOfSize:9];
   badge.textAlignment = NSTextAlignmentCenter;
   badge.textColor = UIColor.whiteColor;
   badge.backgroundColor = ColorFromOption(options, @"callToActionColor", 0xFF2563EB);
@@ -165,8 +165,8 @@ static void Add(UIView *child, UIView *parent) {
     [media.topAnchor constraintEqualToAnchor:view.topAnchor constant:4],
     [media.widthAnchor constraintEqualToConstant:120],
     [media.heightAnchor constraintEqualToConstant:120],
-    [details.leadingAnchor constraintEqualToAnchor:media.trailingAnchor constant:8],
-    [details.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-8],
+    [details.leadingAnchor constraintEqualToAnchor:media.trailingAnchor constant:5],
+    [details.trailingAnchor constraintEqualToAnchor:view.trailingAnchor],
     [details.topAnchor constraintEqualToAnchor:view.topAnchor constant:4],
     [details.bottomAnchor constraintEqualToAnchor:view.bottomAnchor constant:-4],
     [badge.leadingAnchor constraintEqualToAnchor:details.leadingAnchor],
@@ -184,7 +184,7 @@ static void Add(UIView *child, UIView *parent) {
     [body.topAnchor constraintEqualToAnchor:advertiser.bottomAnchor constant:2],
     [body.bottomAnchor constraintLessThanOrEqualToAnchor:cta.topAnchor constant:-2],
     [cta.leadingAnchor constraintEqualToAnchor:details.leadingAnchor],
-    [cta.trailingAnchor constraintEqualToAnchor:details.trailingAnchor],
+    [cta.trailingAnchor constraintEqualToAnchor:details.trailingAnchor constant:-8],
     [cta.bottomAnchor constraintEqualToAnchor:details.bottomAnchor],
     [cta.heightAnchor constraintEqualToConstant:37],
     [adChoices.topAnchor constraintEqualToAnchor:view.topAnchor constant:2],

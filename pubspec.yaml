@@ -1,6 +1,6 @@
 name: flutter_admob_kit
 description: Lightweight Google Mobile Ads wrapper for Flutter with UMP consent, automatic preloading, premium gating, banners, native templates, and fullscreen ads.
-version: 4.0.0
+version: 4.0.1
 homepage: https://github.com/AmeerHamza-9902/flutter_admob_kit
 repository: https://github.com/AmeerHamza-9902/flutter_admob_kit
 issue_tracker: https://github.com/AmeerHamza-9902/flutter_admob_kit/issues

@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name             = 'flutter_admob_kit'
-  spec.version          = '4.0.0'
+  spec.version          = '4.0.1'
   spec.summary          = 'AdMob Kit native ad layouts for Flutter.'
   spec.description      = 'Bundled media-safe iOS native layouts for AdMob Kit.'
   spec.homepage         = 'https://github.com/AmeerHamza-9902/flutter_admob_kit'

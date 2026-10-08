@@ -1,7 +1,9 @@
 # Changelog
 
-## Unreleased
+## 4.0.1 (unreleased)
 
+- Align the iOS medium native badge and text/CTA spacing with the supplied
+  120dp horizontal Android layout.
 - Keep resume App Open suppressed when an external-flow scope starts after the
   background callback and finishes before the returning resume callback.
 
