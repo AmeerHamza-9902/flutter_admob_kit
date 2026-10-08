@@ -92,7 +92,8 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : template = NativeTemplate.small;
 
-  /// Optional override for the Native Ad Unit ID. If omitted, uses [AdMobKit.config.nativeId].
+  /// Optional override for the Native Ad Unit ID. If omitted, uses the
+  /// configured native unit ID.
   final String? adUnitId;
 
   /// The pre-built template size to render.

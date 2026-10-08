@@ -21,6 +21,10 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter analyze
+      - name: Check public API docs
+        run: |
+          dart doc --output "$RUNNER_TEMP/flutter_admob_kit_docs" 2>&1 | tee "$RUNNER_TEMP/dartdoc.log"
+          ! grep -q 'warning:' "$RUNNER_TEMP/dartdoc.log"
       - run: flutter test
       - run: flutter pub publish --dry-run
       - run: flutter build apk --debug

@@ -108,7 +108,8 @@ class BannerAdWidget extends StatefulWidget {
        isAdaptive = false,
        isInlineAdaptive = true;
 
-  /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
+  /// Optional override for the Banner Ad Unit ID. If omitted, uses the
+  /// configured banner unit ID.
   final String? adUnitId;
 
   /// The banner ad size. Defaults to [AdSize.banner].
