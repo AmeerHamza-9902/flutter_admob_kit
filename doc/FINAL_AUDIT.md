@@ -44,11 +44,13 @@ not establish production fill or performance.
 | `flutter analyze` | No issues. |
 | `flutter test --concurrency=1` | 191 tests passed. |
 | `flutter build apk --debug` in `example/` | Passed. |
+| Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |
 | Swift Package Manager iOS simulator build and launch | Passed; both native test ads rendered. |
 | Fresh consumer app with a path dependency: Android APK and iOS simulator (Swift Package Manager) | Passed. |
 | Fresh consumer app: iOS CocoaPods with generated `use_frameworks!` | Failed on `google_mobile_ads` 9.1.0 at `GoogleMobileAds_Beta.h`; static linkage did not help. Passed with a host-side 9.0.0 pin and the generated `use_frameworks!` retained. The package supports both versions to avoid conflicts with existing projects. See [upstream issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472). |
 | Automated fresh-consumer smoke script | Passed locally for Android APK with 9.1.0, iOS CocoaPods with a direct 9.0.0 host pin, and iOS Swift Package Manager with 9.1.0; CI runs all three. |
+| Fresh iOS CocoaPods consumer after medium native spacing alignment | Passed with the supported 9.0.0 host pin. |
 | `flutter pub publish --dry-run` | Zero warnings; no publication performed. |
 
 Tests use fake SDK callbacks for lifecycle, request ownership, consent and
