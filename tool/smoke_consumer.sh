@@ -17,6 +17,13 @@ flutter create --platforms="$platform" --org dev.admobkit.smoke \
 cd "$app_dir"
 flutter pub add "flutter_admob_kit@{path: $repo_dir}"
 
+# google_mobile_ads 9.1.0 has an upstream non-modular iOS header regression
+# with the generated CocoaPods use_frameworks! setting. Verify the supported
+# 9.0.0 path here; Android and SPM consumers still resolve the latest version.
+if [[ "$platform" == ios && -f "$app_dir/ios/Podfile" ]]; then
+  flutter pub add google_mobile_ads:9.0.0
+fi
+
 cat > lib/main.dart <<'DART'
 import 'package:flutter/material.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';

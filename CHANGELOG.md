@@ -2,9 +2,10 @@
 
 ## Unreleased
 
-- Pin `google_mobile_ads` to 9.0.x until its 9.1.0 non-modular iOS header
-  regression is resolved. A fresh CocoaPods app with `use_frameworks!`, the
-  Android APK, and all package tests build with 9.0.0.
+- Support `google_mobile_ads` 9.0.0 and 9.1.0. A fresh CocoaPods app using
+  `use_frameworks!` builds with 9.0.0; 9.1.0 has an upstream non-modular
+  header regression in that configuration. Android and Swift Package Manager
+  consumers can continue using 9.1.0.
 
 - Use each native template's minimum height when a caller supplies a non-finite
   value; avoid an unbounded ad or shimmer layout.
