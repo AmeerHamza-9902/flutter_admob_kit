@@ -4,11 +4,11 @@
 
 | Placement | Load trigger | Show trigger | Eligibility |
 | --- | --- | --- | --- |
-| Resume App Open | App startup or a host-selected foreground preload | First foreground return after `inactive`, `hidden`, or `paused` | SDK initialized, consent allows requests, free user, remote/code flag enabled, no paywall, and no fullscreen lease |
+| Resume App Open | Library startup preload after consent and one replacement after use | First foreground return after a real `hidden` or `paused` cycle | SDK initialized, consent allows requests, free user, `autoResumeAppOpen` enabled, no paywall, and no fullscreen lease |
 
 ## Lifecycle behavior
 
-1. The host primes one App Open ad while the app is in the foreground.
+1. The library primes one App Open ad after initialization and consent when eligible.
 2. `hidden` or `paused` starts a background cycle. An `inactive → resumed` only
    cycle, such as opening the notification shade, is not eligible.
 3. The first safe returning `resumed` callback presents the primed ad. There is no minimum background duration.

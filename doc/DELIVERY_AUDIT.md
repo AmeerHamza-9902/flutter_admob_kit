@@ -40,8 +40,8 @@ if it is never mounted, is immediately removed, or does not become visible.
 Initialization preloads configured fullscreen units after consent, each manager
 coalesces repeated requests, and dismissal triggers one bounded replacement.
 Inline widgets reuse a matching library-owned cache entry and retry failures with a
-bounded policy. Legacy preload controllers remain for source compatibility but
-normal app integration does not need them. App Open suppression covers fullscreen/paywall and scoped
+bounded policy. Banner/native preload controllers are internal to the library.
+App Open suppression covers fullscreen/paywall and scoped
 external flows; a host must wrap its own camera, gallery, file picker and
 permission calls in `runWithResumeSuppressed`.
 
@@ -97,14 +97,15 @@ Automated tests use fake SDK callbacks and do not establish live inventory,
 network fill, mediation behavior or real-device impression rates. Those require
 the device procedure above and production measurement over a meaningful cohort.
 
-## Verification recorded on 2026-10-07
+## Verification recorded on 2026-10-08
 
 | Check | Result |
 | --- | --- |
-| `flutter test` | 175 automated tests passed (fake SDK callbacks and widget tests). |
-| `flutter analyze --no-pub` | No issues found. |
-| `flutter build apk --debug --no-pub` in `example/` | Android APK built. |
-| `flutter build ios --no-codesign --no-pub` in `example/` | iOS app built without signing; this does not verify installation or live ad delivery. |
+| `flutter test` | 188 automated tests passed (fake SDK callbacks and widget tests). |
+| `flutter analyze` | No issues found. |
+| `flutter build apk --debug` in `example/` | Android APK built. |
+| `flutter build ios --simulator --debug --no-codesign` in `example/` | iOS simulator app built; this does not verify production ad delivery. |
+| `flutter pub publish --dry-run` | Zero warnings; no publication performed. |
 
 No live-device ad impressions or production AdMob report were supplied, so the
 observed 30–40% result cannot yet be assigned to one metric. The device steps
