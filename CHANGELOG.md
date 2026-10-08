@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Use each native template's minimum height when a caller supplies a non-finite
+  value; avoid an unbounded ad or shimmer layout.
+
 - Move banner/native preload ownership fully inside the library. Remove the
   public preload controller exports, widget `preloadController` parameters and
   public inline cache accessors; placements now join library caches directly.

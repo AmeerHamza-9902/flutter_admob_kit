@@ -366,6 +366,12 @@ void main() {
       await show(280);
       expect(tester.getSize(find.byType(NativeAdWidget)).height, 280);
       expect(loads('Native'), hasLength(1));
+      for (final invalidHeight in [double.nan, double.infinity, -20.0]) {
+        await show(invalidHeight);
+        expect(tester.getSize(find.byType(NativeAdWidget)).height, 280);
+        expect(tester.takeException(), isNull);
+      }
+      expect(loads('Native'), hasLength(1));
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );

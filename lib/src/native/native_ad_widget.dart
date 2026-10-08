@@ -37,7 +37,7 @@ class NativeAdWidget extends StatefulWidget {
 
   /// Large native card with full-width media, details and CTA.
   ///
-  /// Height is at least `280.0` on Android and `320.0` on iOS.
+  /// Height is at least `280.0` on Android and iOS.
   const NativeAdWidget.bigNative({
     super.key,
     this.adUnitId,
@@ -104,6 +104,7 @@ class NativeAdWidget extends StatefulWidget {
   /// Container height. mediumNative defaults to 128 and keeps that minimum so
   /// its video MediaView can remain at least 120x120dp after card margins.
   /// Larger values are respected; the other templates use their own minimums.
+  /// Non-finite values fall back to the template minimum.
   final double? height;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.
@@ -148,18 +149,15 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   }
 
   double get _targetHeight {
-    if (widget.template == NativeTemplate.mediumNative) {
-      final requested = widget.height;
-      return requested != null && requested.isFinite
-          ? requested.clamp(128.0, double.infinity)
-          : 128.0;
-    }
     final minimum = switch (widget.template) {
       NativeTemplate.small => 90.0,
       NativeTemplate.mediumNative => 128.0,
       NativeTemplate.bigNative || NativeTemplate.medium => 280.0,
     };
-    return (widget.height ?? minimum).clamp(minimum, double.infinity);
+    final requested = widget.height;
+    return requested != null && requested.isFinite
+        ? requested.clamp(minimum, double.infinity)
+        : minimum;
   }
 
   @override
