@@ -40,7 +40,8 @@ else
   # google_mobile_ads 9.1.0 cannot compile its private Beta header with
   # use_frameworks!; see upstream issue #1472. The package supports a
   # CocoaPods host without that setting and an SPM host.
-  python3 - "$app_dir/ios/Podfile" <<'PY'
+  if [[ -f "$app_dir/ios/Podfile" ]]; then
+    python3 - "$app_dir/ios/Podfile" <<'PY'
 from pathlib import Path
 import sys
 
@@ -49,5 +50,6 @@ source = podfile.read_text()
 assert '  use_frameworks!\n' in source
 podfile.write_text(source.replace('  use_frameworks!\n', ''))
 PY
+  fi
   flutter build ios --simulator --debug --no-codesign
 fi
