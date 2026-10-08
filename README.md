@@ -12,7 +12,7 @@ A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Conf
 
 ## Requirements and platform setup
 
-Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.1.0 <10.0.0`. Earlier plugin versions do not provide all APIs used here. Version 4.0.0 introduces breaking changes from 3.x; review the migration notes below.
+Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.0.0 <9.1.0`. Version 4.0.0 introduces breaking changes from 3.x; review the migration notes below.
 
 ```yaml
 dependencies:
@@ -308,13 +308,10 @@ The bundled iOS native layouts support both Swift Package Manager (Flutter 3.44+
 and CocoaPods. The host app still needs the `google_mobile_ads` iOS app ID
 configuration described above.
 
-If an iOS CocoaPods build reports `GoogleMobileAds_Beta.h` as a non-modular
-header, check the app's `ios/Podfile`. With `google_mobile_ads` 9.1.0, a fresh
-Flutter app failed when its target contained `use_frameworks!`; removing that
-line made the same consumer app build successfully. Changing it to
-`use_frameworks! :linkage => :static` did not fix this error in the tested app.
-If another dependency requires frameworks, use Swift Package Manager or
-resolve that dependency's CocoaPods configuration instead. This is tracked in the
+The package pins `google_mobile_ads` to 9.0.x because 9.1.0 failed a fresh
+CocoaPods consumer build with `use_frameworks!` on the private
+`GoogleMobileAds_Beta.h` header. The same consumer built with 9.0.0, including
+with frameworks enabled. See the
 [upstream google_mobile_ads issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472).
 
 Verified with Flutter 3.44.1 and Dart 3.12.1: 190 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).

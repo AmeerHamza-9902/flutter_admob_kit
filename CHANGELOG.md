@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Pin `google_mobile_ads` to 9.0.x until its 9.1.0 non-modular iOS header
+  regression is resolved. A fresh CocoaPods app with `use_frameworks!`, the
+  Android APK, and all package tests build with 9.0.0.
+
 - Use each native template's minimum height when a caller supplies a non-finite
   value; avoid an unbounded ad or shimmer layout.
 
@@ -19,8 +23,8 @@
   optional body, AdChoices, developer colors and CTA. The iOS video test ad
   now passes AdMob Native Validator without the small-MediaView warning.
 
-- Keep Android `mediumNative` media at least 120×120dp and allow three headline
-  lines. Both bundled Android layouts hide optional body copy when the card
+- Keep Android `mediumNative` media at 120×120dp and its headline on one line.
+  Both bundled Android layouts hide optional body copy when the card
   cannot show its first 90 characters; the large layout no longer shortens its
   required headline to make room. Clamp smaller requested medium card heights
   to 128dp for video support.
@@ -107,7 +111,7 @@
 * Centralize fail-closed UMP readiness for all formats; enable automatic consent by default and surface initialization errors.
 * Add conservative bounded retries, inline resource ownership during loads, adaptive container sizing, and equivalent native-style comparison.
 * Reuse the central interstitial in paywall guards, suppress duplicate dismiss actions, and account for nested paywalls.
-* Remove ownership-less mutex APIs; minimum supported versions are Flutter 3.38.1, Dart 3.10, and google_mobile_ads 9.1.0.
+* Remove ownership-less mutex APIs; minimum supported versions are Flutter 3.38.1, Dart 3.10, and google_mobile_ads 9.0.0.
 * Expand request-count, slow-load, retry, stale callback, entitlement, initialization, and widget tests.
 * Correct setup documentation and unsupported performance/metric claims.
 
