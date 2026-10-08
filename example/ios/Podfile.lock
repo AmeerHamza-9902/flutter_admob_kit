@@ -1,5 +1,8 @@
 PODS:
   - Flutter (1.0.0)
+  - flutter_admob_kit (4.0.0):
+    - Flutter
+    - google_mobile_ads
   - Google-Mobile-Ads-SDK (13.11.0):
     - GoogleUserMessagingPlatform (>= 1.1)
   - google_mobile_ads (9.1.0):
@@ -13,6 +16,7 @@ PODS:
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - flutter_admob_kit (from `.symlinks/plugins/flutter_admob_kit/ios`)
   - google_mobile_ads (from `.symlinks/plugins/google_mobile_ads/ios`)
   - webview_flutter_wkwebview (from `.symlinks/plugins/webview_flutter_wkwebview/darwin`)
 
@@ -24,6 +28,8 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  flutter_admob_kit:
+    :path: ".symlinks/plugins/flutter_admob_kit/ios"
   google_mobile_ads:
     :path: ".symlinks/plugins/google_mobile_ads/ios"
   webview_flutter_wkwebview:
@@ -31,6 +37,7 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  flutter_admob_kit: b65fbc1d14239afb8db5afb5cef9dbd57d81e5d9
   Google-Mobile-Ads-SDK: 09d0868abe43b9f851b7b340a245679f0eafc96c
   google_mobile_ads: 6b1c16497394528f4a59e76e2fc947cb32b101e2
   GoogleUserMessagingPlatform: befe603da6501006420c206222acd449bba45a9c

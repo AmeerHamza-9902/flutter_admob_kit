@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -190,6 +191,51 @@ void main() {
     expect(tester.getSize(find.byType(NativeAdWidget)).height, 128);
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets(
+    'iOS bundled native cards keep developer style and media factory',
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      await initialize();
+      for (final template in [
+        NativeTemplate.mediumNative,
+        NativeTemplate.bigNative,
+      ]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Center(
+              child: NativeAdWidget(
+                template: template,
+                adUnitId: 'ios-native-test',
+                style: const NativeAdStyle(backgroundColor: Colors.amber),
+                showShimmer: false,
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(
+          tester.getSize(find.byType(NativeAdWidget)).height,
+          template == NativeTemplate.mediumNative ? 128 : 280,
+        );
+        final args = loads('Native').last.arguments as Map;
+        expect(
+          args['factoryId'],
+          template == NativeTemplate.mediumNative
+              ? 'flutter_admob_kit/medium_native'
+              : 'flutter_admob_kit/big_native',
+        );
+        expect(args['nativeTemplateStyle'], isNull);
+        expect(
+          args['customOptions']['backgroundColor'],
+          Colors.amber.toARGB32(),
+        );
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
+      debugDefaultTargetPlatformOverride = null;
+    },
+  );
 
   testWidgets('mediumNative shimmer fits each configured height', (
     tester,

@@ -32,3 +32,5 @@ flutter:
       android:
         package: dev.admobkit.flutter_admob_kit
         pluginClass: FlutterAdmobKitPlugin
+      ios:
+        pluginClass: FlutterAdmobKitPlugin

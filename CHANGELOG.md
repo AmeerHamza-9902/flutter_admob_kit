@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Match the supplied horizontal and large native card structure on iOS with
+  bundled factories, including the 120×120pt video MediaView, header assets,
+  optional body, AdChoices, developer colors and CTA. The iOS video test ad
+  now passes AdMob Native Validator without the small-MediaView warning.
+
 - Keep Android `mediumNative` media at least 120×120dp and allow three headline
   lines. Both bundled Android layouts hide optional body copy when the card
   cannot show its first 90 characters; the large layout no longer shortens its

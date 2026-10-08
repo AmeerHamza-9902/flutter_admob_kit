@@ -188,18 +188,18 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
 
                 const Text(
-                  'Native Ad (Big Native):',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                const NativeAdWidget.bigNative(),
-                const SizedBox(height: 24),
-                const Text(
                   'Native Ad (Medium Native, 130dp):',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
                 const NativeAdWidget.mediumNative(height: 130),
+                const SizedBox(height: 24),
+                const Text(
+                  'Native Ad (Big Native):',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const NativeAdWidget.bigNative(),
               ],
             ),
           ),

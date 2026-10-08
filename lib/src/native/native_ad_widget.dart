@@ -164,10 +164,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     final minimum = switch (widget.template) {
       NativeTemplate.small => 90.0,
       NativeTemplate.mediumNative => 128.0,
-      NativeTemplate.bigNative || NativeTemplate.medium =>
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-            ? 280.0
-            : 320.0,
+      NativeTemplate.bigNative || NativeTemplate.medium => 280.0,
     };
     return (widget.height ?? minimum).clamp(minimum, double.infinity);
   }
@@ -310,8 +307,9 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     }
     final customTemplate =
         !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android &&
-        widget.template != NativeTemplate.small;
+        widget.template != NativeTemplate.small &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
     final templateStyle = customTemplate
         ? null
         : style.toGoogleTemplateStyle(widget.template);

@@ -208,7 +208,7 @@ const BannerAdWidget.inlineAdaptiveLarge(maxHeight: 300); // Custom height cap.
 const BannerAdWidget(size: AdSize.largeBanner); // Custom supported fixed size.
 const NativeAdWidget.small(); // Minimum height 90.
 const NativeAdWidget.mediumNative(); // Horizontal card; default height 128.
-const NativeAdWidget.bigNative(); // Large splash card; 280 Android / 320 iOS.
+const NativeAdWidget.bigNative(); // Large splash card; default height 280.
 ```
 
 ### Library-managed preload
@@ -219,7 +219,7 @@ Other banner sizes, adaptive widths, native `small`, custom styles, and per-widg
 
 Preloading cannot guarantee match rate, show rate, or CTR; those also depend on inventory and user behavior. Automatic warm requests for screens never visited can lower show rate, so measure actual AdMob reports and adjust placements accordingly. SDK impression/click callbacks remain the source of events. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
 
-Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on Android and a 320 minimum on iOS. `mediumNative` is a horizontal card that defaults to 128dp: media on the left and headline, advertiser, optional body, AdChoices and CTA on the right. Both Android cards hide the optional body if they cannot show its first 90 characters without truncation; the required headline keeps up to three lines. Missing optional assets collapse cleanly. On iOS, `bigNative` uses Google's official medium template and `mediumNative` uses the official compact template.
+Native templates default to a white background. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on both platforms. `mediumNative` is a horizontal card that defaults to 128dp: media on the left and headline, advertiser, optional body, AdChoices and CTA on the right. Both platforms use bundled layouts that keep the supplied media/header/CTA structure and developer colors. Optional body copy is hidden when the card cannot show its first 90 characters without truncation; the required headline keeps up to three lines. Missing optional assets collapse cleanly. The compact `small` template still uses Google's official template.
 
 Developers can override the same style properties:
 
@@ -239,9 +239,10 @@ const NativeAdWidget.bigNative(style: NativeAdStyle(/* same options */));
 ```
 
 `mediumNative(height: 130)` reserves exactly 130 logical pixels for both the
-native card and its horizontal loading skeleton. Any positive finite height
-can be supplied; the Android card reduces optional copy at compact sizes so
-its headline and CTA have room. Keep ad assets readable at the chosen size.
+native card and its horizontal loading skeleton. Heights below 128 are raised
+to 128 so video media remains at least 120×120dp/pt; larger heights are
+respected. Optional copy yields space on compact cards. Keep ad assets readable
+at the chosen size.
 
 The widget uses the library-owned cache automatically. It never shares the same
 loaded native view between two visible placements.
@@ -298,7 +299,7 @@ flutter run
 
 The example includes native test app IDs; production apps must supply their own app and ad unit IDs. See [example setup](example/README.md).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 187 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 188 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 

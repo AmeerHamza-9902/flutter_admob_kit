@@ -67,8 +67,10 @@ class NativePreloadController {
 
     final customTemplate =
         !kIsWeb &&
-        defaultTargetPlatform == TargetPlatform.android &&
-        template != NativeTemplate.small;
+        (defaultTargetPlatform == TargetPlatform.android &&
+                template != NativeTemplate.small ||
+            defaultTargetPlatform == TargetPlatform.iOS &&
+                template != NativeTemplate.small);
     if (customTemplate) {
       try {
         await _templates.invokeMethod<void>('ensureRegistered');
