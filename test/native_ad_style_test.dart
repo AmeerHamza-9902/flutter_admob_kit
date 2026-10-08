@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('both official template sizes default to a white background', () {
     const style = NativeAdStyle();
+    expect(style.cornerRadius, 10);
+    expect(style.toNativeOptions()['cornerRadius'], 10);
     for (final template in NativeTemplate.values) {
       expect(
         style.toGoogleTemplateStyle(template).mainBackgroundColor,

@@ -27,7 +27,7 @@ enum NativeTemplate {
 class NativeAdStyle {
   const NativeAdStyle({
     this.backgroundColor = Colors.white,
-    this.cornerRadius = 8.0,
+    this.cornerRadius = 10.0,
     this.callToActionColor,
     this.callToActionTextColor = Colors.white,
     this.primaryTextColor,
@@ -38,8 +38,7 @@ class NativeAdStyle {
   /// Passing null also resolves to white.
   final Color? backgroundColor;
 
-  /// Corner radius of the ad container (and official-template CTA).
-  /// Corner radius used by bundled Android cards and CTAs.
+  /// Corner radius of bundled cards and CTA buttons. Defaults to 10dp.
   final double cornerRadius;
 
   /// Background color of the Call To Action button.

@@ -30,7 +30,7 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         NativeAdView view = (NativeAdView) LayoutInflater.from(context)
             .inflate(R.layout.admob_kit_native_horizontal, null);
         float density = context.getResources().getDisplayMetrics().density;
-        float radius = Math.max(0, number(options, "cornerRadius", 8).floatValue()) * density;
+        float radius = Math.max(0, number(options, "cornerRadius", 10).floatValue()) * density;
         int background = color(options, "backgroundColor", Color.WHITE);
         int primary = color(options, "primaryTextColor", Color.rgb(17, 24, 39));
         int secondary = color(options, "secondaryTextColor", Color.rgb(75, 85, 99));

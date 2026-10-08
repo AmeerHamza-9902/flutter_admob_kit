@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Set the default native CTA and card corner radius to 10dp/pt while keeping
+  developer overrides and square-corner media.
+
 - Package the iOS native layouts for both Swift Package Manager and CocoaPods.
 
 - Match the supplied horizontal and large native card structure on iOS with

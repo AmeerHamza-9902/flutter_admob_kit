@@ -91,7 +91,7 @@ static void Add(UIView *child, UIView *parent) {
   AdMobKitNativeView *view = [[AdMobKitNativeView alloc] initWithFrame:CGRectMake(0, 0, 320, 128)];
   view.backgroundColor = ColorFromOption(options, @"backgroundColor", 0xFFFFFFFF);
   CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
-      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 8;
+      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
   view.layer.cornerRadius = radius;
   view.clipsToBounds = YES;
 
@@ -208,7 +208,7 @@ static void Add(UIView *child, UIView *parent) {
   AdMobKitNativeView *view = [[AdMobKitNativeView alloc] initWithFrame:CGRectMake(0, 0, 320, 320)];
   view.backgroundColor = ColorFromOption(options, @"backgroundColor", 0xFFFFFFFF);
   CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
-      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 8;
+      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
   view.layer.cornerRadius = radius;
   view.clipsToBounds = YES;
 
