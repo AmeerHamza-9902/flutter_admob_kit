@@ -296,6 +296,41 @@ void main() {
     AdMobKit.resetForTesting();
   });
 
+  testWidgets(
+    'departing screen retains a pending native ad for the next screen',
+    (tester) async {
+      await initialize();
+      InlinePreload.enabled = true;
+      final controller = InlinePreload.nativeCache(
+        NativeTemplate.mediumNative,
+        const NativeAdStyle(),
+        'native-1',
+      );
+      final pending = controller.preloadMediumNative();
+      await tester.pump();
+      await tester.pumpWidget(
+        const MaterialApp(home: NativeAdWidget.mediumNative()),
+      );
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(loads('Native'), hasLength(1));
+
+      await event(
+        loads('Native').single.arguments['adId'] as int,
+        'onAdLoaded',
+      );
+      expect(await pending, isTrue);
+      await tester.pumpWidget(
+        const MaterialApp(home: NativeAdWidget.mediumNative()),
+      );
+      await tester.pump();
+      expect(find.byType(AdWidget), findsOneWidget);
+      expect(loads('Native'), hasLength(2));
+      await tester.pumpWidget(const SizedBox.shrink());
+      AdMobKit.resetForTesting();
+    },
+  );
+
   testWidgets('native readiness timeout retains one late load', (tester) async {
     await initialize();
     final controller = NativePreloadController();
