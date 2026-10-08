@@ -84,13 +84,6 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         card.addOnLayoutChangeListener((v, left, top, right, bottom,
                 oldLeft, oldTop, oldRight, oldBottom) -> {
             int cardHeight = bottom - top;
-            RelativeLayout.LayoutParams mediaParams =
-                (RelativeLayout.LayoutParams) mediaContainer.getLayoutParams();
-            int targetMediaWidth = dp(120);
-            if (mediaParams.width != targetMediaWidth) {
-                mediaParams.width = targetMediaWidth;
-                mediaContainer.setLayoutParams(mediaParams);
-            }
             body.setVisibility(cardHeight < dp(110) || ad.getBody() == null
                 || ad.getBody().isEmpty() ? View.GONE : View.VISIBLE);
             advertiser.setVisibility(cardHeight < dp(82) || ad.getAdvertiser() == null

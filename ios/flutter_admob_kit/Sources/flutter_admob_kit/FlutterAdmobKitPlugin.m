@@ -162,7 +162,7 @@ static void Add(UIView *child, UIView *parent) {
 
   [NSLayoutConstraint activateConstraints:@[
     [media.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:4],
-    [media.centerYAnchor constraintEqualToAnchor:view.centerYAnchor],
+    [media.topAnchor constraintEqualToAnchor:view.topAnchor constant:4],
     [media.widthAnchor constraintEqualToConstant:120],
     [media.heightAnchor constraintEqualToConstant:120],
     [details.leadingAnchor constraintEqualToAnchor:media.trailingAnchor constant:8],
