@@ -48,6 +48,7 @@ not establish production fill or performance.
 | Swift Package Manager iOS simulator build and launch | Passed; both native test ads rendered. |
 | Fresh consumer app with a path dependency: Android APK and iOS simulator (Swift Package Manager) | Passed. |
 | Fresh consumer app: iOS CocoaPods with generated `use_frameworks!` | Failed in `google_mobile_ads` 9.1.0 on `GoogleMobileAds_Beta.h`; changing to static linkage also failed. Passed after removing `use_frameworks!` from the temporary app Podfile. See [upstream issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472). |
+| Automated fresh-consumer smoke script | Passed locally for Android APK and iOS CocoaPods simulator build; CI now runs it for Android, CocoaPods and Swift Package Manager. |
 | `flutter pub publish --dry-run` | Zero warnings; no publication performed. |
 
 Tests use fake SDK callbacks for lifecycle, request ownership, consent and

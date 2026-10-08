@@ -29,6 +29,7 @@ jobs:
       - run: flutter pub publish --dry-run
       - run: flutter build apk --debug
         working-directory: example
+      - run: bash tool/smoke_consumer.sh android
 
   ios:
     runs-on: macos-latest
@@ -50,3 +51,4 @@ jobs:
       - run: flutter pub get
       - run: flutter build ios --simulator --debug --no-codesign
         working-directory: example
+      - run: bash tool/smoke_consumer.sh ios
