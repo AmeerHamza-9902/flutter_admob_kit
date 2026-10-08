@@ -1,0 +1,48 @@
+name: Package quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dart-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter pub publish --dry-run
+      - run: flutter build apk --debug
+        working-directory: example
+
+  ios:
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package-manager: [cocoapods, swiftpm]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.1'
+          channel: stable
+          cache: true
+      - run: flutter config --no-enable-swift-package-manager
+        if: matrix.package-manager == 'cocoapods'
+      - run: flutter config --enable-swift-package-manager
+        if: matrix.package-manager == 'swiftpm'
+      - run: flutter pub get
+      - run: flutter build ios --simulator --debug --no-codesign
+        working-directory: example
