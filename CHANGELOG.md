@@ -2,6 +2,8 @@
 
 ## 4.0.1 (unreleased)
 
+- Show the example app's first Flutter frame before waiting for consent and ad
+  SDK initialization, and document this startup order for consuming apps.
 - Align the iOS medium native badge and text/CTA spacing with the supplied
   120dp horizontal Android layout.
 - Keep the Android medium native AdChoices view above adjacent content when

@@ -4,6 +4,8 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  runApp(const MyApp());
+
   await AdMobKit.initialize(
     config: const AdMobConfig(
       autoResumeAppOpen: true,
@@ -12,7 +14,6 @@ void main() async {
     ),
   );
 
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

@@ -53,6 +53,7 @@ import 'package:flutter_admob_kit/flutter_admob_kit.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AdMobKit.setEntitled(false); // Restore your real entitlement first.
+  runApp(const MyApp());
   await AdMobKit.initialize(
     config: const AdMobConfig(
       testMode: true, // Use test ads during development.
@@ -74,11 +75,10 @@ Future<void> main() async {
       ),
     ),
   );
-  runApp(const MyApp());
 }
 ```
 
-Set `testMode: false` with real unit IDs for production. Omit formats you do not intend to use. Initialization is single-flight and propagates SDK initialization errors; the host can display its normal UI and retry initialization after resolving an error. Accessing fullscreen managers before initialization throws a descriptive `StateError`.
+Set `testMode: false` with real unit IDs for production. Omit formats you do not intend to use. Render the app before awaiting initialization so a slow first-install consent flow or SDK startup does not hold the first Flutter frame; widgets mounted early wait for the library's consent and initialization gate. Initialization is single-flight and propagates SDK initialization errors; the host can display its normal UI and retry initialization after resolving an error. Accessing fullscreen managers before initialization throws a descriptive `StateError`.
 
 Every format requires successful initialization, a non-entitled user, and UMP's actual `canRequestAds()` result. Disabling `enableUmpConsent` disables automatic form management **only**; it does not bypass consent. In that mode the host must complete UMP and call `AdMobKit.consent.canRequestAds()` to refresh the shared gate. There is no fallback that infers permission from a consent status enum. Widgets mounted before readiness wait for the gate.
 
