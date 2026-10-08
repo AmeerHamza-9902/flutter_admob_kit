@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
+import '../inline_preload.dart';
 import '../inline_ad_retry.dart';
 import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
@@ -12,8 +13,8 @@ import 'native_preload_controller.dart';
 
 /// Drop-in, zero-boilerplate Native Ad widget with built-in templates.
 ///
-/// Uses the configured Native Ad Unit ID and bundled Android layouts.
-/// Small ads and iOS use Google's native templates. Owns loading and disposal.
+/// Uses the configured Native Ad Unit ID and bundled Android/iOS layouts.
+/// The small variant uses Google's official template. Owns loading and disposal.
 ///
 /// ```dart
 /// const NativeAdWidget.bigNative()
@@ -26,7 +27,6 @@ class NativeAdWidget extends StatefulWidget {
     this.adUnitId,
     this.template = NativeTemplate.bigNative,
     this.style,
-    this.preloadController,
     this.height,
     this.showShimmer = true,
     this.placeholder,
@@ -42,7 +42,6 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
-    this.preloadController,
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
@@ -56,7 +55,6 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
-    this.preloadController,
     this.height = 128.0,
     this.showShimmer = true,
     this.placeholder,
@@ -71,7 +69,6 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
-    this.preloadController,
     this.height = 280.0,
     this.showShimmer = true,
     this.placeholder,
@@ -87,7 +84,6 @@ class NativeAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.style,
-    this.preloadController,
     this.height = 90.0,
     this.showShimmer = true,
     this.placeholder,
@@ -104,9 +100,6 @@ class NativeAdWidget extends StatefulWidget {
 
   /// Custom visual styling (background, text color, CTA color, corner radius).
   final NativeAdStyle? style;
-
-  /// Optional ready/pending native ad prepared for this exact placement.
-  final NativePreloadController? preloadController;
 
   /// Container height. mediumNative defaults to 128 and keeps that minimum so
   /// its video MediaView can remain at least 120x120dp after card margins.
@@ -181,8 +174,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.template != widget.template ||
-        oldWidget.style != widget.style ||
-        oldWidget.preloadController != widget.preloadController) {
+        oldWidget.style != widget.style) {
       _load();
     }
   }
@@ -251,12 +243,10 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (mounted) setState(() {});
 
     final style = widget.style ?? const NativeAdStyle();
-    final managed =
-        widget.preloadController == null &&
-        AdMobKit.managedInlinePreloadEnabled;
-    final controller =
-        widget.preloadController ??
-        (managed ? AdMobKit.nativeCache(widget.template, style, unitId) : null);
+    final managed = InlinePreload.enabled;
+    final controller = managed
+        ? InlinePreload.nativeCache(widget.template, style, unitId)
+        : null;
     if (controller != null) {
       if (managed) {
         final ready = await controller.preload(
@@ -297,7 +287,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
         });
         resetRetry();
         if (managed) {
-          AdMobKit.replenishNative(widget.template, style, unitId);
+          InlinePreload.replenishNative(
+            widget.template,
+            style,
+            unitId,
+            canRequestAds: AdMobKit.canRequestAds,
+          );
         }
         widget.onAdLoaded?.call();
         return;

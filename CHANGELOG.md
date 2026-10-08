@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Move banner/native preload ownership fully inside the library. Remove the
+  public preload controller exports, widget `preloadController` parameters and
+  public inline cache accessors; placements now join library caches directly.
+
 - Set the default native CTA and card corner radius to 10dp/pt while keeping
   developer overrides and square-corner media.
 

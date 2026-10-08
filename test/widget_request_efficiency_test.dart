@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';
+import 'package:flutter_admob_kit/src/banner/banner_preload_controller.dart';
+import 'package:flutter_admob_kit/src/inline_preload.dart';
+import 'package:flutter_admob_kit/src/native/native_preload_controller.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:google_mobile_ads/src/ad_instance_manager.dart';
 import 'package:google_mobile_ads/src/ump/user_messaging_codec.dart';
@@ -268,7 +271,12 @@ void main() {
     tester,
   ) async {
     await initialize();
-    final controller = NativePreloadController();
+    InlinePreload.enabled = true;
+    final controller = InlinePreload.nativeCache(
+      NativeTemplate.mediumNative,
+      const NativeAdStyle(),
+      'native-1',
+    );
     final ready = controller.preloadMediumNative();
     await tester.pump();
     final load = loads('Native').single;
@@ -277,20 +285,15 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
-        home: Center(
-          child: NativeAdWidget.mediumNative(
-            preloadController: controller,
-            showShimmer: false,
-          ),
-        ),
+        home: Center(child: NativeAdWidget.mediumNative(showShimmer: false)),
       ),
     );
     await tester.pump();
-    expect(loads('Native'), hasLength(1));
+    expect(loads('Native'), hasLength(2));
     expect(find.byType(AdWidget), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
-    controller.dispose();
+    AdMobKit.resetForTesting();
   });
 
   testWidgets('native readiness timeout retains one late load', (tester) async {
@@ -607,8 +610,11 @@ void main() {
     tester,
   ) async {
     await initialize();
-    final controller = BannerPreloadController();
-    addTearDown(controller.dispose);
+    InlinePreload.enabled = true;
+    final controller = InlinePreload.bannerCache(
+      AdSize.largeBanner,
+      'banner-1',
+    );
     final first = controller.preloadLarge();
     final second = controller.preloadLarge();
     await tester.pump();
@@ -618,16 +624,13 @@ void main() {
     expect(await first, isTrue);
     expect(await second, isTrue);
     await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: BannerAdWidget.large(preloadController: controller),
-        ),
-      ),
+      MaterialApp(home: Center(child: BannerAdWidget.large())),
     );
     await tester.pump();
-    expect(loads('Banner'), hasLength(1));
+    expect(loads('Banner'), hasLength(2));
     expect(find.byType(AdWidget), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
+    AdMobKit.resetForTesting();
   });
 
   testWidgets('banner readiness timeout retains one late load', (tester) async {
@@ -673,8 +676,11 @@ void main() {
     tester,
   ) async {
     await initialize();
-    final controller = BannerPreloadController();
-    addTearDown(controller.dispose);
+    InlinePreload.enabled = true;
+    final controller = InlinePreload.bannerCache(
+      AdSize.getInlineAdaptiveBannerAdSize(360, 250),
+      'banner-1',
+    );
     final pending = controller.preloadInlineAdaptive(width: 360);
     await tester.pump();
     final id = loads('Banner').single.arguments['adId'] as int;
@@ -683,9 +689,7 @@ void main() {
         home: Center(
           child: SizedBox(
             width: 360,
-            child: BannerAdWidget.inlineAdaptiveLarge(
-              preloadController: controller,
-            ),
+            child: BannerAdWidget.inlineAdaptiveLarge(),
           ),
         ),
       ),
@@ -698,6 +702,7 @@ void main() {
     expect(find.byType(AdWidget), findsOneWidget);
     expect(tester.getSize(find.byType(BannerAdWidget)).height, 180);
     await tester.pumpWidget(const SizedBox.shrink());
+    AdMobKit.resetForTesting();
   });
 
   testWidgets('entitlement cancels pending preload and prevents new requests', (
@@ -731,28 +736,38 @@ void main() {
     expect(calls.where((c) => c.method == 'disposeAd'), isNotEmpty);
   });
 
-  testWidgets('departing onboarding disposes its pending preload reservation', (
-    tester,
-  ) async {
-    await initialize();
-    final controller = BannerPreloadController();
-    addTearDown(controller.dispose);
-    final pending = controller.preloadLarge();
-    await tester.pump();
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Center(
-          child: BannerAdWidget.large(preloadController: controller),
-        ),
-      ),
-    );
-    await tester.pump();
-    await tester.pumpWidget(const SizedBox.shrink());
-    expect(await pending, isFalse);
-    await tester.pump();
-    expect(loads('Banner'), hasLength(1));
-    expect(calls.where((c) => c.method == 'disposeAd'), isNotEmpty);
-  });
+  testWidgets(
+    'departing onboarding retains a shared pending ad for next screen',
+    (tester) async {
+      await initialize();
+      InlinePreload.enabled = true;
+      final controller = InlinePreload.bannerCache(
+        AdSize.largeBanner,
+        'banner-1',
+      );
+      final pending = controller.preloadLarge();
+      await tester.pump();
+      await tester.pumpWidget(
+        MaterialApp(home: Center(child: BannerAdWidget.large())),
+      );
+      await tester.pump();
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(loads('Banner'), hasLength(1));
+      await event(
+        loads('Banner').single.arguments['adId'] as int,
+        'onAdLoaded',
+      );
+      expect(await pending, isTrue);
+      await tester.pumpWidget(
+        const MaterialApp(home: Center(child: BannerAdWidget.large())),
+      );
+      await tester.pump();
+      expect(find.byType(AdWidget), findsOneWidget);
+      expect(loads('Banner'), hasLength(2));
+      await tester.pumpWidget(const SizedBox.shrink());
+      AdMobKit.resetForTesting();
+    },
+  );
 
   testWidgets('inline preload with different height cap is discarded', (
     tester,
@@ -990,12 +1005,12 @@ void main() {
     tester,
   ) async {
     await initialize();
-    final native = AdMobKit.nativeCache(
+    final native = InlinePreload.nativeCache(
       NativeTemplate.mediumNative,
       const NativeAdStyle(),
       'native-1',
     );
-    final banner = AdMobKit.bannerCache(AdSize.largeBanner, 'banner-1');
+    final banner = InlinePreload.bannerCache(AdSize.largeBanner, 'banner-1');
     await tester.pump();
     await event(loads('Native').single.arguments['adId'] as int, 'onAdLoaded');
     await event(loads('Banner').single.arguments['adId'] as int, 'onAdLoaded');
@@ -1004,7 +1019,7 @@ void main() {
     expect(
       identical(
         native,
-        AdMobKit.nativeCache(
+        InlinePreload.nativeCache(
           NativeTemplate.mediumNative,
           const NativeAdStyle(),
           'native-1',
@@ -1013,7 +1028,10 @@ void main() {
       isFalse,
     );
     expect(
-      identical(banner, AdMobKit.bannerCache(AdSize.largeBanner, 'banner-1')),
+      identical(
+        banner,
+        InlinePreload.bannerCache(AdSize.largeBanner, 'banner-1'),
+      ),
       isFalse,
     );
     AdMobKit.resetForTesting();
@@ -1023,7 +1041,7 @@ void main() {
     tester,
   ) async {
     await initialize();
-    final portrait = AdMobKit.bannerCache(
+    final portrait = InlinePreload.bannerCache(
       AnchoredAdaptiveBannerAdSize(
         Orientation.portrait,
         width: 320,
@@ -1031,7 +1049,7 @@ void main() {
       ),
       'banner-1',
     );
-    final landscape = AdMobKit.bannerCache(
+    final landscape = InlinePreload.bannerCache(
       AnchoredAdaptiveBannerAdSize(
         Orientation.landscape,
         width: 320,

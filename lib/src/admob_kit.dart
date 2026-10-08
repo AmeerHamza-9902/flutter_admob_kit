@@ -7,14 +7,11 @@ import 'ad_state.dart';
 import 'fullscreen_placement.dart';
 import 'fullscreen_request_queue.dart';
 import 'app_open/app_open_manager.dart';
-import 'banner/banner_preload_controller.dart';
-import 'banner/banner_size_key.dart';
+import 'inline_preload.dart';
 import 'consent_manager.dart';
 import 'interstitial/interstitial_manager.dart';
 import 'lifecycle_manager.dart';
 import 'rewarded/rewarded_manager.dart';
-import 'native/native_preload_controller.dart';
-import 'native/native_templates.dart';
 
 class _ConfigChangeNotifier extends ChangeNotifier {
   void notify() => notifyListeners();
@@ -36,12 +33,6 @@ class AdMobKit {
   static final Map<String, InterstitialManager> _namedInterstitials = {};
   static final Map<String, RewardedManager> _namedRewarded = {};
   static final Map<String, AppOpenManager> _namedAppOpen = {};
-  static final Map<
-    (NativeTemplate, NativeAdStyle, String),
-    NativePreloadController
-  >
-  _nativeCache = {};
-  static final Map<(String, String), BannerPreloadController> _bannerCache = {};
 
   static final _ConfigChangeNotifier _configNotifier = _ConfigChangeNotifier();
 
@@ -280,6 +271,7 @@ class AdMobKit {
 
       ConsentManager.instance.addListener(_onConsentChanged);
       _autoPreload = autoPreload;
+      InlinePreload.enabled = autoPreload;
       _configNotifier.notify();
       if (autoPreload) _preload();
       _warmInlineAds();
@@ -304,7 +296,6 @@ class AdMobKit {
   }
 
   static bool _autoPreload = true;
-  static bool get managedInlinePreloadEnabled => _autoPreload;
 
   /// All formats share this gate, including when UMP is managed by the host.
   static bool get canRequestAds =>
@@ -408,94 +399,10 @@ class AdMobKit {
     }
   }
 
-  /// Library-owned cache: at most one pending ad per exact placement shape.
-  /// Widgets consume it directly; applications do not manage preload objects.
-  static NativePreloadController nativeCache(
-    NativeTemplate template,
-    NativeAdStyle style,
-    String unit,
-  ) {
-    final key = (template, style, unit);
-    final controller = _nativeCache.putIfAbsent(key, () {
-      late final NativePreloadController created;
-      created = NativePreloadController(
-        onIdle: () {
-          if (identical(_nativeCache[key], created)) {
-            _nativeCache.remove(key);
-            created.dispose();
-          }
-        },
-      );
-      return created;
-    });
-    unawaited(
-      controller.preload(template: template, style: style, adUnitId: unit),
-    );
-    return controller;
-  }
+  static void _warmInlineAds() =>
+      InlinePreload.warm(_config, canRequestAds: canRequestAds);
 
-  static BannerPreloadController bannerCache(AdSize size, String unit) {
-    final shape = bannerSizeKey(size);
-    final key = (shape, unit);
-    final controller = _bannerCache.putIfAbsent(key, () {
-      late final BannerPreloadController created;
-      created = BannerPreloadController(
-        onIdle: () {
-          if (identical(_bannerCache[key], created)) {
-            _bannerCache.remove(key);
-            created.dispose();
-          }
-        },
-      );
-      return created;
-    });
-    unawaited(controller.preload(size: size, adUnitId: unit));
-    return controller;
-  }
-
-  static void replenishNative(
-    NativeTemplate template,
-    NativeAdStyle style,
-    String unit,
-  ) {
-    if (!canRequestAds) return;
-    nativeCache(template, style, unit);
-  }
-
-  static void replenishBanner(AdSize size, String unit) {
-    if (!canRequestAds) return;
-    bannerCache(size, unit);
-  }
-
-  static void _warmInlineAds() {
-    if (!canRequestAds || !_autoPreload) return;
-    final nativeUnit = _config.nativeId;
-    if (nativeUnit != null && nativeUnit.isNotEmpty) {
-      for (final template in [
-        NativeTemplate.bigNative,
-        NativeTemplate.mediumNative,
-      ]) {
-        nativeCache(template, const NativeAdStyle(), nativeUnit);
-      }
-    }
-    final bannerUnit = _config.bannerId;
-    if (bannerUnit != null && bannerUnit.isNotEmpty) {
-      bannerCache(AdSize.largeBanner, bannerUnit);
-    }
-  }
-
-  static void _clearInlineAds() {
-    final native = _nativeCache.values.toList();
-    final banner = _bannerCache.values.toList();
-    _nativeCache.clear();
-    _bannerCache.clear();
-    for (final controller in native) {
-      controller.dispose();
-    }
-    for (final controller in banner) {
-      controller.dispose();
-    }
-  }
+  static void _clearInlineAds() => InlinePreload.clear();
 
   static void _invalidateAll() {
     _interstitial?.invalidate(force: true);
@@ -679,6 +586,7 @@ class AdMobKit {
     _isInitialized = false;
     _initFuture = null;
     _autoPreload = true;
+    InlinePreload.enabled = true;
     testHookBeforeInit = null;
     _consentParameters = null;
     _config = const AdMobConfig();

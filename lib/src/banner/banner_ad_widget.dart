@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../admob_kit.dart';
+import '../inline_preload.dart';
 import '../inline_ad_retry.dart';
 import '../ad_state.dart';
 import '../widgets/ad_shimmer_placeholder.dart';
@@ -20,7 +21,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.size = AdSize.banner,
     this.isAdaptive = false,
     this.isInlineAdaptive = false,
@@ -37,7 +37,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.small({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -53,7 +52,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.large({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
@@ -69,7 +67,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.mediumRectangle({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
@@ -85,7 +82,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.inlineAdaptive({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.maxHeight = 50,
     this.fitToWidth = false,
     this.showShimmer = true,
@@ -101,7 +97,6 @@ class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget.inlineAdaptiveLarge({
     super.key,
     this.adUnitId,
-    this.preloadController,
     this.maxHeight = 250,
     this.fitToWidth = false,
     this.showShimmer = true,
@@ -115,9 +110,6 @@ class BannerAdWidget extends StatefulWidget {
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses [AdMobKit.config.bannerId].
   final String? adUnitId;
-
-  /// Optional splash preload, consumed once by this placement.
-  final BannerPreloadController? preloadController;
 
   /// The banner ad size. Defaults to [AdSize.banner].
   final AdSize size;
@@ -219,7 +211,6 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
   void didUpdateWidget(covariant BannerAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.adUnitId != widget.adUnitId ||
-        oldWidget.preloadController != widget.preloadController ||
         oldWidget.size != widget.size ||
         oldWidget.isAdaptive != widget.isAdaptive ||
         oldWidget.isInlineAdaptive != widget.isInlineAdaptive ||
@@ -308,12 +299,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       if (gen != _loadGeneration || !mounted || !AdMobKit.canRequestAds) return;
     }
     _resolvedSize = targetSize;
-    final managed =
-        widget.preloadController == null &&
-        AdMobKit.managedInlinePreloadEnabled;
-    final preload =
-        widget.preloadController ??
-        (managed ? AdMobKit.bannerCache(targetSize, unitId) : null);
+    final managed = InlinePreload.enabled;
+    final preload = managed
+        ? InlinePreload.bannerCache(targetSize, unitId)
+        : null;
     if (preload != null) {
       if (managed) {
         final ready = await preload.preload(size: targetSize, adUnitId: unitId);
@@ -349,7 +338,11 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           _hasFailed = false;
         });
         if (managed) {
-          AdMobKit.replenishBanner(targetSize, unitId);
+          InlinePreload.replenishBanner(
+            targetSize,
+            unitId,
+            canRequestAds: AdMobKit.canRequestAds,
+          );
         }
         widget.onAdLoaded?.call();
         return;

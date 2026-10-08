@@ -1,35 +1,20 @@
-# Native destination preload lifecycle
+# Library-managed native preload lifecycle
 
-## Placement map
+The host places `NativeAdWidget.bigNative()` or
+`NativeAdWidget.mediumNative()` where an ad belongs. It does not create or
+pass a preload controller.
 
-| Placement | Format | Load trigger | Display trigger | Eligibility |
-| --- | --- | --- | --- | --- |
-| Upcoming destination | Native | Preceding high-intent screen | Destination widget mounts | Initialized, consent permits ads, free user, matching unit/template/style |
+After initialization and consent, the library warms one default ad for each
+configured native shape. A widget joins a matching in-flight request or
+claims a ready ad exclusively. Its normal loading placeholder remains visible
+until the SDK responds. On a successful claim the library starts one
+replacement for a future placement; the same native view is never shared by
+two visible widgets.
 
-## Lifecycle
+Unclaimed ads expire after two minutes; pending requests time out after one
+minute. Entitlement, consent, test-mode, configuration, and unit changes clear
+invalid cached ads. A screen that closes during loading releases its claim
+without preventing the library from using the pending ad on the next screen.
 
-1. The host creates one `NativePreloadController` for each upcoming placement.
-2. `preloadMediumNative` or `preloadBigNative` loads one view close to expected navigation. Repeated matching calls share that request.
-3. The destination passes the same controller to `NativeAdWidget`. The widget claims the ready or in-flight ad and does not create another request.
-4. A claim is exclusive because Google native platform views cannot be shared by two mounted widgets.
-5. Unclaimed ads expire after two minutes. Pending requests time out after one minute. Configuration, consent, test-mode, entitlement, or unit changes dispose invalid preloads.
-6. A failed preload falls back to the widget's existing bounded retry behavior without blocking navigation.
-
-## Callback behavior
-
-- `loaded`, `impression`, and `clicked` remain SDK-sourced events.
-- A claimed ad is disposed by its destination widget.
-- An unused controller disposes its pending ad when cleared or disposed.
-
-## Developer opt-in audit
-
-No native ad is reloaded from its dismissal callback. Native preloading is initiated only by the host at a known high-probability navigation point.
-
-## Verification checklist
-
-- [x] Matching preload and destination use one network request.
-- [x] Separate simultaneous placements require separate controllers.
-- [x] Entitled or consent-ineligible users do not preload.
-- [x] Configuration changes invalidate unused views.
-- [x] Unmounted or reconfigured widgets release their claim.
-- [x] Matching-height shimmer preserves the destination layout while fallback loading occurs.
+SDK callbacks remain the source of loaded, impression, and click events. A
+widget disposes the ad it displays when that placement is removed.

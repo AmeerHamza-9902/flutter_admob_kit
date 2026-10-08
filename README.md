@@ -307,6 +307,8 @@ Verified with Flutter 3.44.1 and Dart 3.12.1: 188 automated tests passed, static
 
 ## Migration from 3.x
 
+- Remove any `preloadController` arguments from banner/native widgets. Their
+  matching ready or in-flight ads are now managed by the library automatically.
 - UMP flow defaults to enabled; disabling it no longer bypasses the shared gate.
 - SDK initialization failures propagate instead of being silently ignored.
 - Removed ownership-less `tryAcquire`/`release`; advanced mutex users must retain the token from `acquireToken` and use `releaseWithToken`.
