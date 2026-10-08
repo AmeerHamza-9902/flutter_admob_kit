@@ -41,6 +41,11 @@ class NativeAdStyle {
   /// Corner radius of bundled cards and CTA buttons. Defaults to 10dp.
   final double cornerRadius;
 
+  /// Radius safe for Flutter and platform layouts: negative values become 0,
+  /// non-finite values use the default 10, and very large values cap at 1000.
+  double get effectiveCornerRadius =>
+      cornerRadius.isFinite ? cornerRadius.clamp(0.0, 1000.0) : 10.0;
+
   /// Background color of the Call To Action button.
   final Color? callToActionColor;
 
@@ -61,7 +66,7 @@ class NativeAdStyle {
     return NativeTemplateStyle(
       templateType: isSmall ? TemplateType.small : TemplateType.medium,
       mainBackgroundColor: backgroundColor ?? Colors.white,
-      cornerRadius: cornerRadius,
+      cornerRadius: effectiveCornerRadius,
       callToActionTextStyle:
           callToActionColor != null || callToActionTextColor != Colors.white
           ? NativeTemplateTextStyle(
@@ -91,7 +96,7 @@ class NativeAdStyle {
   /// Styling passed to the bundled Android medium layout.
   Map<String, Object> toNativeOptions() => {
     'backgroundColor': (backgroundColor ?? Colors.white).toARGB32(),
-    'cornerRadius': cornerRadius,
+    'cornerRadius': effectiveCornerRadius,
     'callToActionColor': (callToActionColor ?? const Color(0xFF2563EB))
         .toARGB32(),
     'callToActionTextColor': callToActionTextColor.toARGB32(),
@@ -105,7 +110,7 @@ class NativeAdStyle {
   bool operator ==(Object other) =>
       other is NativeAdStyle &&
       backgroundColor == other.backgroundColor &&
-      cornerRadius == other.cornerRadius &&
+      effectiveCornerRadius == other.effectiveCornerRadius &&
       callToActionColor == other.callToActionColor &&
       callToActionTextColor == other.callToActionTextColor &&
       primaryTextColor == other.primaryTextColor &&
@@ -114,7 +119,7 @@ class NativeAdStyle {
   @override
   int get hashCode => Object.hash(
     backgroundColor,
-    cornerRadius,
+    effectiveCornerRadius,
     callToActionColor,
     callToActionTextColor,
     primaryTextColor,

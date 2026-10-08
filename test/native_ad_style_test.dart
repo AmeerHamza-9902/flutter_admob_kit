@@ -48,4 +48,30 @@ void main() {
       Colors.black,
     );
   });
+
+  test('invalid or excessive radius is safe on every rendering path', () {
+    for (final (input, expected) in [
+      (double.nan, 10.0),
+      (double.infinity, 10.0),
+      (double.negativeInfinity, 10.0),
+      (-5.0, 0.0),
+      (2000.0, 1000.0),
+    ]) {
+      final style = NativeAdStyle(cornerRadius: input);
+      expect(style.effectiveCornerRadius, expected);
+      expect(style.toNativeOptions()['cornerRadius'], expected);
+      expect(
+        style.toGoogleTemplateStyle(NativeTemplate.small).cornerRadius,
+        expected,
+      );
+    }
+    expect(
+      const NativeAdStyle(cornerRadius: double.nan),
+      const NativeAdStyle(cornerRadius: double.infinity),
+    );
+    expect(
+      const NativeAdStyle(cornerRadius: -5).hashCode,
+      const NativeAdStyle(cornerRadius: 0).hashCode,
+    );
+  });
 }

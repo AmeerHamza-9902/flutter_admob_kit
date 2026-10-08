@@ -496,7 +496,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
         height: height,
         variant: variant,
         borderRadius: widget.style != null
-            ? BorderRadius.circular(widget.style!.cornerRadius)
+            ? BorderRadius.circular(widget.style!.effectiveCornerRadius)
             : null,
       );
     }
