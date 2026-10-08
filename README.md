@@ -219,6 +219,11 @@ Other banner sizes, adaptive widths, native `small`, custom styles, and per-widg
 
 Preloading cannot guarantee match rate, show rate, or CTR; those also depend on inventory and user behavior. Automatic warm requests for screens never visited can lower show rate, so measure actual AdMob reports and adjust placements accordingly. SDK impression/click callbacks remain the source of events. See [AdMob metric definitions](https://support.google.com/admob/table/9462111?hl=en).
 
+The library limits concurrent **fullscreen** SDK load attempts to two. Banner
+and native loads are independent: initialization can also warm one large banner
+and one ad per default native template at the same time. This limit controls
+request scheduling, not AdMob fill or impression rates.
+
 Native templates default to a white background and a 10dp/pt CTA corner radius. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on both platforms. `mediumNative` is a horizontal card that defaults to 128dp: fixed 120×120dp media at the top left and headline, advertiser, optional body, AdChoices and CTA on the right. Both platforms use bundled layouts that keep the supplied media/header/CTA structure and developer colors. Optional body copy is hidden when the card cannot show its first 90 characters without truncation; the `bigNative` headline keeps up to three lines, while `mediumNative` keeps one line as supplied. Missing optional assets collapse cleanly. The compact `small` template still uses Google's official template.
 
 Developers can override the same style properties:

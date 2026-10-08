@@ -39,6 +39,10 @@ if it is never mounted, is immediately removed, or does not become visible.
 
 Initialization preloads configured fullscreen units after consent, each manager
 coalesces repeated requests, and dismissal triggers one bounded replacement.
+The shared fullscreen request queue starts at most two SDK loads at once; its
+20-second stall watchdog can free a slot while an unresponsive SDK request is
+still outstanding. Inline banner/native warm requests are outside that queue,
+so two is not a package-wide concurrent-request ceiling.
 Inline widgets reuse a matching library-owned cache entry and retry failures with a
 bounded policy. Banner/native preload controllers are internal to the library.
 App Open suppression covers fullscreen/paywall and scoped
@@ -101,7 +105,7 @@ the device procedure above and production measurement over a meaningful cohort.
 
 | Check | Result |
 | --- | --- |
-| `flutter test` | 188 automated tests passed (fake SDK callbacks and widget tests). |
+| `flutter test --concurrency=1` | 190 automated tests passed (fake SDK callbacks and widget tests). |
 | `flutter analyze` | No issues found. |
 | `flutter build apk --debug` in `example/` | Android APK built. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | iOS simulator app built; this does not verify production ad delivery. |
