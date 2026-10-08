@@ -299,6 +299,10 @@ flutter run
 
 The example includes native test app IDs; production apps must supply their own app and ad unit IDs. See [example setup](example/README.md).
 
+The bundled iOS native layouts support both Swift Package Manager (Flutter 3.44+)
+and CocoaPods. The host app still needs the `google_mobile_ads` iOS app ID
+configuration described above.
+
 Verified with Flutter 3.44.1 and Dart 3.12.1: 188 automated tests passed, static analysis passed, and Android debug APK and iOS simulator builds passed. Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x

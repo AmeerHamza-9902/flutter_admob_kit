@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Package the iOS native layouts for both Swift Package Manager and CocoaPods.
+
 - Match the supplied horizontal and large native card structure on iOS with
   bundled factories, including the 120×120pt video MediaView, header assets,
   optional body, AdChoices, developer colors and CTA. The iOS video test ad

@@ -7,7 +7,8 @@ Pod::Spec.new do |spec|
   spec.license          = { :file => '../LICENSE' }
   spec.author           = { 'AdMob Kit' => 'AmeerHamza-9902' }
   spec.source           = { :path => '.' }
-  spec.source_files     = 'Classes/**/*'
+  spec.source_files     = 'flutter_admob_kit/Sources/flutter_admob_kit/**/*.{h,m}'
+  spec.public_header_files = 'flutter_admob_kit/Sources/flutter_admob_kit/include/flutter_admob_kit/*.h'
   spec.dependency 'Flutter'
   spec.dependency 'google_mobile_ads'
   spec.platform = :ios, '13.0'

@@ -9,3 +9,7 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 pubspec.lock
+
+# Swift Package Manager
+**/.build/
+**/.swiftpm/

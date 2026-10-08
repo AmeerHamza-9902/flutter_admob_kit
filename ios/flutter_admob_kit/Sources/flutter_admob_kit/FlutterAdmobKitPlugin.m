@@ -1,7 +1,34 @@
-#import "FlutterAdmobKitPlugin.h"
+#import "./include/flutter_admob_kit/FlutterAdmobKitPlugin.h"
 
 #import <GoogleMobileAds/GoogleMobileAds.h>
-#import <google_mobile_ads/FLTGoogleMobileAdsPlugin.h>
+
+@protocol AdMobKitNativeAdFactory <NSObject>
+- (GADNativeAdView *)createNativeAd:(GADNativeAd *)nativeAd
+                      customOptions:(NSDictionary *)customOptions;
+@end
+
+static Class AdsPluginClass(void) {
+  return NSClassFromString(@"FLTGoogleMobileAdsPlugin");
+}
+
+static BOOL RegisterFactory(FlutterEngine *engine, NSString *factoryId,
+                            id<AdMobKitNativeAdFactory> factory) {
+  Class plugin = AdsPluginClass();
+  SEL selector = NSSelectorFromString(@"registerNativeAdFactory:factoryId:nativeAdFactory:");
+  if (![plugin respondsToSelector:selector]) return NO;
+  BOOL (*invoke)(id, SEL, id<FlutterPluginRegistry>, NSString *, id) =
+      (void *)[plugin methodForSelector:selector];
+  return invoke(plugin, selector, engine, factoryId, factory);
+}
+
+static void UnregisterFactory(FlutterEngine *engine, NSString *factoryId) {
+  Class plugin = AdsPluginClass();
+  SEL selector = NSSelectorFromString(@"unregisterNativeAdFactory:factoryId:");
+  if (![plugin respondsToSelector:selector]) return;
+  void (*invoke)(id, SEL, id<FlutterPluginRegistry>, NSString *) =
+      (void *)[plugin methodForSelector:selector];
+  invoke(plugin, selector, engine, factoryId);
+}
 
 static NSString *const kMediumFactoryId = @"flutter_admob_kit/medium_native";
 
@@ -39,7 +66,7 @@ static NSString *const kMediumFactoryId = @"flutter_admob_kit/medium_native";
 }
 @end
 
-@interface AdMobKitMediumNativeFactory : NSObject <FLTNativeAdFactory>
+@interface AdMobKitMediumNativeFactory : NSObject <AdMobKitNativeAdFactory>
 @end
 
 @implementation AdMobKitMediumNativeFactory
@@ -171,7 +198,7 @@ static void Add(UIView *child, UIView *parent) {
 }
 @end
 
-@interface AdMobKitBigNativeFactory : NSObject <FLTNativeAdFactory>
+@interface AdMobKitBigNativeFactory : NSObject <AdMobKitNativeAdFactory>
 @end
 
 @implementation AdMobKitBigNativeFactory
@@ -348,21 +375,19 @@ static void Add(UIView *child, UIView *parent) {
       [self.registrar.viewController isKindOfClass:FlutterViewController.class]
           ? (FlutterViewController *)self.registrar.viewController : nil;
   FlutterEngine *engine = controller.engine;
-  if (!engine || ![engine valuePublishedByPlugin:NSStringFromClass(FLTGoogleMobileAdsPlugin.class)]) {
+  if (!engine || ![engine valuePublishedByPlugin:@"FLTGoogleMobileAdsPlugin"]) {
     result([FlutterError errorWithCode:@"ads_plugin_missing"
                              message:@"Google Mobile Ads is unavailable on this engine."
                              details:nil]);
     return;
   }
   if (!self.ownsMediumFactory) {
-    self.ownsMediumFactory = [FLTGoogleMobileAdsPlugin
-        registerNativeAdFactory:engine factoryId:kMediumFactoryId
-               nativeAdFactory:[[AdMobKitMediumNativeFactory alloc] init]];
+    self.ownsMediumFactory = RegisterFactory(
+        engine, kMediumFactoryId, [[AdMobKitMediumNativeFactory alloc] init]);
   }
   if (!self.ownsBigFactory) {
-    self.ownsBigFactory = [FLTGoogleMobileAdsPlugin
-        registerNativeAdFactory:engine factoryId:@"flutter_admob_kit/big_native"
-               nativeAdFactory:[[AdMobKitBigNativeFactory alloc] init]];
+    self.ownsBigFactory = RegisterFactory(
+        engine, @"flutter_admob_kit/big_native", [[AdMobKitBigNativeFactory alloc] init]);
   }
   if (self.ownsMediumFactory && self.ownsBigFactory) {
     self.engine = engine;
@@ -376,11 +401,10 @@ static void Add(UIView *child, UIView *parent) {
 
 - (void)dealloc {
   if (self.ownsMediumFactory && self.engine) {
-    [FLTGoogleMobileAdsPlugin unregisterNativeAdFactory:self.engine factoryId:kMediumFactoryId];
+    UnregisterFactory(self.engine, kMediumFactoryId);
   }
   if (self.ownsBigFactory && self.engine) {
-    [FLTGoogleMobileAdsPlugin unregisterNativeAdFactory:self.engine
-                                               factoryId:@"flutter_admob_kit/big_native"];
+    UnregisterFactory(self.engine, @"flutter_admob_kit/big_native");
   }
 }
 @end
