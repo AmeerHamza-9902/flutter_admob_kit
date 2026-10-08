@@ -114,7 +114,9 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
             }
         });
 
-        view.setAdChoicesView((AdChoicesView) view.findViewById(R.id.ad_choices_view));
+        AdChoicesView adChoices = view.findViewById(R.id.ad_choices_view);
+        view.setAdChoicesView(adChoices);
+        adChoices.bringToFront();
         view.setNativeAd(ad);
         return view;
     }

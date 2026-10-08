@@ -4,6 +4,8 @@
 
 - Align the iOS medium native badge and text/CTA spacing with the supplied
   120dp horizontal Android layout.
+- Keep the Android medium native AdChoices view above adjacent content when
+  the SDK populates its disclosure control.
 - Keep resume App Open suppressed when an external-flow scope starts after the
   background callback and finishes before the returning resume callback.
 
