@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Keep resume App Open suppressed when an external-flow scope starts after the
+  background callback and finishes before the returning resume callback.
+
 - Support `google_mobile_ads` 9.0.0 and 9.1.0. A fresh CocoaPods app using
   `use_frameworks!` builds with 9.0.0; 9.1.0 has an upstream non-modular
   header regression in that configuration. Android and Swift Package Manager

@@ -35,6 +35,7 @@ class LifecycleManager with WidgetsBindingObserver {
   bool _wasInBackground = false;
   bool _backgroundCycleStarted = false;
   bool _backgroundCycleSuppressed = false;
+  int _suppressionGenerationAtBackground = 0;
   bool _presentationSyncScheduled = false;
   int _lastPresentation;
 
@@ -71,6 +72,8 @@ class LifecycleManager with WidgetsBindingObserver {
         _backgroundCycleStarted = true;
         _wasInBackground = !interrupted;
         _backgroundCycleSuppressed = appOpenManager.isResumeSuppressed;
+        _suppressionGenerationAtBackground =
+            appOpenManager.resumeSuppressionGeneration;
       } else if (interrupted) {
         _wasInBackground = false;
       }
@@ -89,6 +92,9 @@ class LifecycleManager with WidgetsBindingObserver {
     final genuineResume =
         _wasInBackground &&
         !_backgroundCycleSuppressed &&
+        !appOpenManager.isResumeSuppressed &&
+        appOpenManager.resumeSuppressionGeneration ==
+            _suppressionGenerationAtBackground &&
         orchestrator.presentationGeneration == _lastPresentation;
     if (!genuineResume || !isEnabled) return false;
 

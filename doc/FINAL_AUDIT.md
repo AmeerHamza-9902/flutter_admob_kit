@@ -42,7 +42,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 190 tests passed. |
+| `flutter test --concurrency=1` | 191 tests passed. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |
 | Swift Package Manager iOS simulator build and launch | Passed; both native test ads rendered. |

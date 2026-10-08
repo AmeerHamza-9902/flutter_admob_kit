@@ -62,22 +62,25 @@ void main() {
       appOpen.dispose();
     });
 
-    test('notification shade inactive-resumed cycle does not show App Open', () {
-      final appOpen = _FakeAppOpenManager();
-      final lifecycle = LifecycleManager(
-        appOpenManager: appOpen,
-        isEnabled: true,
-      );
+    test(
+      'notification shade inactive-resumed cycle does not show App Open',
+      () {
+        final appOpen = _FakeAppOpenManager();
+        final lifecycle = LifecycleManager(
+          appOpenManager: appOpen,
+          isEnabled: true,
+        );
 
-      lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
-      expect(appOpen.showCallCount, 0);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.inactive);
+        expect(appOpen.showCallCount, 0);
 
-      lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
-      expect(appOpen.showCallCount, 0);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        expect(appOpen.showCallCount, 0);
 
-      lifecycle.dispose();
-      appOpen.dispose();
-    });
+        lifecycle.dispose();
+        appOpen.dispose();
+      },
+    );
 
     test('external camera or gallery cycle suppresses App Open', () {
       final appOpen = _FakeAppOpenManager();
@@ -92,6 +95,27 @@ void main() {
       lifecycle.dispose();
       appOpen.dispose();
     });
+
+    test(
+      'suppression started after pause covers only that background cycle',
+      () {
+        final appOpen = _FakeAppOpenManager();
+        final lifecycle = LifecycleManager(appOpenManager: appOpen);
+
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+        appOpen.enterResumeSuppression();
+        appOpen.leaveResumeSuppression();
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        expect(appOpen.showCallCount, 0);
+
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.paused);
+        lifecycle.didChangeAppLifecycleState(AppLifecycleState.resumed);
+        expect(appOpen.showCallCount, 1);
+
+        lifecycle.dispose();
+        appOpen.dispose();
+      },
+    );
 
     test('inactive waits until the app is active before presenting', () {
       final appOpen = _FakeAppOpenManager();

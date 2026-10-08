@@ -105,7 +105,7 @@ the device procedure above and production measurement over a meaningful cohort.
 
 | Check | Result |
 | --- | --- |
-| `flutter test --concurrency=1` | 190 automated tests passed (fake SDK callbacks and widget tests). |
+| `flutter test --concurrency=1` | 191 automated tests passed (fake SDK callbacks and widget tests). |
 | `flutter analyze` | No issues found. |
 | `flutter build apk --debug` in `example/` | Android APK built. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | iOS simulator app built; this does not verify production ad delivery. |

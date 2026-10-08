@@ -17,7 +17,8 @@
 6. If no ad is ready, the user continues without blocking and the manager starts the next preload in the foreground.
 7. Camera, gallery, file picker, and permission requests can run through
    `AdMobKit.appOpen.runWithResumeSuppressed`, which suppresses that external
-   lifecycle cycle even if its future completes just before `resumed`.
+   lifecycle cycle even if its future completes just before `resumed`. A scope
+   started after the first background callback also suppresses that cycle.
 
 ## Callback behavior
 
@@ -41,4 +42,4 @@ The library already re-primes App Open after dismissal. The consuming app explic
 - [x] Android test mode uses Google's current App Open demo unit (`9257395921`).
 - [x] Notification shade and other `inactive`-only UI do not show App Open.
 - [x] Scoped external camera, gallery, picker, and permission flows suppress
-  their resume cycle.
+  their resume cycle, including scopes started after the first pause callback.
