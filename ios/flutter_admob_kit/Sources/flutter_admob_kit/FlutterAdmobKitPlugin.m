@@ -118,7 +118,7 @@ static void Add(UIView *child, UIView *parent) {
   headline.text = nativeAd.headline;
   headline.textColor = ColorFromOption(options, @"primaryTextColor", 0xFF111827);
   headline.font = [UIFont boldSystemFontOfSize:13];
-  headline.numberOfLines = 3;
+  headline.numberOfLines = 1;
   headline.lineBreakMode = NSLineBreakByTruncatingTail;
   Add(headline, details);
   view.headlineView = headline;
