@@ -12,20 +12,16 @@ A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Conf
 
 ## Requirements and platform setup
 
-Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.0.0 <10.0.0`. Version 4.0.0 introduced breaking changes from 3.x; review the migration notes below. The current GitHub source is 4.0.1, which is not yet on pub.dev.
+Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.0.0 <10.0.0`. Version 4.0.0 introduced breaking changes from 3.x; review the migration notes below.
 
-For the current GitHub version:
+For version 4.0.1:
 
 ```yaml
 dependencies:
-  flutter_admob_kit:
-    git:
-      url: https://github.com/AmeerHamza-9902/flutter_admob_kit.git
-      ref: main
+  flutter_admob_kit: ^4.0.1
 ```
 
-The published 4.0.0 release remains available as `flutter_admob_kit: ^4.0.0`.
-Run `flutter pub get` after adding either dependency.
+Run `flutter pub get` after adding the dependency.
 
 This repository contains a Dart package and an Android/iOS example host using official Google test app IDs. Configure your own consuming application as follows. In your application's `android/app/src/main/AndroidManifest.xml`, add your **app ID** inside `<application>`:
 
@@ -189,11 +185,10 @@ await AdMobKit.appOpen.show(true); // Optional manual opportunity.
 
 Place App Open opportunities around loading/return experiences, following [Google's placement guidance](https://developers.google.com/admob/flutter/app-open). The SDK cannot determine whether every host screen is an appropriate ad placement.
 
-## Native layout update on GitHub
+## Native layout update in 4.0.1
 
-The layout changes below are in the unreleased 4.0.1 GitHub source. The
-published 4.0.0 package is unchanged. After switching to the Git dependency
-above, rebuild the native app; hot reload is insufficient.
+After upgrading from 4.0.0, rebuild the native app to use the updated bundled
+layouts; hot reload is insufficient for native code changes.
 
 ## Banner and native placements
 

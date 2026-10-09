@@ -1,6 +1,6 @@
 # Technical audit
 
-Updated 8 October 2026 for the unreleased package version 4.0.1. This document records
+Updated 9 October 2026 for package version 4.0.1. This document records
 verified behavior and remaining validation work; it does not predict AdMob
 match rate, impressions, CTR, or revenue.
 
@@ -51,7 +51,8 @@ not establish production fill or performance.
 | Fresh consumer app: iOS CocoaPods with generated `use_frameworks!` | Failed on `google_mobile_ads` 9.1.0 at `GoogleMobileAds_Beta.h`; static linkage did not help. Passed with a host-side 9.0.0 pin and the generated `use_frameworks!` retained. The package supports both versions to avoid conflicts with existing projects. See [upstream issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472). |
 | Automated fresh-consumer smoke script | Passed locally for Android APK with 9.1.0, iOS CocoaPods with a direct 9.0.0 host pin, and iOS Swift Package Manager with 9.1.0; CI runs all three. |
 | Fresh iOS CocoaPods consumer after medium native spacing alignment | Passed with the supported 9.0.0 host pin. |
-| `flutter pub publish --dry-run` | Zero warnings; no publication performed. |
+| `flutter pub publish --dry-run` | Zero warnings before publication. |
+| [GitHub Actions run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37937023336) for commit `50e0429` | Android, iOS CocoaPods, and iOS Swift Package Manager jobs all passed. |
 
 Tests use fake SDK callbacks for lifecycle, request ownership, consent and
 cache behavior. Device smoke checks show only sample rendering. Real-device

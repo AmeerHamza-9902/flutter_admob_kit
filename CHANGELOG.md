@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.1 (unreleased)
+## 4.0.1
 
 - Keep repository-only tests and smoke tools out of the pub.dev archive while
   retaining linked documentation and the runnable example.
