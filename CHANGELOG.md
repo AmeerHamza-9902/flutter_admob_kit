@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 5.0.0-dev.1 (unreleased)
 
+- Remove the public `autoPreload` initialization switch. Production
+  initialization now always manages preload internally; use the annotated
+  `initializeForTesting` entry point only in tests that need isolated requests.
 - Preserve SDK error details for library-owned banner and native preload failures,
   and distinguish unanswered requests with a `load_timeout` reason.
 - Report native template registration failures as local `skipped` events before

@@ -34,7 +34,7 @@ void main() {
     test('initializes cleanly and idempotently', () async {
       expect(AdMobKit.isInitialized, isFalse);
 
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(
           enableUmpConsent: false,
           android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -46,7 +46,7 @@ void main() {
       expect(AdMobKit.config.interstitialId, 'ca-app-pub-test/111');
 
       // Calling initialize a second time must NOT throw and must not duplicate state
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(
           enableUmpConsent: false,
           android: AdPlatformConfig(interstitial: 'ca-app-pub-test/222'),
@@ -70,7 +70,6 @@ void main() {
               appOpen: 'ca-app-pub-test/333',
             ),
           ),
-          autoPreload: true,
         );
 
         expect(AdMobKit.isInitialized, isTrue);
@@ -79,7 +78,7 @@ void main() {
     );
 
     test('show(false) returns false without presenting or loading', () async {
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(
           enableUmpConsent: false,
           android: AdPlatformConfig(
@@ -106,14 +105,14 @@ void main() {
       () async {
         expect(AdMobKit.isInitialized, isFalse);
 
-        final f1 = AdMobKit.initialize(
+        final f1 = AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
           ),
           autoPreload: false,
         );
-        final f2 = AdMobKit.initialize(
+        final f2 = AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -132,7 +131,7 @@ void main() {
     test(
       'updateConfig invalidates ad managers when ad unit IDs change',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-old/111'),
@@ -164,7 +163,7 @@ void main() {
 
         // First attempt fails
         await expectLater(
-          AdMobKit.initialize(
+          AdMobKit.initializeForTesting(
             config: const AdMobConfig(
               enableUmpConsent: false,
               android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -180,7 +179,7 @@ void main() {
         AdMobKit.testHookBeforeInit = null;
 
         // Retry must succeed cleanly
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -195,7 +194,7 @@ void main() {
     test(
       'updateConfig with testMode true invalidates and switches to test IDs',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'prod/111'),
@@ -219,7 +218,7 @@ void main() {
     test(
       'setEntitled(true) suppresses preloading and clears cached state',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -240,7 +239,7 @@ void main() {
     );
 
     test('updateConfig cannot silently remove premium entitlement', () async {
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(enableUmpConsent: false),
         autoPreload: false,
       );

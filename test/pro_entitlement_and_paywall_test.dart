@@ -51,7 +51,6 @@ void main() {
               appOpen: 'ca-app-pub-test/333',
             ),
           ),
-          autoPreload: true,
         );
 
         // Entitlement preserved and no preloads executed
@@ -65,7 +64,7 @@ void main() {
     test(
       'Pro after initialization: setEntitled(true) invalidates cached ads',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(
@@ -96,7 +95,7 @@ void main() {
     test(
       'Pro show: interstitial.show(true) does nothing when entitled',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -115,7 +114,7 @@ void main() {
     test(
       'Pro rewarded: rewarded.show(true) does nothing when entitled',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(rewarded: 'ca-app-pub-test/222'),
@@ -140,7 +139,7 @@ void main() {
     test(
       'show(false) is a complete no-op for Interstitial and Rewarded',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(
@@ -166,7 +165,7 @@ void main() {
     );
 
     test('Pro lifecycle: App Open does not load or show on resume', () async {
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(
           enableUmpConsent: false,
           android: AdPlatformConfig(appOpen: 'ca-app-pub-test/333'),
@@ -201,7 +200,7 @@ void main() {
     test(
       'Premium -> Free user: setEntitled(false) restores ad behavior safely',
       () async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(interstitial: 'ca-app-pub-test/111'),
@@ -220,7 +219,7 @@ void main() {
     testWidgets(
       'Pro Banner & Native: widgets render SizedBox.shrink without requesting ads',
       (tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(
@@ -256,7 +255,7 @@ void main() {
     testWidgets(
       'uses central AdMobKit.interstitial and bypasses immediately when entitled',
       (tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(
@@ -295,7 +294,7 @@ void main() {
     testWidgets('never traps user if central interstitial is not ready', (
       tester,
     ) async {
-      await AdMobKit.initialize(
+      await AdMobKit.initializeForTesting(
         config: const AdMobConfig(
           enableUmpConsent: false,
           android: AdPlatformConfig(

@@ -58,7 +58,7 @@ void main() {
     await ConsentManager.instance.reset();
   });
   tearDown(AdMobKit.resetForTesting);
-  Future<void> initialize() => AdMobKit.initialize(
+  Future<void> initialize() => AdMobKit.initializeForTesting(
     config: const AdMobConfig(
       android: AdPlatformConfig(banner: 'banner-1', native: 'native-1'),
     ),
@@ -1075,7 +1075,7 @@ void main() {
   testWidgets('default initialization warms library-owned inline ads', (
     tester,
   ) async {
-    await AdMobKit.initialize(
+    await AdMobKit.initializeForTesting(
       config: const AdMobConfig(
         android: AdPlatformConfig(banner: 'banner-1', native: 'native-1'),
       ),

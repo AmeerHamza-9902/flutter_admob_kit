@@ -14,7 +14,7 @@ A lightweight Flutter wrapper around Google Mobile Ads for Android and iOS. Conf
 
 Use Flutter **3.38.1+**, Dart **3.10+**, and `google_mobile_ads >=9.0.0 <10.0.0`. Version 4.0.0 introduced breaking changes from 3.x; review the migration notes below.
 
-For version 4.0.1:
+For the published 4.0.1 release:
 
 ```yaml
 dependencies:
@@ -22,6 +22,12 @@ dependencies:
 ```
 
 Run `flutter pub get` after adding the dependency.
+
+The GitHub `main` branch is an unreleased `5.0.0-dev.1` preview. Its
+`AdMobKit.initialize()` always manages preload internally; the 4.x
+`autoPreload` option has been removed. The test-only
+`initializeForTesting()` entry point is not for production apps. This preview
+has **not** been published to pub.dev.
 
 This repository contains a Dart package and an Android/iOS example host using official Google test app IDs. Configure your own consuming application as follows. In your application's `android/app/src/main/AndroidManifest.xml`, add your **app ID** inside `<application>`:
 
@@ -324,6 +330,12 @@ Verified with Flutter 3.44.1 and Dart 3.12.1: 194 automated tests passed locally
 - Medium rectangles no longer scale their native creative.
 - Use the central facade rather than constructing independent managers for the same unit.
 - Removed the unused `AdMobKit.instance` alias and ignored `PaywallCloseGuard.adUnitId` parameter; use static APIs and central configuration.
+
+## Migration from 4.x to the unreleased 5.0 preview
+
+- Remove `autoPreload:` from `AdMobKit.initialize(...)` calls. The library now
+  owns automatic preload in production. Tests that intentionally disable
+  preload can use `AdMobKit.initializeForTesting(autoPreload: false)`.
 
 ## License
 

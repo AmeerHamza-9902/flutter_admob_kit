@@ -1,6 +1,6 @@
 # Technical audit
 
-Updated 9 October 2026 for package version 4.0.1. This document records
+Updated 9 October 2026 for the unreleased 5.0.0-dev.1 source. This document records
 verified behavior and remaining validation work; it does not predict AdMob
 match rate, impressions, CTR, or revenue.
 

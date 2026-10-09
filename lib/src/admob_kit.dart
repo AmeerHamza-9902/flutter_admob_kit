@@ -94,7 +94,7 @@ class AdMobKit {
   ///
   /// Registering the same placement twice reuses its cache. Changing its unit
   /// IDs invalidates the old cache and starts one replacement when eligible.
-  /// With autoPreload enabled, the library preloads registered placements.
+  /// The library preloads registered placements when they are eligible.
   static void registerFullscreenPlacements(
     Iterable<FullscreenPlacement> placements,
   ) {
@@ -158,6 +158,23 @@ class AdMobKit {
   /// the same initialization future and will not duplicate SDK initialization,
   /// lifecycle observers, or network requests.
   static Future<void> initialize({
+    AdMobConfig? config,
+    ConsentRequestParameters? consentParameters,
+  }) => _initialize(config: config, consentParameters: consentParameters);
+
+  /// Test-only entry point for isolating ad requests in unit tests.
+  @visibleForTesting
+  static Future<void> initializeForTesting({
+    AdMobConfig? config,
+    bool autoPreload = true,
+    ConsentRequestParameters? consentParameters,
+  }) => _initialize(
+    config: config,
+    autoPreload: autoPreload,
+    consentParameters: consentParameters,
+  );
+
+  static Future<void> _initialize({
     AdMobConfig? config,
     bool autoPreload = true,
     ConsentRequestParameters? consentParameters,

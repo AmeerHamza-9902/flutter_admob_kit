@@ -45,7 +45,7 @@ void main() {
     testWidgets(
       'BannerAdWidget reloads when banner ad unit id changes in updateConfig',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(banner: 'banner-id-1'),
@@ -77,7 +77,7 @@ void main() {
     testWidgets(
       'BannerAdWidget reloads when testMode is enabled in updateConfig',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(banner: 'prod-banner-id'),
@@ -106,7 +106,7 @@ void main() {
     testWidgets(
       'BannerAdWidget collapses and disposes when setEntitled(true)',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(banner: 'banner-id'),
@@ -132,7 +132,7 @@ void main() {
     testWidgets(
       'NativeAdWidget reloads when native ad unit id changes in updateConfig',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(native: 'native-id-1'),
@@ -161,7 +161,7 @@ void main() {
     testWidgets(
       'NativeAdWidget reloads when testMode is enabled in updateConfig',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(native: 'prod-native-id'),
@@ -190,7 +190,7 @@ void main() {
     testWidgets(
       'NativeAdWidget collapses and disposes when setEntitled(true)',
       (WidgetTester tester) async {
-        await AdMobKit.initialize(
+        await AdMobKit.initializeForTesting(
           config: const AdMobConfig(
             enableUmpConsent: false,
             android: AdPlatformConfig(native: 'native-id'),
