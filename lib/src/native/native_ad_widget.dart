@@ -311,10 +311,20 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     if (customTemplate) {
       try {
         await _templates.invokeMethod<void>('ensureRegistered');
-      } catch (_) {
+      } catch (error) {
         if (!mounted || gen != _loadGeneration || !AdMobKit.canRequestAds) {
           return;
         }
+        AdMobKit.reportEvent(
+          AdEvent(
+            format: AdFormat.native,
+            type: AdEventType.skipped,
+            timestamp: DateTime.now(),
+            adUnitId: unitId,
+            reason: 'factory_registration_failed',
+            errorMessage: '$error',
+          ),
+        );
         setState(() => _hasFailed = true);
         widget.onAdFailed?.call();
         return;

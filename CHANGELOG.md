@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Preserve SDK error details for library-owned banner and native preload failures,
+  and distinguish unanswered requests with a `load_timeout` reason.
+- Report native template registration failures as local `skipped` events before
+  an ad request is made, so host apps can diagnose a missing platform factory.
+- Update native widget keep-alive state when its setting changes at runtime.
+
 ## 4.0.1
 
 - Keep repository-only tests and smoke tools out of the pub.dev archive while

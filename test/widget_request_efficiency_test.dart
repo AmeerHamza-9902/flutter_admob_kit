@@ -126,6 +126,42 @@ void main() {
     AdMobKit.removeEventListener(onEvent);
   });
 
+  testWidgets('native factory registration failure explains the skipped ad', (
+    tester,
+  ) async {
+    await initialize();
+    final skipped = <AdEvent>[];
+    void onEvent(AdEvent value) {
+      if (value.type == AdEventType.skipped) skipped.add(value);
+    }
+
+    AdMobKit.addEventListener(onEvent);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(
+          const MethodChannel('flutter_admob_kit/native_templates'),
+          (_) async => throw PlatformException(
+            code: 'missing_factory',
+            message: 'factory unavailable',
+          ),
+        );
+    final controller = NativePreloadController();
+    expect(await controller.preloadBigNative(), isFalse);
+    expect(loads('Native'), isEmpty);
+    expect(skipped, hasLength(1));
+    expect(skipped.single.reason, 'factory_registration_failed');
+    expect(skipped.single.errorMessage, contains('factory unavailable'));
+    controller.dispose();
+    skipped.clear();
+    await tester.pumpWidget(
+      const MaterialApp(home: NativeAdWidget.bigNative(showShimmer: false)),
+    );
+    await tester.pump();
+    expect(skipped, hasLength(1));
+    expect(skipped.single.reason, 'factory_registration_failed');
+    expect(loads('Native'), isEmpty);
+    AdMobKit.removeEventListener(onEvent);
+  });
+
   testWidgets('forwards banner and native SDK paid events with exact units', (
     tester,
   ) async {

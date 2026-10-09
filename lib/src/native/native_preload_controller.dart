@@ -74,7 +74,19 @@ class NativePreloadController {
     if (customTemplate) {
       try {
         await _templates.invokeMethod<void>('ensureRegistered');
-      } catch (_) {
+      } catch (error) {
+        if (entry.valid && AdMobKit.canRequestAds) {
+          AdMobKit.reportEvent(
+            AdEvent(
+              format: AdFormat.native,
+              type: AdEventType.skipped,
+              timestamp: DateTime.now(),
+              adUnitId: unit,
+              reason: 'factory_registration_failed',
+              errorMessage: '$error',
+            ),
+          );
+        }
         if (identical(_pending, entry)) clear();
         return false;
       }
