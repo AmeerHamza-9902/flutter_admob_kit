@@ -27,7 +27,16 @@ jobs:
           ! grep -q 'warning:' "$RUNNER_TEMP/dartdoc.log"
       - run: flutter test --concurrency=1
       - run: flutter pub publish --dry-run
-      - run: flutter build apk --debug
+      - name: Build Android example APK
+        run: |
+          flutter build apk --debug > "$RUNNER_TEMP/android-build.log" 2>&1 && {
+            cat "$RUNNER_TEMP/android-build.log"
+            exit 0
+          }
+          cat "$RUNNER_TEMP/android-build.log"
+          summary="$(tail -n 80 "$RUNNER_TEMP/android-build.log" | sed -e 's/%/%25/g' -e 's/\r/%0D/g' | awk '{ printf "%s%%0A", $0 }')"
+          printf '::error title=Android APK build failure::%s\n' "$summary"
+          exit 1
         working-directory: example
       - run: bash tool/smoke_consumer.sh android
 
