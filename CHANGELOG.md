@@ -2,6 +2,8 @@
 
 ## 4.0.1 (unreleased)
 
+- Keep repository-only tests and smoke tools out of the pub.dev archive while
+  retaining linked documentation and the runnable example.
 - Show the example app's first Flutter frame before waiting for consent and ad
   SDK initialization, and document this startup order for consuming apps.
 - Disable the example's fullscreen ad and paywall actions until their managers

@@ -1,0 +1,14 @@
+# Keep local build output out of the published package.
+**/.DS_Store
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+**/.build/
+**/.swiftpm/
+
+# Repository-only verification tools and tests.
+/test/
+/tool/
