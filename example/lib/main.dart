@@ -13,7 +13,6 @@ void main() async {
       testMode: true,
     ),
   );
-
 }
 
 class MyApp extends StatelessWidget {
@@ -39,6 +38,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _coins = 0;
   bool _isEntitled = false;
+
+  bool get _adsReady => AdMobKit.canRequestAds;
+
+  @override
+  void initState() {
+    super.initState();
+    AdMobKit.configNotifier.addListener(_onAdStateChanged);
+  }
+
+  void _onAdStateChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AdMobKit.configNotifier.removeListener(_onAdStateChanged);
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,95 +113,105 @@ class _HomeScreenState extends State<HomeScreen> {
                 ElevatedButton.icon(
                   icon: const Icon(Icons.fullscreen),
                   label: const Text('Show Interstitial (show: true)'),
-                  onPressed: () async {
-                    const bool shouldShow = true;
-                    final shown = await AdMobKit.interstitial.show(shouldShow);
-                    debugPrint('Interstitial was shown: $shown');
-                  },
+                  onPressed: !_adsReady
+                      ? null
+                      : () async {
+                          const bool shouldShow = true;
+                          final shown = await AdMobKit.interstitial.show(
+                            shouldShow,
+                          );
+                          debugPrint('Interstitial was shown: $shown');
+                        },
                 ),
                 const SizedBox(height: 8),
 
                 OutlinedButton.icon(
                   icon: const Icon(Icons.block),
                   label: const Text('Show Interstitial (show: false)'),
-                  onPressed: () async {
-                    final shown = await AdMobKit.interstitial.show(false);
-                    debugPrint('Interstitial was shown: $shown');
-                  },
+                  onPressed: !_adsReady
+                      ? null
+                      : () async {
+                          final shown = await AdMobKit.interstitial.show(false);
+                          debugPrint('Interstitial was shown: $shown');
+                        },
                 ),
                 const SizedBox(height: 12),
 
                 ElevatedButton.icon(
                   icon: const Icon(Icons.card_giftcard),
                   label: const Text('Show Rewarded Ad (+10 Coins)'),
-                  onPressed: () async {
-                    await AdMobKit.rewarded.show(
-                      true,
-                      onReward: (reward) {
-                        if (!mounted) return;
-                        setState(() {
-                          _coins += reward.amount.toInt();
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Earned ${reward.amount} ${reward.type}!',
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+                  onPressed: !_adsReady
+                      ? null
+                      : () async {
+                          await AdMobKit.rewarded.show(
+                            true,
+                            onReward: (reward) {
+                              if (!mounted) return;
+                              setState(() {
+                                _coins += reward.amount.toInt();
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Earned ${reward.amount} ${reward.type}!',
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
                 ),
                 const SizedBox(height: 12),
 
                 ElevatedButton.icon(
                   icon: const Icon(Icons.lock_outline),
                   label: const Text('Open Paywall (Close Guard)'),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => PaywallCloseGuard(
-                          onDismiss: () => Navigator.of(context).pop(),
-                          child: Builder(
-                            builder: (paywallContext) => Scaffold(
-                              appBar: AppBar(
-                                title: const Text('Upgrade to Pro'),
-                              ),
-                              body: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(
-                                      Icons.workspace_premium,
-                                      size: 80,
-                                      color: Colors.amber,
+                  onPressed: !AdMobKit.isInitialized
+                      ? null
+                      : () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => PaywallCloseGuard(
+                                onDismiss: () => Navigator.of(context).pop(),
+                                child: Builder(
+                                  builder: (paywallContext) => Scaffold(
+                                    appBar: AppBar(
+                                      title: const Text('Upgrade to Pro'),
                                     ),
-                                    const SizedBox(height: 16),
-                                    const Text(
-                                      'Unlock All Features',
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
+                                    body: Center(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(
+                                            Icons.workspace_premium,
+                                            size: 80,
+                                            color: Colors.amber,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          const Text(
+                                            'Unlock All Features',
+                                            style: TextStyle(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 24),
+                                          ElevatedButton(
+                                            onPressed: () =>
+                                                PaywallCloseGuard.dismiss(
+                                                  paywallContext,
+                                                ),
+                                            child: const Text('Close Paywall'),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    const SizedBox(height: 24),
-                                    ElevatedButton(
-                                      onPressed: () =>
-                                          PaywallCloseGuard.dismiss(
-                                            paywallContext,
-                                          ),
-                                      child: const Text('Close Paywall'),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+                          );
+                        },
                 ),
                 const SizedBox(height: 24),
 

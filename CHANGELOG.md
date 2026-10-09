@@ -4,6 +4,9 @@
 
 - Show the example app's first Flutter frame before waiting for consent and ad
   SDK initialization, and document this startup order for consuming apps.
+- Disable the example's fullscreen ad and paywall actions until their managers
+  are initialized, so early taps during consent cannot access an unavailable
+  manager.
 - Align the iOS medium native badge and text/CTA spacing with the supplied
   120dp horizontal Android layout.
 - Keep the Android medium native AdChoices view above adjacent content when
