@@ -171,6 +171,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   @override
   void didUpdateWidget(covariant NativeAdWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.keepAlive != widget.keepAlive) updateKeepAlive();
     if (oldWidget.adUnitId != widget.adUnitId ||
         oldWidget.template != widget.template ||
         oldWidget.style != widget.style) {

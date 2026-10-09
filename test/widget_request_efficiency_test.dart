@@ -1042,6 +1042,41 @@ void main() {
     AdMobKit.resetForTesting();
   });
 
+  testWidgets('native keepAlive change releases an offscreen row', (
+    tester,
+  ) async {
+    await initialize();
+    var keepAlive = true;
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return ListView.builder(
+              itemExtent: 200,
+              itemCount: 20,
+              itemBuilder: (context, index) => index == 0
+                  ? NativeAdWidget.mediumNative(
+                      keepAlive: keepAlive,
+                      showShimmer: false,
+                    )
+                  : Text('Row $index'),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(NativeAdWidget), findsOneWidget);
+
+    rebuild(() => keepAlive = false);
+    await tester.pump();
+    await tester.drag(find.byType(ListView), const Offset(0, -1200));
+    await tester.pumpAndSettle();
+    expect(find.byType(NativeAdWidget, skipOffstage: false), findsNothing);
+  });
+
   testWidgets('expired library cache controllers release their listeners', (
     tester,
   ) async {
