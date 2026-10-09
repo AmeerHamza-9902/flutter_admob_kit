@@ -42,7 +42,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 191 tests passed. |
+| `flutter test --concurrency=1` | 192 tests passed. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |
@@ -52,7 +52,7 @@ not establish production fill or performance.
 | Automated fresh-consumer smoke script | Passed locally for Android APK with 9.1.0, iOS CocoaPods with a direct 9.0.0 host pin, and iOS Swift Package Manager with 9.1.0; CI runs all three. |
 | Fresh iOS CocoaPods consumer after medium native spacing alignment | Passed with the supported 9.0.0 host pin. |
 | `flutter pub publish --dry-run` | Zero warnings before publication. |
-| [GitHub Actions run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37937023336) for commit `50e0429` | Android, iOS CocoaPods, and iOS Swift Package Manager jobs all passed. |
+| [GitHub Actions run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37953490655) for commit `20ba7ae` | Android, iOS CocoaPods, and iOS Swift Package Manager jobs all passed, including fresh-consumer smoke checks. |
 
 Tests use fake SDK callbacks for lifecycle, request ownership, consent and
 cache behavior. Device smoke checks show only sample rendering. Real-device
