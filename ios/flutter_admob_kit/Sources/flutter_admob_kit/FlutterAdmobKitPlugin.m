@@ -93,7 +93,8 @@ static void Add(UIView *child, UIView *parent) {
   CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
       ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
   view.layer.cornerRadius = radius;
-  view.clipsToBounds = YES;
+  // The supplied horizontal template keeps its 120pt media edge square.
+  view.clipsToBounds = NO;
 
   GADMediaView *media = [[GADMediaView alloc] init];
   media.contentMode = UIViewContentModeScaleAspectFit;
