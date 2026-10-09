@@ -2,6 +2,9 @@
 
 ## 5.0.0-dev.1 (unreleased)
 
+- Re-evaluate Android big-native body visibility when card width changes, and
+  let the iOS big-native details area grow beyond its 95pt minimum when extra
+  height is available while preserving the media minimum.
 - Remove the public `autoPreload` initialization switch. Production
   initialization now always manages preload internally; use the annotated
   `initializeForTesting` entry point only in tests that need isolated requests.

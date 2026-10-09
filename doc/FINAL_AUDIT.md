@@ -32,6 +32,9 @@ store assets when present, AdChoices, and a CTA. `mediumNative` defaults to
 clamped to preserve the video media minimum. Background, text, CTA colors and
 the default 10dp/pt CTA/card radius can be overridden. The compact `small`
 variant uses Google's official template.
+The large card re-evaluates optional copy after a width or height change; on
+iOS its details area can grow beyond 95pt when the developer supplies more
+height, while the media stays at least 120pt.
 
 The iOS sample ran with Google test native ads and AdMob Native Validator
 reported no implementation issues for both bundled layouts. That check does

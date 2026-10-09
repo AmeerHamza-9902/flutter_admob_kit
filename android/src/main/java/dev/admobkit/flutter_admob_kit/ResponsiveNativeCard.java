@@ -9,6 +9,7 @@ import android.widget.TextView;
 
 /** Allocates spare height to media while preserving required headline copy. */
 public final class ResponsiveNativeCard extends LinearLayout {
+    private int lastAvailableWidth = -1;
     private int lastAvailableHeight = -1;
 
     public ResponsiveNativeCard(Context context, AttributeSet attrs) {
@@ -22,10 +23,13 @@ public final class ResponsiveNativeCard extends LinearLayout {
         View media = findViewById(R.id.ad_media_container);
         headline.setMaxLines(3);
         body.setMaxLines(2);
+        int width = MeasureSpec.getSize(widthSpec);
         int available = MeasureSpec.getSize(heightSpec);
-        if (available != lastAvailableHeight && body.getText().length() > 0) {
+        if ((width != lastAvailableWidth || available != lastAvailableHeight)
+                && body.getText().length() > 0) {
             body.setVisibility(View.VISIBLE);
         }
+        lastAvailableWidth = width;
         lastAvailableHeight = available;
         super.onMeasure(widthSpec, heightSpec);
         if (MeasureSpec.getMode(heightSpec) == MeasureSpec.UNSPECIFIED

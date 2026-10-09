@@ -300,6 +300,9 @@ static void Add(UIView *child, UIView *parent) {
   Add(adChoices, view);
   view.adChoicesView = adChoices;
 
+  NSLayoutConstraint *preferredDetailsHeight =
+      [details.heightAnchor constraintEqualToConstant:95];
+  preferredDetailsHeight.priority = UILayoutPriorityDefaultLow;
   [NSLayoutConstraint activateConstraints:@[
     [media.topAnchor constraintEqualToAnchor:view.topAnchor constant:5],
     [media.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:12],
@@ -308,7 +311,8 @@ static void Add(UIView *child, UIView *parent) {
     [media.heightAnchor constraintGreaterThanOrEqualToConstant:120],
     [details.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:12],
     [details.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-12],
-    [details.heightAnchor constraintEqualToConstant:95],
+    [details.heightAnchor constraintGreaterThanOrEqualToConstant:95],
+    preferredDetailsHeight,
     [details.bottomAnchor constraintEqualToAnchor:cta.topAnchor constant:-3],
     [icon.leadingAnchor constraintEqualToAnchor:details.leadingAnchor],
     [icon.topAnchor constraintEqualToAnchor:details.topAnchor],
