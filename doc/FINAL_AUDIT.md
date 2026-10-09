@@ -42,7 +42,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 192 tests passed. |
+| `flutter test --concurrency=1` | 193 tests passed locally, including inline preload SDK error diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |

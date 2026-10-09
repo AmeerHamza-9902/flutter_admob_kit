@@ -89,6 +89,43 @@ void main() {
     await done.future;
   }
 
+  testWidgets('inline preload failures retain SDK diagnostics', (tester) async {
+    await initialize();
+    final failures = <AdEvent>[];
+    void onEvent(AdEvent value) {
+      if (value.type == AdEventType.loadFailed) failures.add(value);
+    }
+
+    AdMobKit.addEventListener(onEvent);
+    final banner = BannerPreloadController();
+    final bannerLoad = banner.preloadLarge();
+    await tester.pump();
+    final bannerId = loads('Banner').single.arguments['adId'] as int;
+    await event(
+      bannerId,
+      'onAdFailedToLoad',
+      error: LoadAdError(2, 'network', 'offline', null),
+    );
+    expect(await bannerLoad, isFalse);
+
+    final native = NativePreloadController();
+    final nativeLoad = native.preloadBigNative();
+    await tester.pump();
+    final nativeId = loads('Native').single.arguments['adId'] as int;
+    await event(
+      nativeId,
+      'onAdFailedToLoad',
+      error: LoadAdError(3, 'network', 'no fill', null),
+    );
+    expect(await nativeLoad, isFalse);
+    expect(failures, hasLength(2));
+    expect(failures[0].errorMessage, contains('offline'));
+    expect(failures[1].errorMessage, contains('no fill'));
+    banner.dispose();
+    native.dispose();
+    AdMobKit.removeEventListener(onEvent);
+  });
+
   testWidgets('forwards banner and native SDK paid events with exact units', (
     tester,
   ) async {

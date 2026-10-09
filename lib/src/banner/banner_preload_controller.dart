@@ -59,7 +59,7 @@ class BannerPreloadController {
     clear();
     final entry = _PendingBanner(size, unit, AdMobKit.config.testMode);
     _pending = entry;
-    void fail() {
+    void fail({String? errorMessage, String? reason}) {
       if (!entry.valid) return;
       AdMobKit.reportEvent(
         AdEvent(
@@ -67,6 +67,8 @@ class BannerPreloadController {
           type: entry.loaded ? AdEventType.expired : AdEventType.loadFailed,
           timestamp: DateTime.now(),
           adUnitId: unit,
+          errorMessage: errorMessage,
+          reason: reason,
         ),
       );
       if (!entry.ready.isCompleted) entry.ready.complete(null);
@@ -138,7 +140,7 @@ class BannerPreloadController {
               actual == null ||
               actual.width <= 0 ||
               actual.height <= 0) {
-            fail();
+            fail(reason: 'invalid_platform_size');
             return;
           }
           entry.actualSize = actual;
@@ -147,23 +149,29 @@ class BannerPreloadController {
           if (!entry.ready.isCompleted) entry.ready.complete(ad as BannerAd);
           entry.timer?.cancel();
           if (!entry.claimed) {
-            entry.timer = Timer(const Duration(minutes: 2), fail);
+            entry.timer = Timer(
+              const Duration(minutes: 2),
+              () => fail(reason: 'cache_expired'),
+            );
           }
         },
-        onAdFailedToLoad: (_, _) {
-          if (!entry.loaded) fail();
+        onAdFailedToLoad: (_, error) {
+          if (!entry.loaded) fail(errorMessage: '$error');
         },
         onAdImpression: (_) => report(AdEventType.impression),
         onAdClicked: (_) => report(AdEventType.clicked),
       ),
     );
     entry.ad = ad;
-    entry.timer = Timer(const Duration(minutes: 1), fail);
+    entry.timer = Timer(
+      const Duration(minutes: 1),
+      () => fail(reason: 'load_timeout'),
+    );
     report(AdEventType.request);
     try {
       await ad.load();
-    } catch (_) {
-      fail();
+    } catch (error) {
+      fail(errorMessage: '$error');
     }
     return await entry.ready.future != null;
   }
