@@ -36,13 +36,14 @@
             android:layout_alignParentEnd="true" />
 
         <RelativeLayout
+            android:id="@+id/ad_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_toEndOf="@id/ad_media_container"
             android:layout_marginStart="5dp">
 
             <LinearLayout
-                android:id="@+id/ad_title_row"
+                android:id="@+id/lyt1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -77,7 +78,7 @@
                 android:id="@+id/ad_advertiser"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_below="@id/ad_title_row"
+                android:layout_below="@id/lyt1"
                 android:layout_marginTop="1dp"
                 android:ellipsize="end"
                 android:maxLines="1"

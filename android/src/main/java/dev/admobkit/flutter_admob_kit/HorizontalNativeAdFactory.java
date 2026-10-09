@@ -38,7 +38,8 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
 
         View card = view.findViewById(R.id.ad_card);
         card.setBackground(rounded(background, radius));
-        card.setClipToOutline(true);
+        // Keep the media edge square, as in the supplied 120dp template.
+        card.setClipToOutline(false);
 
         View mediaContainer = view.findViewById(R.id.ad_media_container);
         MediaView media = view.findViewById(R.id.ad_media);
