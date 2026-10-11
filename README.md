@@ -210,9 +210,12 @@ const BannerAdWidget(size: AdSize.largeBanner); // Custom supported fixed size.
 const NativeAdWidget.small(); // Minimum height 90.
 const NativeAdWidget.mediumNative(); // Horizontal card; default height 128.
 const NativeAdWidget.bigNative(); // Large splash card; default height 280.
+const NativeAdWidget.fullScreen(); // Media overlay; screen height by default.
 ```
 
 ### Library-managed preload
+
+The default fullscreen native style is also warmed when a native ad unit is configured.
 
 Applications only place `BannerAdWidget` and `NativeAdWidget`; they do not create preload controllers or call `preload()`. After initialization and consent, the library warms one default `bigNative`, one default `mediumNative`, and one `large` banner when their ad unit IDs are configured. A widget takes the matching ready ad and the library prepares one replacement for a later visit. Each ad belongs to exactly one visible widget. An in-flight request is shared, so the widget shows its normal loading placeholder until the SDK responds.
 
@@ -225,7 +228,9 @@ and native loads are independent: initialization can also warm one large banner
 and one ad per default native template at the same time. This limit controls
 request scheduling, not AdMob fill or impression rates.
 
-Native templates default to a white background and a 10dp/pt CTA corner radius. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on both platforms. `mediumNative` is a horizontal card that defaults to 128dp: fixed 120×120dp media at the top left and headline, advertiser, optional body, AdChoices and CTA on the right. Both platforms use bundled layouts that keep the supplied media/header/CTA structure and developer colors. Optional body copy is hidden when the card cannot show its first 90 characters without truncation; the `bigNative` headline keeps up to three lines, while `mediumNative` keeps one line as supplied. Missing optional assets collapse cleanly. The compact `small` template still uses Google's official template.
+The card templates default to a white background and a 10dp/pt CTA corner radius. `bigNative` is the large splash card with full-width square-corner media, a 52dp icon, headline/body, AdChoices, optional SDK rating/store assets, and a full-width CTA. It defaults to 280 logical pixels on both platforms. `mediumNative` is a horizontal card that defaults to 128dp: fixed 120×120dp media at the top left and headline, advertiser, optional body, AdChoices and CTA on the right. Both platforms use bundled layouts that keep the supplied media/header/CTA structure and developer colors. Optional body copy is hidden when the card cannot show its first 90 characters without truncation; the `bigNative` headline keeps up to three lines, while `mediumNative` keeps one line as supplied. Missing optional assets collapse cleanly. The compact `small` template still uses Google's official template.
+
+`fullScreen` follows the supplied media-overlay design with top Ad badge and AdChoices, bottom icon/title/body, optional SDK rating and CTA. It uses black background, white text and a white CTA by default. Developers can override these colors and CTA radius. Keep the app's dismiss control outside the ad view and leave safe-area space so it cannot cover AdChoices or the CTA.
 
 Developers can override the same style properties:
 
@@ -242,6 +247,16 @@ const NativeAdWidget.mediumNative(
 );
 
 const NativeAdWidget.bigNative(style: NativeAdStyle(/* same options */));
+const NativeAdWidget.fullScreen(
+  style: NativeAdStyle.fullScreen(
+    backgroundColor: Colors.black,
+    primaryTextColor: Colors.white,
+    secondaryTextColor: Color(0xE0FFFFFF),
+    callToActionColor: Colors.orange,
+    callToActionTextColor: Colors.black,
+    cornerRadius: 10,
+  ),
+);
 ```
 
 `mediumNative(height: 130)` reserves exactly 130 logical pixels for both the

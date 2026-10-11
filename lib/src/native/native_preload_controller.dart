@@ -42,6 +42,15 @@ class NativePreloadController {
     style: style,
   );
 
+  Future<bool> preloadFullScreen({
+    String? adUnitId,
+    NativeAdStyle style = const NativeAdStyle.fullScreen(),
+  }) => preload(
+    template: NativeTemplate.fullScreen,
+    adUnitId: adUnitId,
+    style: style,
+  );
+
   Future<bool> preload({
     required NativeTemplate template,
     String? adUnitId,
@@ -140,9 +149,12 @@ class NativePreloadController {
           ? null
           : style.toGoogleTemplateStyle(template),
       factoryId: customTemplate
-          ? template == NativeTemplate.mediumNative
-                ? 'flutter_admob_kit/medium_native'
-                : 'flutter_admob_kit/big_native'
+          ? switch (template) {
+              NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
+              NativeTemplate.fullScreen =>
+                'flutter_admob_kit/fullscreen_native',
+              _ => 'flutter_admob_kit/big_native',
+            }
           : null,
       customOptions: customTemplate ? style.toNativeOptions() : null,
       request: const AdRequest(),

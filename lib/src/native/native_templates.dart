@@ -12,6 +12,9 @@ enum NativeTemplate {
   /// Large media/header/CTA card used for prominent placements such as splash.
   bigNative,
 
+  /// Edge-to-edge media with overlaid header, details, rating and CTA.
+  fullScreen,
+
   /// Compatibility alias for the former large `medium` template.
   @Deprecated('Use NativeTemplate.bigNative instead.')
   medium,
@@ -32,6 +35,16 @@ class NativeAdStyle {
     this.callToActionTextColor = Colors.white,
     this.primaryTextColor,
     this.secondaryTextColor,
+  });
+
+  /// Dark defaults for the fullscreen media-overlay design.
+  const NativeAdStyle.fullScreen({
+    this.backgroundColor = Colors.black,
+    this.cornerRadius = 10.0,
+    this.callToActionColor = Colors.white,
+    this.callToActionTextColor = Colors.black,
+    this.primaryTextColor = Colors.white,
+    this.secondaryTextColor = const Color(0xE0FFFFFF),
   });
 
   /// Main background color of the native ad card. Defaults to white.

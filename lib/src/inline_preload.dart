@@ -91,6 +91,11 @@ class InlinePreload {
       ]) {
         nativeCache(template, const NativeAdStyle(), nativeUnit);
       }
+      nativeCache(
+        NativeTemplate.fullScreen,
+        const NativeAdStyle.fullScreen(),
+        nativeUnit,
+      );
     }
     final bannerUnit = config.bannerId;
     if (bannerUnit != null && bannerUnit.isNotEmpty) {

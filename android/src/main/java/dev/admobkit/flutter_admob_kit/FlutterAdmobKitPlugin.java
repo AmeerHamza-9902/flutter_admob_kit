@@ -11,11 +11,13 @@ import io.flutter.plugins.googlemobileads.GoogleMobileAdsPlugin;
 public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel.MethodCallHandler {
     public static final String BIG_FACTORY_ID = "flutter_admob_kit/big_native";
     public static final String MEDIUM_FACTORY_ID = "flutter_admob_kit/medium_native";
+    public static final String FULLSCREEN_FACTORY_ID = "flutter_admob_kit/fullscreen_native";
     private FlutterEngine engine;
     private Context context;
     private MethodChannel channel;
     private boolean ownsBigFactory;
     private boolean ownsMediumFactory;
+    private boolean ownsFullscreenFactory;
 
     @Override
     @SuppressWarnings("deprecation")
@@ -44,7 +46,11 @@ public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel
             ownsMediumFactory = GoogleMobileAdsPlugin.registerNativeAdFactory(engine, MEDIUM_FACTORY_ID,
                 new HorizontalNativeAdFactory(context));
         }
-        if (ownsBigFactory && ownsMediumFactory) {
+        if (!ownsFullscreenFactory) {
+            ownsFullscreenFactory = GoogleMobileAdsPlugin.registerNativeAdFactory(engine, FULLSCREEN_FACTORY_ID,
+                new FullscreenNativeAdFactory(context));
+        }
+        if (ownsBigFactory && ownsMediumFactory && ownsFullscreenFactory) {
             result.success(null);
         } else {
             result.error("factory_conflict", "An AdMob Kit native factory ID is already registered.", null);
@@ -60,10 +66,14 @@ public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel
         if (engine != null && ownsMediumFactory) {
             GoogleMobileAdsPlugin.unregisterNativeAdFactory(engine, MEDIUM_FACTORY_ID);
         }
+        if (engine != null && ownsFullscreenFactory) {
+            GoogleMobileAdsPlugin.unregisterNativeAdFactory(engine, FULLSCREEN_FACTORY_ID);
+        }
         channel = null;
         engine = null;
         context = null;
         ownsBigFactory = false;
         ownsMediumFactory = false;
+        ownsFullscreenFactory = false;
     }
 }

@@ -268,6 +268,38 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('fullscreen native uses its factory, colors and bounded height', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            height: 540,
+            child: NativeAdWidget.fullScreen(
+              style: NativeAdStyle.fullScreen(
+                backgroundColor: Colors.indigo,
+                callToActionColor: Colors.orange,
+              ),
+              showShimmer: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final args = loads('Native').single.arguments as Map;
+    expect(args['factoryId'], 'flutter_admob_kit/fullscreen_native');
+    expect(args['customOptions']['backgroundColor'], Colors.indigo.toARGB32());
+    expect(
+      args['customOptions']['callToActionColor'],
+      Colors.orange.toARGB32(),
+    );
+    expect(tester.getSize(find.byType(NativeAdWidget)).height, 540);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
     'iOS bundled native cards keep developer style and media factory',
     (tester) async {
@@ -277,6 +309,7 @@ void main() {
       for (final template in [
         NativeTemplate.mediumNative,
         NativeTemplate.bigNative,
+        NativeTemplate.fullScreen,
       ]) {
         await tester.pumpWidget(
           MaterialApp(
@@ -284,6 +317,7 @@ void main() {
               child: NativeAdWidget(
                 template: template,
                 adUnitId: 'ios-native-test',
+                height: template == NativeTemplate.fullScreen ? 280 : null,
                 style: const NativeAdStyle(backgroundColor: Colors.amber),
                 showShimmer: false,
               ),
@@ -296,12 +330,11 @@ void main() {
           template == NativeTemplate.mediumNative ? 128 : 280,
         );
         final args = loads('Native').last.arguments as Map;
-        expect(
-          args['factoryId'],
-          template == NativeTemplate.mediumNative
-              ? 'flutter_admob_kit/medium_native'
-              : 'flutter_admob_kit/big_native',
-        );
+        expect(args['factoryId'], switch (template) {
+          NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
+          NativeTemplate.fullScreen => 'flutter_admob_kit/fullscreen_native',
+          _ => 'flutter_admob_kit/big_native',
+        });
         expect(args['nativeTemplateStyle'], isNull);
         expect(
           args['customOptions']['backgroundColor'],
@@ -1083,7 +1116,15 @@ void main() {
     await tester.pump();
     expect(loads('Banner'), hasLength(1));
     expect(loads('Banner').single.arguments['size'], AdSize.largeBanner);
-    expect(loads('Native'), hasLength(2));
+    expect(loads('Native'), hasLength(3));
+    expect(
+      loads('Native').where(
+        (call) =>
+            call.arguments['factoryId'] ==
+            'flutter_admob_kit/fullscreen_native',
+      ),
+      hasLength(1),
+    );
 
     final bannerId = loads('Banner').single.arguments['adId'] as int;
     await event(bannerId, 'onAdLoaded');

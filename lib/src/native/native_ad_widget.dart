@@ -63,6 +63,20 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : template = NativeTemplate.mediumNative;
 
+  /// Fullscreen media-overlay native ad. Keep the app's close control outside
+  /// this ad view. Uses the available viewport height unless overridden.
+  const NativeAdWidget.fullScreen({
+    super.key,
+    this.adUnitId,
+    this.style = const NativeAdStyle.fullScreen(),
+    this.height,
+    this.showShimmer = true,
+    this.placeholder,
+    this.keepAlive = true,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.fullScreen;
+
   /// Compatibility alias for the former large `medium` constructor.
   @Deprecated('Use NativeAdWidget.bigNative instead.')
   const NativeAdWidget.medium({
@@ -153,6 +167,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     final minimum = switch (widget.template) {
       NativeTemplate.small => 90.0,
       NativeTemplate.mediumNative => 128.0,
+      NativeTemplate.fullScreen => 280.0,
       NativeTemplate.bigNative || NativeTemplate.medium => 280.0,
     };
     final requested = widget.height;
@@ -242,7 +257,11 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
     _activeTestMode = testMode;
     if (mounted) setState(() {});
 
-    final style = widget.style ?? const NativeAdStyle();
+    final style =
+        widget.style ??
+        (widget.template == NativeTemplate.fullScreen
+            ? const NativeAdStyle.fullScreen()
+            : const NativeAdStyle());
     final managed = InlinePreload.enabled;
     final controller = managed
         ? InlinePreload.nativeCache(widget.template, style, unitId)
@@ -345,9 +364,12 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
       adUnitId: unitId,
       nativeTemplateStyle: templateStyle,
       factoryId: customTemplate
-          ? widget.template == NativeTemplate.mediumNative
-                ? 'flutter_admob_kit/medium_native'
-                : 'flutter_admob_kit/big_native'
+          ? switch (widget.template) {
+              NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
+              NativeTemplate.fullScreen =>
+                'flutter_admob_kit/fullscreen_native',
+              _ => 'flutter_admob_kit/big_native',
+            }
           : null,
       customOptions: customTemplate ? style.toNativeOptions() : null,
       request: const AdRequest(),
@@ -482,8 +504,19 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
       return const SizedBox.shrink();
     }
 
-    final height = _targetHeight;
+    if (widget.template == NativeTemplate.fullScreen && widget.height == null) {
+      return LayoutBuilder(
+        builder: (context, constraints) => _buildAd(
+          constraints.hasBoundedHeight && constraints.maxHeight >= 280
+              ? constraints.maxHeight
+              : MediaQuery.sizeOf(context).height,
+        ),
+      );
+    }
+    return _buildAd(_targetHeight);
+  }
 
+  Widget _buildAd(double height) {
     if (_isLoaded && _ad != null) {
       return SizedBox(
         height: height,

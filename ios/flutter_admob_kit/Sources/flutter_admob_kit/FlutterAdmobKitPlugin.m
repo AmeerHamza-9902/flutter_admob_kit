@@ -349,11 +349,147 @@ static void Add(UIView *child, UIView *parent) {
 }
 @end
 
+@interface AdMobKitFullscreenNativeFactory : NSObject <AdMobKitNativeAdFactory>
+@end
+
+@implementation AdMobKitFullscreenNativeFactory
+- (GADNativeAdView *)createNativeAd:(GADNativeAd *)nativeAd
+                      customOptions:(NSDictionary *)customOptions {
+  NSDictionary *options = customOptions ?: @{};
+  GADNativeAdView *view = [[GADNativeAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 640)];
+  view.backgroundColor = ColorFromOption(options, @"backgroundColor", 0xFF000000);
+  CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
+      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
+
+  GADMediaView *media = [[GADMediaView alloc] init];
+  media.mediaContent = nativeAd.mediaContent;
+  media.contentMode = UIViewContentModeScaleAspectFit;
+  Add(media, view);
+  view.mediaView = media;
+
+  UILabel *badge = [[UILabel alloc] init];
+  badge.text = @"Ad";
+  badge.font = [UIFont boldSystemFontOfSize:11];
+  badge.textColor = ColorFromOption(options, @"primaryTextColor", 0xFFFFFFFF);
+  badge.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
+  badge.textAlignment = NSTextAlignmentCenter;
+  badge.layer.cornerRadius = MIN(radius, 4);
+  badge.clipsToBounds = YES;
+  Add(badge, view);
+
+  GADAdChoicesView *choices = [[GADAdChoicesView alloc] init];
+  Add(choices, view);
+  view.adChoicesView = choices;
+
+  UIView *bottom = [[UIView alloc] init];
+  Add(bottom, view);
+  UIImageView *icon = [[UIImageView alloc] initWithImage:nativeAd.icon.image];
+  icon.contentMode = UIViewContentModeScaleAspectFit;
+  icon.hidden = nativeAd.icon == nil;
+  Add(icon, bottom);
+  if (!icon.hidden) view.iconView = icon;
+
+  UILabel *headline = [[UILabel alloc] init];
+  headline.text = nativeAd.headline;
+  headline.font = [UIFont boldSystemFontOfSize:16];
+  headline.textColor = ColorFromOption(options, @"primaryTextColor", 0xFFFFFFFF);
+  headline.numberOfLines = 2;
+  headline.lineBreakMode = NSLineBreakByTruncatingTail;
+  headline.shadowColor = [UIColor colorWithWhite:0 alpha:0.5];
+  headline.shadowOffset = CGSizeMake(1, 1);
+  Add(headline, bottom);
+  view.headlineView = headline;
+
+  UILabel *body = [[UILabel alloc] init];
+  body.text = nativeAd.body;
+  body.font = [UIFont systemFontOfSize:13];
+  body.textColor = ColorFromOption(options, @"secondaryTextColor", 0xE0FFFFFF);
+  body.numberOfLines = 2;
+  body.lineBreakMode = NSLineBreakByTruncatingTail;
+  body.shadowColor = [UIColor colorWithWhite:0 alpha:0.5];
+  body.shadowOffset = CGSizeMake(1, 1);
+  body.hidden = nativeAd.body.length == 0;
+  Add(body, bottom);
+  if (!body.hidden) view.bodyView = body;
+
+  UILabel *rating = [[UILabel alloc] init];
+  NSNumber *stars = nativeAd.starRating;
+  rating.hidden = stars == nil;
+  if (stars) {
+    NSInteger filled = MIN(5, MAX(0, (NSInteger)round(stars.doubleValue)));
+    rating.text = [NSString stringWithFormat:@"%@%@ %.1f",
+        [@"★★★★★" substringToIndex:filled],
+        [@"☆☆☆☆☆" substringToIndex:5 - filled], stars.doubleValue];
+  }
+  rating.font = [UIFont systemFontOfSize:12];
+  rating.textColor = ColorFromOption(options, @"primaryTextColor", 0xFFFFFFFF);
+  Add(rating, bottom);
+  if (!rating.hidden) view.starRatingView = rating;
+
+  UIButton *cta = [UIButton buttonWithType:UIButtonTypeCustom];
+  [cta setTitle:nativeAd.callToAction forState:UIControlStateNormal];
+  [cta setTitleColor:ColorFromOption(options, @"callToActionTextColor", 0xFF000000)
+            forState:UIControlStateNormal];
+  cta.backgroundColor = ColorFromOption(options, @"callToActionColor", 0xFFFFFFFF);
+  cta.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+  cta.layer.cornerRadius = radius;
+  cta.userInteractionEnabled = NO;
+  cta.hidden = nativeAd.callToAction.length == 0;
+  Add(cta, bottom);
+  if (!cta.hidden) view.callToActionView = cta;
+
+  NSLayoutConstraint *headlineLeading = icon.hidden
+      ? [headline.leadingAnchor constraintEqualToAnchor:bottom.leadingAnchor]
+      : [headline.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:10];
+
+  [NSLayoutConstraint activateConstraints:@[
+    [media.leadingAnchor constraintEqualToAnchor:view.leadingAnchor],
+    [media.trailingAnchor constraintEqualToAnchor:view.trailingAnchor],
+    [media.topAnchor constraintEqualToAnchor:view.topAnchor],
+    [media.bottomAnchor constraintEqualToAnchor:view.bottomAnchor],
+    [badge.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:5],
+    [badge.topAnchor constraintEqualToAnchor:view.topAnchor constant:5],
+    [badge.widthAnchor constraintGreaterThanOrEqualToConstant:30],
+    [badge.heightAnchor constraintEqualToConstant:20],
+    [choices.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-10],
+    [choices.topAnchor constraintEqualToAnchor:view.topAnchor constant:5],
+    [choices.widthAnchor constraintGreaterThanOrEqualToConstant:24],
+    [choices.heightAnchor constraintGreaterThanOrEqualToConstant:24],
+    [bottom.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:14],
+    [bottom.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-14],
+    [bottom.topAnchor constraintGreaterThanOrEqualToAnchor:view.topAnchor constant:40],
+    [bottom.bottomAnchor constraintEqualToAnchor:view.bottomAnchor constant:-7],
+    [icon.leadingAnchor constraintEqualToAnchor:bottom.leadingAnchor],
+    [icon.topAnchor constraintEqualToAnchor:bottom.topAnchor],
+    [icon.widthAnchor constraintEqualToConstant:44],
+    [icon.heightAnchor constraintEqualToConstant:44],
+    headlineLeading,
+    [headline.trailingAnchor constraintEqualToAnchor:bottom.trailingAnchor],
+    [headline.topAnchor constraintEqualToAnchor:bottom.topAnchor],
+    [body.leadingAnchor constraintEqualToAnchor:headline.leadingAnchor],
+    [body.trailingAnchor constraintEqualToAnchor:bottom.trailingAnchor],
+    [body.topAnchor constraintEqualToAnchor:headline.bottomAnchor constant:2],
+    [rating.leadingAnchor constraintEqualToAnchor:bottom.leadingAnchor],
+    [rating.topAnchor constraintGreaterThanOrEqualToAnchor:icon.bottomAnchor constant:4],
+    [rating.topAnchor constraintGreaterThanOrEqualToAnchor:body.bottomAnchor constant:4],
+    [cta.leadingAnchor constraintEqualToAnchor:bottom.leadingAnchor],
+    [cta.trailingAnchor constraintEqualToAnchor:bottom.trailingAnchor],
+    [cta.topAnchor constraintEqualToAnchor:rating.bottomAnchor constant:7],
+    [cta.bottomAnchor constraintEqualToAnchor:bottom.bottomAnchor constant:-7],
+    [cta.heightAnchor constraintEqualToConstant:48],
+  ]];
+
+  view.nativeAd = nativeAd;
+  return view;
+}
+@end
+
 @interface FlutterAdmobKitPlugin ()
 @property(nonatomic, weak) NSObject<FlutterPluginRegistrar> *registrar;
 @property(nonatomic, weak) FlutterEngine *engine;
 @property(nonatomic, assign) BOOL ownsMediumFactory;
 @property(nonatomic, assign) BOOL ownsBigFactory;
+@property(nonatomic, assign) BOOL ownsFullscreenFactory;
 @end
 
 @implementation FlutterAdmobKitPlugin
@@ -372,7 +508,7 @@ static void Add(UIView *child, UIView *parent) {
     result(FlutterMethodNotImplemented);
     return;
   }
-  if (self.ownsMediumFactory && self.ownsBigFactory) {
+  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory) {
     result(nil);
     return;
   }
@@ -394,12 +530,16 @@ static void Add(UIView *child, UIView *parent) {
     self.ownsBigFactory = RegisterFactory(
         engine, @"flutter_admob_kit/big_native", [[AdMobKitBigNativeFactory alloc] init]);
   }
-  if (self.ownsMediumFactory && self.ownsBigFactory) {
+  if (!self.ownsFullscreenFactory) {
+    self.ownsFullscreenFactory = RegisterFactory(
+        engine, @"flutter_admob_kit/fullscreen_native", [[AdMobKitFullscreenNativeFactory alloc] init]);
+  }
+  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory) {
     self.engine = engine;
     result(nil);
   } else {
     result([FlutterError errorWithCode:@"factory_conflict"
-                             message:@"AdMob Kit medium native factory is already registered."
+                             message:@"An AdMob Kit native factory ID is already registered."
                              details:nil]);
   }
 }
@@ -410,6 +550,9 @@ static void Add(UIView *child, UIView *parent) {
   }
   if (self.ownsBigFactory && self.engine) {
     UnregisterFactory(self.engine, @"flutter_admob_kit/big_native");
+  }
+  if (self.ownsFullscreenFactory && self.engine) {
+    UnregisterFactory(self.engine, @"flutter_admob_kit/fullscreen_native");
   }
 }
 @end

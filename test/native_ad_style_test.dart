@@ -49,6 +49,29 @@ void main() {
     );
   });
 
+  test('fullscreen defaults and developer colors reach native options', () {
+    const defaults = NativeAdStyle.fullScreen();
+    expect(defaults.backgroundColor, Colors.black);
+    expect(defaults.primaryTextColor, Colors.white);
+    expect(defaults.callToActionColor, Colors.white);
+    expect(defaults.callToActionTextColor, Colors.black);
+    const custom = NativeAdStyle.fullScreen(
+      backgroundColor: Colors.indigo,
+      primaryTextColor: Colors.amber,
+      secondaryTextColor: Colors.lime,
+      callToActionColor: Colors.red,
+      callToActionTextColor: Colors.white,
+      cornerRadius: 18,
+    );
+    final options = custom.toNativeOptions();
+    expect(options['backgroundColor'], Colors.indigo.toARGB32());
+    expect(options['primaryTextColor'], Colors.amber.toARGB32());
+    expect(options['secondaryTextColor'], Colors.lime.toARGB32());
+    expect(options['callToActionColor'], Colors.red.toARGB32());
+    expect(options['callToActionTextColor'], Colors.white.toARGB32());
+    expect(options['cornerRadius'], 18);
+  });
+
   test('invalid or excessive radius is safe on every rendering path', () {
     for (final (input, expected) in [
       (double.nan, 10.0),

@@ -39,6 +39,11 @@ The large card re-evaluates optional copy after a width or height change; on
 iOS its details area can grow beyond 95pt when the developer supplies more
 height, while the media stays at least 120pt.
 
+The new `fullScreen` native template has the supplied media-overlay structure,
+developer colors, a bounded viewport height and library-managed default preload.
+Both platform example builds pass. Its real-device creative rendering remains
+to be checked.
+
 The iOS sample ran with Google test native ads and AdMob Native Validator
 reported no implementation issues for both bundled layouts. That check does
 not establish production fill or performance.
@@ -48,7 +53,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 196 tests passed locally, including stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
+| `flutter test --concurrency=1` | 198 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |

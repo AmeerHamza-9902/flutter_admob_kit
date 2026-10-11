@@ -228,6 +228,22 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 const NativeAdWidget.bigNative(),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => Scaffold(
+                        appBar: AppBar(
+                          title: const Text('Fullscreen Native Ad'),
+                        ),
+                        body: const SafeArea(
+                          child: NativeAdWidget.fullScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  child: const Text('Preview Fullscreen Native Ad'),
+                ),
               ],
             ),
           ),
