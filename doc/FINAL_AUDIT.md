@@ -61,7 +61,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 198 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
+| `flutter test --concurrency=1` | 199 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | Android emulator `fullScreen` with Google Flood-It test creative | Rendered media, icon, headline, two-line body, rating immediately below body, and CTA. |

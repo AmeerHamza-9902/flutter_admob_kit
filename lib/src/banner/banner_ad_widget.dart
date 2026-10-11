@@ -25,7 +25,7 @@ class BannerAdWidget extends StatefulWidget {
     this.isAdaptive = false,
     this.isInlineAdaptive = false,
     this.maxHeight = 250,
-    this.fitToWidth = false,
+    this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -45,7 +45,7 @@ class BannerAdWidget extends StatefulWidget {
        isAdaptive = true,
        isInlineAdaptive = false,
        maxHeight = 50,
-       fitToWidth = false;
+       fitToWidth = true;
 
   /// Standard 320x100 large banner, fitted proportionally to available width.
   /// Set [fitToWidth] to false to retain its native dimensions.
@@ -83,7 +83,7 @@ class BannerAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.maxHeight = 50,
-    this.fitToWidth = false,
+    this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -98,7 +98,7 @@ class BannerAdWidget extends StatefulWidget {
     super.key,
     this.adUnitId,
     this.maxHeight = 250,
-    this.fitToWidth = false,
+    this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
@@ -125,7 +125,8 @@ class BannerAdWidget extends StatefulWidget {
   final int maxHeight;
 
   /// Scales the banner proportionally with FittedBox to fill available width.
-  /// Its displayed height scales too. Adaptive banners already request full width.
+  /// Its displayed height scales too. Adaptive banners request the available
+  /// width from the SDK, so this normally does not change their size.
   final bool fitToWidth;
 
   /// Whether to display a skeleton shimmer placeholder while the ad is loading.

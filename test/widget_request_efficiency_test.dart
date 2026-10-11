@@ -753,6 +753,27 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
+  testWidgets('standard banner fills width while preserving its aspect ratio', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 400,
+            child: BannerAdWidget(showShimmer: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(tester.getSize(find.byType(BannerAdWidget)), const Size(400, 62.5));
+    expect(find.byType(FittedBox), findsOneWidget);
+    expect(loads('Banner').single.arguments['size'], AdSize.banner);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('splash preload is shared and consumed by onboarding once', (
     tester,
   ) async {

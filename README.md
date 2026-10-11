@@ -199,8 +199,8 @@ layouts; hot reload is insufficient for native code changes.
 ## Banner and native placements
 
 ```dart
-const BannerAdWidget(); // Native-size 320×50 banner.
-const BannerAdWidget.small(); // Adaptive to available container width.
+const BannerAdWidget(); // Base 320×50; FittedBox fills width.
+const BannerAdWidget.small(); // Adaptive to available width, fitted if needed.
 const BannerAdWidget.large(); // Base 320×100; FittedBox fills width.
 const BannerAdWidget.mediumRectangle(); // Base 300×250; FittedBox fills width.
 const BannerAdWidget.inlineAdaptive(); // Full width, maximum height 50dp.
@@ -270,7 +270,7 @@ loaded native view between two visible placements.
 
 Both bundled Android factories register once per Flutter engine before a custom native request. No `MainActivity` changes or manual registration are required. Native SDK asset registration retains click/impression tracking and AdChoices. The former `NativeAdWidget.medium()` constructor remains as a deprecated compatibility alias for `bigNative()`.
 
-Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. `large` and `mediumRectangle` enable this by default; set `fitToWidth: false` to retain their native 320×100 and 300×250 sizes respectively. Inline/anchored adaptive constructors fill the available width using SDK sizing, without scaling by default. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Big and small template heights retain their minimums; `mediumNative` respects heights of 128dp or more so its video MediaView stays at least 120×120dp. See [Google's native-ad guidance](https://support.google.com/admob/answer/6329638).
+Stable widget rebuilds do not request again. Adaptive banners reload on a real available-width change. Inline adaptive banners use the container width and the actual SDK height after loading; 50dp and 250dp are default maximums, not guaranteed creative heights. Use them in scrolling content. Changing width or the height cap requests the new size once. `fitToWidth: true` uses a proportional `FittedBox`: a 300×250 rectangle rendered at 360dp width occupies 300dp height. All banner constructors enable this by default; set `fitToWidth: false` to retain a fixed ad's native dimensions. Inline/anchored adaptive constructors first request the available width from the SDK, so their `FittedBox` normally stays at 1:1 scale. See [inline adaptive sizing](https://developers.google.com/admob/flutter/banner/inline-adaptive). Reserve sufficient space and keep ads away from navigation/tap targets. Native templates require a bounded width of at least 320 logical pixels; test both platforms and text sizes. Big and small template heights retain their minimums; `mediumNative` respects heights of 128dp or more so its video MediaView stays at least 120×120dp. See [Google's native-ad guidance](https://support.google.com/admob/answer/6329638).
 
 Each mounted placement owns its native resource, including while loading. Separate visible placements legitimately request separate ads; an `AdWidget` cannot share one native view across placements. Widget retries are bounded to three and cancelled on unmount or invalidation. Successful banners may refresh according to AdMob's SDK/server settings; the wrapper does not add a success refresh loop. Keep stable widget keys to preserve placement resources.
 
@@ -332,7 +332,7 @@ require 9.1.0 remain compatible with this package, but should use Swift Package
 Manager or resolve the upstream CocoaPods issue. See the
 [upstream google_mobile_ads issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 198 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 199 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 
