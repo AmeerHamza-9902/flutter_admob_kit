@@ -8,7 +8,10 @@ match rate, impressions, CTR, or revenue.
 
 - `AdMobKit` owns SDK initialization, consent and entitlement gates. Fullscreen
   formats use a shared presentation mutex and independent single-ad caches;
-  named placements have their own caches.
+  named placements have their own caches. A stalled fullscreen SDK load now
+  settles its manager when the request-queue watchdog fires, so a missing SDK
+  callback cannot leave that placement permanently loading. Late callbacks
+  from the timed-out attempt are ignored or disposed.
 - Banner and native preload controllers are internal. The library warms one
   default large banner, `bigNative`, and `mediumNative` after initialization
   when matching unit IDs and consent are available. A mounted widget joins an
@@ -45,7 +48,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 194 tests passed locally, including inline preload SDK error and native factory registration diagnostics. |
+| `flutter test --concurrency=1` | 196 tests passed locally, including stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |

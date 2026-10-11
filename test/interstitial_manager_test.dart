@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_admob_kit/flutter_admob_kit.dart';
+import 'package:flutter_admob_kit/src/fullscreen_request_queue.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 class _FakeInterstitialManager extends InterstitialManager {
@@ -8,6 +9,8 @@ class _FakeInterstitialManager extends InterstitialManager {
     super.cooldown,
     super.adExpiry,
     super.canRequestAdsProvider,
+    super.requestQueue,
+    super.retryPolicy,
   });
 
   int fetchCallCount = 0;
@@ -83,19 +86,22 @@ void main() {
       manager.dispose();
     });
 
-    test('default cooldown is Duration.zero and resetCooldown clears cooldown', () {
-      final manager = _FakeInterstitialManager(
-        adUnitIdProvider: () => 'test-id',
-      );
+    test(
+      'default cooldown is Duration.zero and resetCooldown clears cooldown',
+      () {
+        final manager = _FakeInterstitialManager(
+          adUnitIdProvider: () => 'test-id',
+        );
 
-      expect(manager.cooldown, Duration.zero);
-      expect(manager.isInCooldown, isFalse);
+        expect(manager.cooldown, Duration.zero);
+        expect(manager.isInCooldown, isFalse);
 
-      manager.resetCooldown();
-      expect(manager.isInCooldown, isFalse);
+        manager.resetCooldown();
+        expect(manager.isInCooldown, isFalse);
 
-      manager.dispose();
-    });
+        manager.dispose();
+      },
+    );
 
     test('expiry marks stale ads as expired', () {
       final manager = _FakeInterstitialManager(
@@ -171,6 +177,41 @@ void main() {
       expect(manager.state, AdState.loading);
 
       manager.dispose();
+    });
+
+    testWidgets('stalled SDK load settles manager and permits a fresh load', (
+      tester,
+    ) async {
+      final queue = FullscreenRequestQueue(
+        maxConcurrent: 1,
+        stallAfter: const Duration(milliseconds: 20),
+      );
+      final manager = _FakeInterstitialManager(
+        adUnitIdProvider: () => 'test-id',
+        requestQueue: queue,
+        retryPolicy: const RetryPolicy(
+          maxRetries: 0,
+          maxDelay: Duration.zero,
+        ),
+      );
+      final first = manager.preload();
+      final staleCallback = manager.lastCallback!;
+      await tester.pump(const Duration(milliseconds: 21));
+      expect(await first, isFalse);
+      expect(manager.isLoading, isFalse);
+      expect(queue.activeCount, 0);
+
+      final second = manager.preload();
+      expect(manager.fetchCallCount, 2);
+      expect(manager.isLoading, isTrue);
+
+      staleCallback.onAdFailedToLoad(
+        LoadAdError(1, 'test', 'late callback', null),
+      );
+      expect(manager.isLoading, isTrue);
+      manager.dispose();
+      expect(await second, isFalse);
+      queue.dispose();
     });
   });
 }

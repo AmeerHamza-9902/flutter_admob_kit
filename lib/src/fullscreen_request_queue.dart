@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 
 /// Library-owned limit for concurrent fullscreen SDK load calls.
 /// Each attempt holds a slot until its SDK callback or a stalled-request
-/// watchdog. A timed-out SDK attempt remains owned by its format manager.
+/// watchdog. The owner is notified when an SDK attempt stalls.
 class FullscreenRequestQueue {
   FullscreenRequestQueue({
     this.maxConcurrent = 2,
@@ -15,7 +15,10 @@ class FullscreenRequestQueue {
 
   final int maxConcurrent;
   final Duration stallAfter;
-  final Queue<void Function(FullscreenRequestLease)> _pending = Queue();
+  final Queue<
+    ({void Function(FullscreenRequestLease) start, VoidCallback? onStalled})
+  >
+  _pending = Queue();
   final Set<FullscreenRequestLease> _leases = {};
   bool _draining = false;
   bool _disposed = false;
@@ -26,9 +29,12 @@ class FullscreenRequestQueue {
   @visibleForTesting
   int get pendingCount => _pending.length;
 
-  void enqueue(void Function(FullscreenRequestLease) start) {
+  void enqueue(
+    void Function(FullscreenRequestLease) start, {
+    VoidCallback? onStalled,
+  }) {
     if (_disposed) return;
-    _pending.add(start);
+    _pending.add((start: start, onStalled: onStalled));
     _drain();
   }
 
@@ -37,12 +43,18 @@ class FullscreenRequestQueue {
     _draining = true;
     try {
       while (_leases.length < maxConcurrent && _pending.isNotEmpty) {
-        final start = _pending.removeFirst();
+        final task = _pending.removeFirst();
         final lease = FullscreenRequestLease._(this);
         _leases.add(lease);
-        lease._timer = Timer(stallAfter, lease.release);
+        lease._timer = Timer(stallAfter, () {
+          try {
+            task.onStalled?.call();
+          } finally {
+            lease.release();
+          }
+        });
         try {
-          start(lease);
+          task.start(lease);
         } catch (error) {
           lease.release();
           debugPrint('flutter_admob_kit: queued ad request failed: $error');

@@ -266,7 +266,12 @@ abstract class FullscreenManager<T extends AdWithoutView>
     if (queue == null) {
       start(null);
     } else {
-      queue.enqueue(start);
+      queue.enqueue(
+        start,
+        onStalled: () => failed(
+          LoadAdError(-1, 'flutter_admob_kit', 'SDK load timed out', null),
+        ),
+      );
     }
   }
 

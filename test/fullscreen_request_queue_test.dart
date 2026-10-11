@@ -38,4 +38,22 @@ void main() {
     expect(started, [1, 2]);
     queue.dispose();
   });
+
+  testWidgets('watchdog notifies the stalled request exactly once', (
+    tester,
+  ) async {
+    final queue = FullscreenRequestQueue(
+      maxConcurrent: 1,
+      stallAfter: const Duration(milliseconds: 20),
+    );
+    var stalled = 0;
+    late FullscreenRequestLease lease;
+    queue.enqueue((value) => lease = value, onStalled: () => stalled++);
+    await tester.pump(const Duration(milliseconds: 21));
+    expect(stalled, 1);
+    expect(queue.activeCount, 0);
+    lease.release();
+    expect(stalled, 1);
+    queue.dispose();
+  });
 }
