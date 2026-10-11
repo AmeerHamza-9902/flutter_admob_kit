@@ -44,6 +44,14 @@ developer colors, a bounded viewport height and library-managed default preload.
 Both platform example builds pass. Its real-device creative rendering remains
 to be checked.
 
+On an iPhone 17 Pro simulator, Google's Flood-It native test creative loaded in
+`fullScreen` with the badge, icon, headline, body, SDK star rating and CTA. A
+visual smoke check exposed a stretched gap in the first iOS bottom layout. The
+rating now sits directly below the description on both platforms, with the CTA
+following it. A second iOS simulator run and an Android emulator run showed the
+compact layout with Google's Flood-It test creative. This does not establish
+production fill.
+
 The iOS sample ran with Google test native ads and AdMob Native Validator
 reported no implementation issues for both bundled layouts. That check does
 not establish production fill or performance.
@@ -56,8 +64,9 @@ not establish production fill or performance.
 | `flutter test --concurrency=1` | 198 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
+| Android emulator `fullScreen` with Google Flood-It test creative | Rendered media, icon, headline, two-line body, rating immediately below body, and CTA. |
 | `flutter build ios --simulator --debug --no-codesign` in `example/` | Passed with CocoaPods. |
-| Swift Package Manager iOS simulator build and launch | Passed; both native test ads rendered. |
+| Swift Package Manager iOS simulator build and launch | Passed; bundled native test ads rendered, including the new `fullScreen` template. |
 | Fresh consumer app with a path dependency: Android APK and iOS simulator (Swift Package Manager) | Passed. |
 | Fresh consumer app: iOS CocoaPods with generated `use_frameworks!` | Failed on `google_mobile_ads` 9.1.0 at `GoogleMobileAds_Beta.h`; static linkage did not help. Passed with a host-side 9.0.0 pin and the generated `use_frameworks!` retained. The package supports both versions to avoid conflicts with existing projects. See [upstream issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472). |
 | Automated fresh-consumer smoke script | Passed locally for Android APK with 9.1.0, iOS CocoaPods with a direct 9.0.0 host pin, and iOS Swift Package Manager with 9.1.0; CI runs all three. |

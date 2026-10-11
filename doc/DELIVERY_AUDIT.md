@@ -15,7 +15,7 @@ impression signal.
 | Rewarded | Same shared eligibility gate and single-slot preload. | Host offers an explicit reward opportunity; a ready ad needs the fullscreen lease. No ad is shown later after a missed opportunity. | SDK reward callback is delivered at most once per presentation, including permitted callback ordering around dismissal. SDK impression and reward are separate events. Dismiss/failure disposes and replenishes. |
 | App Open | Same request gate and single-slot preload; expiry is capped at four hours. | Lifecycle observer offers a ready ad on a genuine foreground return; paywall, scoped external flows, consent, cooldown and another fullscreen ad suppress that opportunity. Manual `show(true)` is also available. | SDK impression is confirmed by its callback. Close disposes and replenishes; a late load never presents on an unrelated screen. |
 | Banner | The library warms one large banner after initialization and consent. Other exact sizes and orientations load on first use. | A matching cached or pending ad is handed to one widget only; the widget owns the visible `AdWidget`. | SDK impression/click callbacks are recorded. Handoff starts one replacement for a later visit. Unmount or invalidation disposes the visible ad; unused cache entries expire after two minutes. There is no success refresh loop for a mounted banner. |
-| Native | The library warms default big and medium templates after consent. Other templates, styles and ad-unit overrides load on first use after Android factory registration. | A matching cached or pending ad is transferred to one widget only. | SDK impression/click callbacks are recorded. Handoff starts one replacement for a later visit. Unmount/invalidation disposes the visible ad; unused cache entries expire after two minutes. A native view is never reused across screens. |
+| Native | The library warms default big, medium and fullscreen templates after consent. Other templates, styles and ad-unit overrides load on first use after factory registration. | A matching cached or pending ad is transferred to one widget only. | SDK impression/click callbacks are recorded. Handoff starts one replacement for a later visit. Unmount/invalidation disposes the visible ad; unused cache entries expire after two minutes. A native view is never reused across screens. |
 
 Banner and native are inline formats, so fullscreen dismissal and an accepted
 `show()` result do not apply. Their opportunity is the eligible mounted
@@ -40,8 +40,8 @@ if it is never mounted, is immediately removed, or does not become visible.
 Initialization preloads configured fullscreen units after consent, each manager
 coalesces repeated requests, and dismissal triggers one bounded replacement.
 The shared fullscreen request queue starts at most two SDK loads at once; its
-20-second stall watchdog can free a slot while an unresponsive SDK request is
-still outstanding. Inline banner/native warm requests are outside that queue,
+20-second stall watchdog settles a request with a timeout failure and frees
+its slot; a late SDK callback cannot revive the stale request. Inline banner/native warm requests are outside that queue,
 so two is not a package-wide concurrent-request ceiling.
 Inline widgets reuse a matching library-owned cache entry and retry failures with a
 bounded policy. Banner/native preload controllers are internal to the library.

@@ -28,5 +28,9 @@ Verification checklist:
 - On real Android and iOS devices, check video and image creatives, close and
   AdChoices clearance, CTA tracking, tall text, landscape and accessibility.
 
-Real-device creative rendering and production impression/show metrics remain
-unverified until a device and test/production traffic are available.
+The iPhone 17 Pro simulator rendered Google's Flood-It native test creative.
+The Android emulator and iPhone 17 Pro simulator rendered Google's Flood-It
+native test creative. The icon, headline, body, rating directly below the body,
+and CTA grouped at the bottom on both platforms. Real-device creative rendering
+and production impression/show metrics remain unverified until a device and
+test/production traffic are available.

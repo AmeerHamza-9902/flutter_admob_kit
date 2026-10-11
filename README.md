@@ -332,7 +332,7 @@ require 9.1.0 remain compatible with this package, but should use Swift Package
 Manager or resolve the upstream CocoaPods issue. See the
 [upstream google_mobile_ads issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 194 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 198 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 
