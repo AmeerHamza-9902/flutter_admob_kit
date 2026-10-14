@@ -33,8 +33,10 @@ public final class MediumNativeAdFactory implements NativeAdFactory {
         int background = color(options, "backgroundColor", Color.WHITE);
         int primary = color(options, "primaryTextColor", Color.rgb(17, 24, 39));
         int secondary = color(options, "secondaryTextColor", Color.rgb(75, 85, 99));
+        float strokeWidth = Math.max(0, number(options, "borderWidth", 0).floatValue()) * density;
+        int strokeColor = color(options, "borderColor", 0);
         View card = view.findViewById(R.id.ad_card);
-        card.setBackground(rounded(background, radius));
+        card.setBackground(rounded(background, radius, Math.round(strokeWidth), strokeColor));
         card.setClipToOutline(true);
         View mediaContainer = view.findViewById(R.id.ad_media_container);
         mediaContainer.setBackgroundColor(background);
@@ -116,10 +118,13 @@ public final class MediumNativeAdFactory implements NativeAdFactory {
         return number(options, key, fallback).intValue();
     }
 
-    private static GradientDrawable rounded(int color, float radius) {
+    private static GradientDrawable rounded(int color, float radius, int strokeWidth, int strokeColor) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);
         drawable.setCornerRadius(radius);
+        if (strokeWidth > 0 && strokeColor != 0) {
+            drawable.setStroke(strokeWidth, strokeColor);
+        }
         return drawable;
     }
 }

@@ -25,6 +25,8 @@ void main() {
     const style = NativeAdStyle(
       backgroundColor: Colors.black,
       cornerRadius: 16,
+      borderColor: Colors.red,
+      borderWidth: 2.0,
       callToActionColor: Colors.green,
       callToActionTextColor: Colors.yellow,
       primaryTextColor: Colors.white,
@@ -33,6 +35,8 @@ void main() {
     final options = style.toNativeOptions();
     expect(options['backgroundColor'], Colors.black.toARGB32());
     expect(options['cornerRadius'], 16);
+    expect(options['borderColor'], Colors.red.toARGB32());
+    expect(options['borderWidth'], 2.0);
     expect(options['callToActionColor'], Colors.green.toARGB32());
     expect(options['callToActionTextColor'], Colors.yellow.toARGB32());
     expect(options['primaryTextColor'], Colors.white.toARGB32());

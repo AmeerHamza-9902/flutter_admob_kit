@@ -31,6 +31,8 @@ class NativeAdStyle {
   const NativeAdStyle({
     this.backgroundColor = Colors.white,
     this.cornerRadius = 10.0,
+    this.borderColor,
+    this.borderWidth = 1.0,
     this.callToActionColor,
     this.callToActionTextColor = Colors.white,
     this.primaryTextColor,
@@ -41,6 +43,8 @@ class NativeAdStyle {
   const NativeAdStyle.fullScreen({
     this.backgroundColor = Colors.black,
     this.cornerRadius = 10.0,
+    this.borderColor,
+    this.borderWidth = 1.0,
     this.callToActionColor = Colors.white,
     this.callToActionTextColor = Colors.black,
     this.primaryTextColor = Colors.white,
@@ -50,6 +54,12 @@ class NativeAdStyle {
   /// Main background color of the native ad card. Defaults to white.
   /// Passing null also resolves to white.
   final Color? backgroundColor;
+
+  /// Optional border color for the native ad card.
+  final Color? borderColor;
+
+  /// Border width in dp/pt. Defaults to 1.0.
+  final double borderWidth;
 
   /// Corner radius of bundled cards and CTA buttons. Defaults to 10dp.
   final double cornerRadius;
@@ -110,6 +120,10 @@ class NativeAdStyle {
   Map<String, Object> toNativeOptions() => {
     'backgroundColor': (backgroundColor ?? Colors.white).toARGB32(),
     'cornerRadius': effectiveCornerRadius,
+    if (borderColor != null) ...{
+      'borderColor': borderColor!.toARGB32(),
+      'borderWidth': borderWidth,
+    },
     'callToActionColor': (callToActionColor ?? const Color(0xFF2563EB))
         .toARGB32(),
     'callToActionTextColor': callToActionTextColor.toARGB32(),
@@ -124,6 +138,8 @@ class NativeAdStyle {
       other is NativeAdStyle &&
       backgroundColor == other.backgroundColor &&
       effectiveCornerRadius == other.effectiveCornerRadius &&
+      borderColor == other.borderColor &&
+      borderWidth == other.borderWidth &&
       callToActionColor == other.callToActionColor &&
       callToActionTextColor == other.callToActionTextColor &&
       primaryTextColor == other.primaryTextColor &&
@@ -133,6 +149,8 @@ class NativeAdStyle {
   int get hashCode => Object.hash(
     backgroundColor,
     effectiveCornerRadius,
+    borderColor,
+    borderWidth,
     callToActionColor,
     callToActionTextColor,
     primaryTextColor,
@@ -143,6 +161,8 @@ class NativeAdStyle {
   NativeAdStyle copyWith({
     Color? backgroundColor,
     double? cornerRadius,
+    Color? borderColor,
+    double? borderWidth,
     Color? callToActionColor,
     Color? callToActionTextColor,
     Color? primaryTextColor,
@@ -151,6 +171,8 @@ class NativeAdStyle {
     return NativeAdStyle(
       backgroundColor: backgroundColor ?? this.backgroundColor,
       cornerRadius: cornerRadius ?? this.cornerRadius,
+      borderColor: borderColor ?? this.borderColor,
+      borderWidth: borderWidth ?? this.borderWidth,
       callToActionColor: callToActionColor ?? this.callToActionColor,
       callToActionTextColor:
           callToActionTextColor ?? this.callToActionTextColor,

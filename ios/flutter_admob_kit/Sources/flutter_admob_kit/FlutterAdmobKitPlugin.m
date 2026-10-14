@@ -93,6 +93,11 @@ static void Add(UIView *child, UIView *parent) {
   CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
       ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
   view.layer.cornerRadius = radius;
+  if (options[@"borderColor"]) {
+    view.layer.borderColor = ColorFromOption(options, @"borderColor", 0x00000000).CGColor;
+    view.layer.borderWidth = [options[@"borderWidth"] isKindOfClass:NSNumber.class]
+        ? MAX(0, [options[@"borderWidth"] doubleValue]) : 1.0;
+  }
   // The supplied horizontal template keeps its 120pt media edge square.
   view.clipsToBounds = NO;
 
@@ -211,6 +216,11 @@ static void Add(UIView *child, UIView *parent) {
   CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
       ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
   view.layer.cornerRadius = radius;
+  if (options[@"borderColor"]) {
+    view.layer.borderColor = ColorFromOption(options, @"borderColor", 0x00000000).CGColor;
+    view.layer.borderWidth = [options[@"borderWidth"] isKindOfClass:NSNumber.class]
+        ? MAX(0, [options[@"borderWidth"] doubleValue]) : 1.0;
+  }
   view.clipsToBounds = YES;
 
   GADMediaView *media = [[GADMediaView alloc] init];
