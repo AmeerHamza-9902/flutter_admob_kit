@@ -517,51 +517,34 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
   }
 
   Widget _buildAd(double height) {
-    Widget adContent;
     if (_isLoaded && _ad != null) {
-      adContent = SizedBox(
+      return SizedBox(
         height: height,
         width: double.infinity,
         child: AdWidget(ad: _ad!),
       );
-    } else if (widget.placeholder != null) {
-      adContent = widget.placeholder!;
-    } else if (widget.showShimmer) {
+    }
+
+    if (widget.placeholder != null) {
+      return widget.placeholder!;
+    }
+
+    if (widget.showShimmer) {
       final AdShimmerVariant variant = widget.template == NativeTemplate.small
           ? AdShimmerVariant.nativeSmall
           : widget.template == NativeTemplate.mediumNative
           ? AdShimmerVariant.nativeHorizontal
           : AdShimmerVariant.nativeMedium;
 
-      adContent = AdShimmerPlaceholder(
+      return AdShimmerPlaceholder(
         height: height,
         variant: variant,
         borderRadius: widget.style != null
             ? BorderRadius.circular(widget.style!.effectiveCornerRadius)
             : null,
       );
-    } else {
-      adContent = SizedBox(height: height);
     }
 
-    final style = widget.style;
-    if (style != null && style.borderColor != null) {
-      return Container(
-        height: height,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: style.backgroundColor,
-          borderRadius: BorderRadius.circular(style.effectiveCornerRadius),
-          border: Border.all(
-            color: style.borderColor!,
-            width: style.borderWidth,
-          ),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: adContent,
-      );
-    }
-
-    return adContent;
+    return SizedBox(height: height);
   }
 }

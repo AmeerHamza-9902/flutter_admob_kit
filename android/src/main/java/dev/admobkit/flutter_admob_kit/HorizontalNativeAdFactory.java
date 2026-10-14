@@ -35,11 +35,9 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         int primary = color(options, "primaryTextColor", Color.rgb(17, 24, 39));
         int secondary = color(options, "secondaryTextColor", Color.rgb(75, 85, 99));
         int ctaColor = color(options, "callToActionColor", Color.rgb(37, 99, 235));
-        float strokeWidth = Math.max(0, number(options, "borderWidth", 0).floatValue()) * density;
-        int strokeColor = color(options, "borderColor", 0);
 
         View card = view.findViewById(R.id.ad_card);
-        card.setBackground(rounded(background, radius, Math.round(strokeWidth), strokeColor));
+        card.setBackground(rounded(background, radius));
         // Keep the media edge square, as in the supplied 120dp template.
         card.setClipToOutline(false);
 
@@ -143,13 +141,10 @@ public final class HorizontalNativeAdFactory implements NativeAdFactory {
         return number(options, key, fallback).intValue();
     }
 
-    private static GradientDrawable rounded(int color, float radius, int strokeWidth, int strokeColor) {
+    private static GradientDrawable rounded(int color, float radius) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setColor(color);
         drawable.setCornerRadius(radius);
-        if (strokeWidth > 0 && strokeColor != 0) {
-            drawable.setStroke(strokeWidth, strokeColor);
-        }
         return drawable;
     }
 }
