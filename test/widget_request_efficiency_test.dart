@@ -656,6 +656,7 @@ void main() {
     tester,
   ) async {
     await initialize();
+    platformSize = () async => const AdSize(width: 360, height: 120);
     await tester.pumpWidget(
       const MaterialApp(
         home: Center(
@@ -672,13 +673,19 @@ void main() {
     expect(tester.getSize(find.byType(BannerAdWidget)).height, 140);
     expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
     expect(
-      tester.widget<AdShimmerPlaceholder>(find.byType(AdShimmerPlaceholder)).variant,
+      tester
+          .widget<AdShimmerPlaceholder>(find.byType(AdShimmerPlaceholder))
+          .variant,
       AdShimmerVariant.banner140,
     );
     await event(args['adId'] as int, 'onAdLoaded');
     await tester.pump();
     expect(tester.getSize(find.byType(BannerAdWidget)).height, 140);
     expect(find.byType(AdWidget), findsOneWidget);
+    expect(
+      tester.widget<FittedBox>(find.byType(FittedBox)).fit,
+      BoxFit.fitWidth,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

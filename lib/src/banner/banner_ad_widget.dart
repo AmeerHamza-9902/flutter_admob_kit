@@ -116,7 +116,7 @@ class BannerAdWidget extends StatefulWidget {
        isInlineAdaptive = true;
 
   /// Inline adaptive banner with a 140dp placement and matching shimmer.
-  /// The SDK may return a shorter creative, which is centered in that space.
+  /// The SDK may return a shorter creative, which sits at the bottom.
   const BannerAdWidget.inlineAdaptive140({
     super.key,
     this.adUnitId,
@@ -147,7 +147,7 @@ class BannerAdWidget extends StatefulWidget {
   /// Maximum requested inline height in dp; the SDK determines actual height.
   final int maxHeight;
 
-  /// Optional stable placement height; shorter loaded ads are centered within it.
+  /// Optional stable placement height; shorter loaded ads sit at the bottom.
   final double? reservedHeight;
 
   /// Scales the banner proportionally with FittedBox to fill available width.
@@ -608,7 +608,9 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
                     ? scaledHeight
                     : scaledHeight.clamp(0.0, placementHeight),
                 child: FittedBox(
-                  fit: widget.reservedHeight == null
+                  fit:
+                      widget.reservedHeight == null ||
+                          scaledHeight <= placementHeight
                       ? BoxFit.fitWidth
                       : BoxFit.contain,
                   child: content,
