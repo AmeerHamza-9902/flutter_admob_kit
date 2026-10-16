@@ -652,7 +652,7 @@ void main() {
     },
   );
 
-  testWidgets('140dp inline banner keeps shimmer and loaded placement stable', (
+  testWidgets('140dp inline banner shrinks to the loaded creative height', (
     tester,
   ) async {
     await initialize();
@@ -680,7 +680,7 @@ void main() {
     );
     await event(args['adId'] as int, 'onAdLoaded');
     await tester.pump();
-    expect(tester.getSize(find.byType(BannerAdWidget)).height, 140);
+    expect(tester.getSize(find.byType(BannerAdWidget)).height, 120);
     expect(find.byType(AdWidget), findsOneWidget);
     expect(
       tester.widget<FittedBox>(find.byType(FittedBox)).fit,

@@ -115,8 +115,8 @@ class BannerAdWidget extends StatefulWidget {
        isAdaptive = false,
        isInlineAdaptive = true;
 
-  /// Inline adaptive banner with a 140dp placement and matching shimmer.
-  /// The SDK may return a shorter creative, which sits at the bottom.
+  /// Inline adaptive banner with a 140dp loading shimmer.
+  /// After loading, the placement uses the creative's actual SDK height.
   const BannerAdWidget.inlineAdaptive140({
     super.key,
     this.adUnitId,
@@ -129,7 +129,7 @@ class BannerAdWidget extends StatefulWidget {
        isAdaptive = false,
        isInlineAdaptive = true,
        maxHeight = 140,
-       reservedHeight = 140;
+       reservedHeight = null;
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses the
   /// configured banner unit ID.
@@ -578,7 +578,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
       content = AdShimmerPlaceholder(
         width: width,
         height: placementHeight,
-        variant: widget.reservedHeight == 140
+        variant: widget.isInlineAdaptive && widget.maxHeight == 140
             ? AdShimmerVariant.banner140
             : height >= 200
             ? AdShimmerVariant.mediumRectangle
