@@ -5,6 +5,9 @@ enum AdShimmerVariant {
   /// Standard banner (320x50 or 100% width x 50).
   banner,
 
+  /// Reserved 140dp inline banner with icon, copy and CTA skeleton.
+  banner140,
+
   /// Large banner / medium rectangle (300x250).
   mediumRectangle,
 
@@ -101,6 +104,8 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
         switch (widget.variant) {
           case AdShimmerVariant.banner:
             return _buildBannerPlaceholder(gradient);
+          case AdShimmerVariant.banner140:
+            return _buildBanner140Placeholder(gradient);
           case AdShimmerVariant.mediumRectangle:
             return _buildMediumRectanglePlaceholder(gradient);
           case AdShimmerVariant.nativeSmall:
@@ -121,6 +126,73 @@ class _AdShimmerPlaceholderState extends State<AdShimmerPlaceholder>
       decoration: BoxDecoration(
         gradient: gradient,
         borderRadius: widget.borderRadius ?? BorderRadius.circular(4.0),
+      ),
+    );
+  }
+
+  Widget _buildBanner140Placeholder(Gradient gradient) {
+    return Container(
+      width: widget.width ?? double.infinity,
+      height: widget.height ?? 140,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: widget.borderRadius ?? BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final iconWidth = (constraints.maxWidth * 0.18).clamp(0.0, 44.0);
+          final ctaWidth = (constraints.maxWidth * 0.25).clamp(0.0, 68.0);
+          return Row(
+            children: [
+              Container(
+                width: iconWidth,
+                height: iconWidth,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 12,
+                      decoration: BoxDecoration(
+                        gradient: gradient,
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    FractionallySizedBox(
+                      widthFactor: 0.75,
+                      child: Container(
+                        height: 9,
+                        decoration: BoxDecoration(
+                          gradient: gradient,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                width: ctaWidth,
+                height: 28,
+                decoration: BoxDecoration(
+                  gradient: gradient,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }

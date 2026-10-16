@@ -228,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 const NativeAdWidget.bigNative(),
+                const SizedBox(height: 12),
+                const NativeAdWidget.mediaCtaNative(),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).push(
@@ -248,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const BannerAdWidget(),
+          const BannerAdWidget.inlineAdaptive140(),
         ],
       ),
     );

@@ -349,6 +349,131 @@ static void Add(UIView *child, UIView *parent) {
 }
 @end
 
+@interface AdMobKitMediaCtaNativeFactory : NSObject <AdMobKitNativeAdFactory>
+@end
+
+@implementation AdMobKitMediaCtaNativeFactory
+- (GADNativeAdView *)createNativeAd:(GADNativeAd *)nativeAd
+                      customOptions:(NSDictionary *)customOptions {
+  NSDictionary *options = customOptions ?: @{};
+  GADNativeAdView *view = [[GADNativeAdView alloc] initWithFrame:CGRectMake(0, 0, 320, 280)];
+  view.backgroundColor = ColorFromOption(options, @"backgroundColor", 0xFFFFFFFF);
+  CGFloat radius = [options[@"cornerRadius"] isKindOfClass:NSNumber.class]
+      ? MAX(0, [options[@"cornerRadius"] doubleValue]) : 10;
+  view.layer.cornerRadius = radius;
+  view.clipsToBounds = YES;
+
+  GADMediaView *media = [[GADMediaView alloc] init];
+  media.mediaContent = nativeAd.mediaContent;
+  media.contentMode = UIViewContentModeScaleAspectFit;
+  Add(media, view);
+  view.mediaView = media;
+
+  UIView *details = [[UIView alloc] init];
+  Add(details, view);
+  UIImageView *icon = [[UIImageView alloc] initWithImage:nativeAd.icon.image];
+  icon.contentMode = UIViewContentModeScaleAspectFit;
+  icon.hidden = nativeAd.icon == nil;
+  Add(icon, details);
+  if (!icon.hidden) view.iconView = icon;
+
+  UILabel *headline = [[UILabel alloc] init];
+  headline.text = nativeAd.headline;
+  headline.font = [UIFont boldSystemFontOfSize:14];
+  headline.textColor = ColorFromOption(options, @"primaryTextColor", 0xFF111827);
+  headline.numberOfLines = 1;
+  headline.lineBreakMode = NSLineBreakByTruncatingTail;
+  Add(headline, details);
+  view.headlineView = headline;
+
+  UILabel *body = [[UILabel alloc] init];
+  body.text = nativeAd.body;
+  body.font = [UIFont systemFontOfSize:11];
+  body.textColor = ColorFromOption(options, @"secondaryTextColor", 0xFF6B7280);
+  body.numberOfLines = 1;
+  body.lineBreakMode = NSLineBreakByTruncatingTail;
+  body.hidden = nativeAd.body.length == 0;
+  Add(body, details);
+  if (!body.hidden) view.bodyView = body;
+
+  UILabel *badge = [[UILabel alloc] init];
+  badge.text = @"Ad";
+  badge.font = [UIFont boldSystemFontOfSize:9];
+  badge.textAlignment = NSTextAlignmentCenter;
+  badge.textColor = UIColor.whiteColor;
+  badge.backgroundColor = ColorFromOption(options, @"callToActionColor", 0xFF2563EB);
+  badge.layer.cornerRadius = 3;
+  badge.clipsToBounds = YES;
+  Add(badge, details);
+
+  UILabel *rating = [[UILabel alloc] init];
+  NSNumber *stars = nativeAd.starRating;
+  rating.hidden = stars == nil;
+  if (stars) rating.text = [NSString stringWithFormat:@"%.1f ★", stars.doubleValue];
+  rating.font = [UIFont systemFontOfSize:11];
+  rating.textColor = ColorFromOption(options, @"secondaryTextColor", 0xFF6B7280);
+  Add(rating, details);
+  if (!rating.hidden) view.starRatingView = rating;
+
+  UIButton *cta = [UIButton buttonWithType:UIButtonTypeCustom];
+  [cta setTitle:nativeAd.callToAction forState:UIControlStateNormal];
+  [cta setTitleColor:ColorFromOption(options, @"callToActionTextColor", 0xFFFFFFFF)
+            forState:UIControlStateNormal];
+  cta.backgroundColor = ColorFromOption(options, @"callToActionColor", 0xFF2563EB);
+  cta.titleLabel.font = [UIFont boldSystemFontOfSize:13];
+  cta.layer.cornerRadius = radius;
+  cta.userInteractionEnabled = NO;
+  cta.hidden = nativeAd.callToAction.length == 0;
+  Add(cta, details);
+  if (!cta.hidden) view.callToActionView = cta;
+
+  GADAdChoicesView *choices = [[GADAdChoicesView alloc] init];
+  Add(choices, view);
+  view.adChoicesView = choices;
+
+  NSLayoutConstraint *headlineLeading = icon.hidden
+      ? [headline.leadingAnchor constraintEqualToAnchor:details.leadingAnchor]
+      : [headline.leadingAnchor constraintEqualToAnchor:icon.trailingAnchor constant:8];
+  [NSLayoutConstraint activateConstraints:@[
+    [media.topAnchor constraintEqualToAnchor:view.topAnchor constant:5],
+    [media.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:12],
+    [media.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-12],
+    [media.bottomAnchor constraintEqualToAnchor:details.topAnchor constant:-3],
+    [media.heightAnchor constraintGreaterThanOrEqualToConstant:170],
+    [details.leadingAnchor constraintEqualToAnchor:view.leadingAnchor constant:12],
+    [details.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-12],
+    [details.bottomAnchor constraintEqualToAnchor:view.bottomAnchor constant:-3],
+    [details.heightAnchor constraintEqualToConstant:56],
+    [icon.leadingAnchor constraintEqualToAnchor:details.leadingAnchor],
+    [icon.centerYAnchor constraintEqualToAnchor:details.centerYAnchor],
+    [icon.widthAnchor constraintEqualToConstant:48],
+    [icon.heightAnchor constraintEqualToConstant:48],
+    headlineLeading,
+    [headline.trailingAnchor constraintEqualToAnchor:cta.leadingAnchor constant:-8],
+    [headline.topAnchor constraintEqualToAnchor:details.topAnchor constant:2],
+    [body.leadingAnchor constraintEqualToAnchor:headline.leadingAnchor],
+    [body.trailingAnchor constraintEqualToAnchor:headline.trailingAnchor],
+    [body.topAnchor constraintEqualToAnchor:headline.bottomAnchor constant:1],
+    [badge.leadingAnchor constraintEqualToAnchor:headline.leadingAnchor],
+    [badge.topAnchor constraintEqualToAnchor:body.bottomAnchor constant:2],
+    [badge.widthAnchor constraintEqualToConstant:22],
+    [badge.heightAnchor constraintEqualToConstant:16],
+    [rating.leadingAnchor constraintEqualToAnchor:badge.trailingAnchor constant:5],
+    [rating.centerYAnchor constraintEqualToAnchor:badge.centerYAnchor],
+    [cta.trailingAnchor constraintEqualToAnchor:details.trailingAnchor constant:-22],
+    [cta.centerYAnchor constraintEqualToAnchor:details.centerYAnchor],
+    [cta.widthAnchor constraintGreaterThanOrEqualToConstant:76],
+    [cta.heightAnchor constraintEqualToConstant:40],
+    [choices.topAnchor constraintEqualToAnchor:details.topAnchor],
+    [choices.trailingAnchor constraintEqualToAnchor:view.trailingAnchor constant:-3],
+    [choices.widthAnchor constraintEqualToConstant:18],
+    [choices.heightAnchor constraintEqualToConstant:18],
+  ]];
+  view.nativeAd = nativeAd;
+  return view;
+}
+@end
+
 @interface AdMobKitFullscreenNativeFactory : NSObject <AdMobKitNativeAdFactory>
 @end
 
@@ -489,6 +614,7 @@ static void Add(UIView *child, UIView *parent) {
 @property(nonatomic, assign) BOOL ownsMediumFactory;
 @property(nonatomic, assign) BOOL ownsBigFactory;
 @property(nonatomic, assign) BOOL ownsFullscreenFactory;
+@property(nonatomic, assign) BOOL ownsMediaCtaFactory;
 @end
 
 @implementation FlutterAdmobKitPlugin
@@ -507,7 +633,7 @@ static void Add(UIView *child, UIView *parent) {
     result(FlutterMethodNotImplemented);
     return;
   }
-  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory) {
+  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory && self.ownsMediaCtaFactory) {
     result(nil);
     return;
   }
@@ -533,7 +659,11 @@ static void Add(UIView *child, UIView *parent) {
     self.ownsFullscreenFactory = RegisterFactory(
         engine, @"flutter_admob_kit/fullscreen_native", [[AdMobKitFullscreenNativeFactory alloc] init]);
   }
-  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory) {
+  if (!self.ownsMediaCtaFactory) {
+    self.ownsMediaCtaFactory = RegisterFactory(
+        engine, @"flutter_admob_kit/media_cta_native", [[AdMobKitMediaCtaNativeFactory alloc] init]);
+  }
+  if (self.ownsMediumFactory && self.ownsBigFactory && self.ownsFullscreenFactory && self.ownsMediaCtaFactory) {
     self.engine = engine;
     result(nil);
   } else {
@@ -552,6 +682,9 @@ static void Add(UIView *child, UIView *parent) {
   }
   if (self.ownsFullscreenFactory && self.engine) {
     UnregisterFactory(self.engine, @"flutter_admob_kit/fullscreen_native");
+  }
+  if (self.ownsMediaCtaFactory && self.engine) {
+    UnregisterFactory(self.engine, @"flutter_admob_kit/media_cta_native");
   }
 }
 @end

@@ -12,12 +12,14 @@ public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel
     public static final String BIG_FACTORY_ID = "flutter_admob_kit/big_native";
     public static final String MEDIUM_FACTORY_ID = "flutter_admob_kit/medium_native";
     public static final String FULLSCREEN_FACTORY_ID = "flutter_admob_kit/fullscreen_native";
+    public static final String MEDIA_CTA_FACTORY_ID = "flutter_admob_kit/media_cta_native";
     private FlutterEngine engine;
     private Context context;
     private MethodChannel channel;
     private boolean ownsBigFactory;
     private boolean ownsMediumFactory;
     private boolean ownsFullscreenFactory;
+    private boolean ownsMediaCtaFactory;
 
     @Override
     @SuppressWarnings("deprecation")
@@ -50,7 +52,11 @@ public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel
             ownsFullscreenFactory = GoogleMobileAdsPlugin.registerNativeAdFactory(engine, FULLSCREEN_FACTORY_ID,
                 new FullscreenNativeAdFactory(context));
         }
-        if (ownsBigFactory && ownsMediumFactory && ownsFullscreenFactory) {
+        if (!ownsMediaCtaFactory) {
+            ownsMediaCtaFactory = GoogleMobileAdsPlugin.registerNativeAdFactory(engine, MEDIA_CTA_FACTORY_ID,
+                new MediaCtaNativeAdFactory(context));
+        }
+        if (ownsBigFactory && ownsMediumFactory && ownsFullscreenFactory && ownsMediaCtaFactory) {
             result.success(null);
         } else {
             result.error("factory_conflict", "An AdMob Kit native factory ID is already registered.", null);
@@ -69,11 +75,15 @@ public final class FlutterAdmobKitPlugin implements FlutterPlugin, MethodChannel
         if (engine != null && ownsFullscreenFactory) {
             GoogleMobileAdsPlugin.unregisterNativeAdFactory(engine, FULLSCREEN_FACTORY_ID);
         }
+        if (engine != null && ownsMediaCtaFactory) {
+            GoogleMobileAdsPlugin.unregisterNativeAdFactory(engine, MEDIA_CTA_FACTORY_ID);
+        }
         channel = null;
         engine = null;
         context = null;
         ownsBigFactory = false;
         ownsMediumFactory = false;
         ownsFullscreenFactory = false;
+        ownsMediaCtaFactory = false;
     }
 }

@@ -205,17 +205,19 @@ const BannerAdWidget.large(); // Base 320×100; FittedBox fills width.
 const BannerAdWidget.mediumRectangle(); // Base 300×250; FittedBox fills width.
 const BannerAdWidget.inlineAdaptive(); // Full width, maximum height 50dp.
 const BannerAdWidget.inlineAdaptiveLarge(); // Full width, maximum height 250dp.
+const BannerAdWidget.inlineAdaptive140(); // Full-width 140dp placement and shimmer.
 const BannerAdWidget.inlineAdaptiveLarge(maxHeight: 300); // Custom height cap.
 const BannerAdWidget(size: AdSize.largeBanner); // Custom supported fixed size.
 const NativeAdWidget.small(); // Minimum height 90.
 const NativeAdWidget.mediumNative(); // Horizontal card; default height 128.
 const NativeAdWidget.bigNative(); // Large splash card; default height 280.
+const NativeAdWidget.mediaCtaNative(); // Media top; icon, text and side CTA below.
 const NativeAdWidget.fullScreen(); // Media overlay; screen height by default.
 ```
 
 ### Library-managed preload
 
-The default fullscreen native style is also warmed when a native ad unit is configured.
+The default fullscreen native style is also warmed when a native ad unit is configured. `mediaCtaNative` loads when mounted; it does not add an unused startup request. The 140dp banner reserves stable space while the SDK may return a shorter creative, which is centered in that space.
 
 Applications only place `BannerAdWidget` and `NativeAdWidget`; they do not create preload controllers or call `preload()`. After initialization and consent, the library warms one default `bigNative`, one default `mediumNative`, and one `large` banner when their ad unit IDs are configured. A widget takes the matching ready ad and the library prepares one replacement for a later visit. Each ad belongs to exactly one visible widget. An in-flight request is shared, so the widget shows its normal loading placeholder until the SDK responds.
 
@@ -332,7 +334,7 @@ require 9.1.0 remain compatible with this package, but should use Swift Package
 Manager or resolve the upstream CocoaPods issue. See the
 [upstream google_mobile_ads issue](https://github.com/googleads/googleads-mobile-flutter/issues/1472).
 
-Verified with Flutter 3.44.1 and Dart 3.12.1: 199 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
+Verified with Flutter 3.44.1 and Dart 3.12.1: 200 automated tests passed locally and static analysis passed. Android debug APK and iOS simulator builds passed in a [verified CI run](https://github.com/AmeerHamza-9902/flutter_admob_kit/actions/runs/37954752074). Both example home screens rendered in the earlier smoke run; an iOS test banner rendered. Android returned a no-fill response during that smoke run. Live consent configuration, all-format device testing and network recovery still need host verification; see the [technical audit](doc/FINAL_AUDIT.md).
 
 ## Migration from 3.x
 

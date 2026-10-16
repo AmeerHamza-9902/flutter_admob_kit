@@ -25,12 +25,14 @@ class BannerAdWidget extends StatefulWidget {
     this.isAdaptive = false,
     this.isInlineAdaptive = false,
     this.maxHeight = 250,
+    this.reservedHeight,
     this.fitToWidth = true,
     this.showShimmer = true,
     this.placeholder,
     this.onAdLoaded,
     this.onAdFailed,
   }) : assert(maxHeight >= 50),
+       assert(reservedHeight == null || reservedHeight > 0),
        assert(!isAdaptive || !isInlineAdaptive);
 
   /// Factory constructor for a standard small banner that adapts to full screen width.
@@ -45,6 +47,7 @@ class BannerAdWidget extends StatefulWidget {
        isAdaptive = true,
        isInlineAdaptive = false,
        maxHeight = 50,
+       reservedHeight = null,
        fitToWidth = true;
 
   /// Standard 320x100 large banner, fitted proportionally to available width.
@@ -60,7 +63,8 @@ class BannerAdWidget extends StatefulWidget {
   }) : size = AdSize.largeBanner,
        isAdaptive = false,
        isInlineAdaptive = false,
-       maxHeight = 100;
+       maxHeight = 100,
+       reservedHeight = null;
 
   /// Factory constructor for a standard 300x250 Medium Rectangle banner
   /// Use [fitToWidth] to scale proportionally to the available width.
@@ -75,7 +79,8 @@ class BannerAdWidget extends StatefulWidget {
   }) : size = AdSize.mediumRectangle,
        isAdaptive = false,
        isInlineAdaptive = false,
-       maxHeight = 250;
+       maxHeight = 250,
+       reservedHeight = null;
 
   /// Full-width inline banner, with a default maximum height of 50dp.
   /// Place in scrolling content; the SDK returns the actual loaded height.
@@ -90,6 +95,7 @@ class BannerAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : assert(maxHeight >= 50),
        size = AdSize.banner,
+       reservedHeight = null,
        isAdaptive = false,
        isInlineAdaptive = true;
 
@@ -105,8 +111,25 @@ class BannerAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : assert(maxHeight >= 50),
        size = AdSize.mediumRectangle,
+       reservedHeight = null,
        isAdaptive = false,
        isInlineAdaptive = true;
+
+  /// Inline adaptive banner with a 140dp placement and matching shimmer.
+  /// The SDK may return a shorter creative, which is centered in that space.
+  const BannerAdWidget.inlineAdaptive140({
+    super.key,
+    this.adUnitId,
+    this.fitToWidth = true,
+    this.showShimmer = true,
+    this.placeholder,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : size = AdSize.banner,
+       isAdaptive = false,
+       isInlineAdaptive = true,
+       maxHeight = 140,
+       reservedHeight = 140;
 
   /// Optional override for the Banner Ad Unit ID. If omitted, uses the
   /// configured banner unit ID.
@@ -123,6 +146,9 @@ class BannerAdWidget extends StatefulWidget {
 
   /// Maximum requested inline height in dp; the SDK determines actual height.
   final int maxHeight;
+
+  /// Optional stable placement height; shorter loaded ads are centered within it.
+  final double? reservedHeight;
 
   /// Scales the banner proportionally with FittedBox to fill available width.
   /// Its displayed height scales too. Adaptive banners request the available
@@ -537,6 +563,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
                 ? widget.maxHeight
                 : resolvedHeight)
             .toDouble();
+    final placementHeight = widget.reservedHeight ?? height;
 
     Widget content;
     if (_isLoaded && _ad != null) {
@@ -550,13 +577,15 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
     } else if (widget.showShimmer) {
       content = AdShimmerPlaceholder(
         width: width,
-        height: height,
-        variant: height >= 200
+        height: placementHeight,
+        variant: widget.reservedHeight == 140
+            ? AdShimmerVariant.banner140
+            : height >= 200
             ? AdShimmerVariant.mediumRectangle
             : AdShimmerVariant.banner,
       );
     } else {
-      content = SizedBox(width: width, height: height);
+      content = SizedBox(width: width, height: placementHeight);
     }
 
     if (widget.fitToWidth) {
@@ -565,15 +594,34 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           final targetWidth = constraints.hasBoundedWidth
               ? constraints.maxWidth
               : width;
+          final scaledHeight = height * targetWidth / width;
           return SizedBox(
             width: targetWidth,
-            height: height * targetWidth / width,
-            child: FittedBox(fit: BoxFit.fitWidth, child: content),
+            height: widget.reservedHeight ?? scaledHeight,
+            child: Center(
+              child: SizedBox(
+                width: targetWidth,
+                height: (widget.reservedHeight == null || !_isLoaded)
+                    ? scaledHeight
+                    : scaledHeight.clamp(0.0, placementHeight),
+                child: FittedBox(
+                  fit: widget.reservedHeight == null
+                      ? BoxFit.fitWidth
+                      : BoxFit.contain,
+                  child: content,
+                ),
+              ),
+            ),
           );
         },
       );
     }
 
-    return content;
+    return widget.reservedHeight == null
+        ? content
+        : SizedBox(
+            height: placementHeight,
+            child: Center(child: content),
+          );
   }
 }

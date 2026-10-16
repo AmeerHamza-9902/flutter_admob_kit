@@ -51,6 +51,15 @@ class NativePreloadController {
     style: style,
   );
 
+  Future<bool> preloadMediaCtaNative({
+    String? adUnitId,
+    NativeAdStyle style = const NativeAdStyle(),
+  }) => preload(
+    template: NativeTemplate.mediaCtaNative,
+    adUnitId: adUnitId,
+    style: style,
+  );
+
   Future<bool> preload({
     required NativeTemplate template,
     String? adUnitId,
@@ -153,6 +162,8 @@ class NativePreloadController {
               NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
               NativeTemplate.fullScreen =>
                 'flutter_admob_kit/fullscreen_native',
+              NativeTemplate.mediaCtaNative =>
+                'flutter_admob_kit/media_cta_native',
               _ => 'flutter_admob_kit/big_native',
             }
           : null,

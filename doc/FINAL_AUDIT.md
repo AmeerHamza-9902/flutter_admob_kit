@@ -39,6 +39,8 @@ The large card re-evaluates optional copy after a width or height change; on
 iOS its details area can grow beyond 95pt when the developer supplies more
 height, while the media stays at least 120pt.
 
+The new `mediaCtaNative` card follows the supplied media-top, inline-CTA layout on Android and iOS, with developer colors and optional SDK rating. It loads on demand to avoid another automatic startup request. `inlineAdaptive140` reserves 140dp with a matching shimmer and centers shorter SDK creatives. Both example platform builds pass; visual test-creative checks for these two new variants remain pending.
+
 The new `fullScreen` native template has the supplied media-overlay structure,
 developer colors, a bounded viewport height and library-managed default preload.
 Both platform example builds pass. Its real-device creative rendering remains
@@ -61,7 +63,7 @@ not establish production fill or performance.
 | Check | Result |
 | --- | --- |
 | `flutter analyze` | No issues. |
-| `flutter test --concurrency=1` | 199 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
+| `flutter test --concurrency=1` | 200 tests passed locally, including fullscreen native factory/style checks, stalled fullscreen load recovery, inline preload SDK error and native factory registration diagnostics. |
 | `flutter build apk --debug` in `example/` | Passed. |
 | Android emulator example with Google test native ads | Both bundled native templates rendered; the 130dp `mediumNative` showed its 120dp media, headline, two-line body and CTA without overflow. |
 | Android emulator `fullScreen` with Google Flood-It test creative | Rendered media, icon, headline, two-line body, rating immediately below body, and CTA. |

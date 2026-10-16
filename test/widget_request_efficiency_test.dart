@@ -309,6 +309,7 @@ void main() {
       for (final template in [
         NativeTemplate.mediumNative,
         NativeTemplate.bigNative,
+        NativeTemplate.mediaCtaNative,
         NativeTemplate.fullScreen,
       ]) {
         await tester.pumpWidget(
@@ -332,6 +333,7 @@ void main() {
         final args = loads('Native').last.arguments as Map;
         expect(args['factoryId'], switch (template) {
           NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
+          NativeTemplate.mediaCtaNative => 'flutter_admob_kit/media_cta_native',
           NativeTemplate.fullScreen => 'flutter_admob_kit/fullscreen_native',
           _ => 'flutter_admob_kit/big_native',
         });
@@ -649,6 +651,36 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets('140dp inline banner keeps shimmer and loaded placement stable', (
+    tester,
+  ) async {
+    await initialize();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Center(
+          child: SizedBox(
+            width: 360,
+            child: BannerAdWidget.inlineAdaptive140(),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final args = loads('Banner').single.arguments as Map;
+    expect((args['size'] as InlineAdaptiveSize).maxHeight, 140);
+    expect(tester.getSize(find.byType(BannerAdWidget)).height, 140);
+    expect(find.byType(AdShimmerPlaceholder), findsOneWidget);
+    expect(
+      tester.widget<AdShimmerPlaceholder>(find.byType(AdShimmerPlaceholder)).variant,
+      AdShimmerVariant.banner140,
+    );
+    await event(args['adId'] as int, 'onAdLoaded');
+    await tester.pump();
+    expect(tester.getSize(find.byType(BannerAdWidget)).height, 140);
+    expect(find.byType(AdWidget), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets(
     'simultaneous inline width and cap change requests only final size',

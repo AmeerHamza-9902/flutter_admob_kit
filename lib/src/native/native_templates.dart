@@ -12,6 +12,9 @@ enum NativeTemplate {
   /// Large media/header/CTA card used for prominent placements such as splash.
   bigNative,
 
+  /// Large media card with icon, details and an inline CTA beside the text.
+  mediaCtaNative,
+
   /// Edge-to-edge media with overlaid header, details, rating and CTA.
   fullScreen,
 

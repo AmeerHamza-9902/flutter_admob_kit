@@ -50,6 +50,20 @@ class NativeAdWidget extends StatefulWidget {
     this.onAdFailed,
   }) : template = NativeTemplate.bigNative;
 
+  /// Media-first native card with a compact inline CTA, based on the supplied
+  /// `big_native_ad.xml` layout. Colors can be customized with [style].
+  const NativeAdWidget.mediaCtaNative({
+    super.key,
+    this.adUnitId,
+    this.style,
+    this.height = 280.0,
+    this.showShimmer = true,
+    this.placeholder,
+    this.keepAlive = true,
+    this.onAdLoaded,
+    this.onAdFailed,
+  }) : template = NativeTemplate.mediaCtaNative;
+
   /// Horizontal native card with 120dp media, text and CTA.
   const NativeAdWidget.mediumNative({
     super.key,
@@ -168,6 +182,7 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
       NativeTemplate.small => 90.0,
       NativeTemplate.mediumNative => 128.0,
       NativeTemplate.fullScreen => 280.0,
+      NativeTemplate.mediaCtaNative => 280.0,
       NativeTemplate.bigNative || NativeTemplate.medium => 280.0,
     };
     final requested = widget.height;
@@ -368,6 +383,8 @@ class _NativeAdWidgetState extends State<NativeAdWidget>
               NativeTemplate.mediumNative => 'flutter_admob_kit/medium_native',
               NativeTemplate.fullScreen =>
                 'flutter_admob_kit/fullscreen_native',
+              NativeTemplate.mediaCtaNative =>
+                'flutter_admob_kit/media_cta_native',
               _ => 'flutter_admob_kit/big_native',
             }
           : null,
