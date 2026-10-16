@@ -217,7 +217,7 @@ const NativeAdWidget.fullScreen(); // Media overlay; screen height by default.
 
 ### Library-managed preload
 
-The default fullscreen native style is also warmed when a native ad unit is configured. `mediaCtaNative` loads when mounted; it does not add an unused startup request. The 140dp banner reserves stable space while the SDK may return a shorter creative, which is centered in that space.
+The default fullscreen native style is also warmed when a native ad unit is configured. `mediaCtaNative` loads when mounted; it does not add an unused startup request. The 140dp banner reserves stable space; a shorter SDK creative sits at the bottom of that space, matching bottom-screen placements. The SDK controls the creative's video, text and CTA design.
 
 Applications only place `BannerAdWidget` and `NativeAdWidget`; they do not create preload controllers or call `preload()`. After initialization and consent, the library warms one default `bigNative`, one default `mediumNative`, and one `large` banner when their ad unit IDs are configured. A widget takes the matching ready ad and the library prepares one replacement for a later visit. Each ad belongs to exactly one visible widget. An in-flight request is shared, so the widget shows its normal loading placeholder until the SDK responds.
 

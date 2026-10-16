@@ -598,7 +598,10 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
           return SizedBox(
             width: targetWidth,
             height: widget.reservedHeight ?? scaledHeight,
-            child: Center(
+            child: Align(
+              alignment: widget.reservedHeight == null
+                  ? Alignment.center
+                  : Alignment.bottomCenter,
               child: SizedBox(
                 width: targetWidth,
                 height: (widget.reservedHeight == null || !_isLoaded)
@@ -621,7 +624,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget>
         ? content
         : SizedBox(
             height: placementHeight,
-            child: Center(child: content),
+            child: Align(alignment: Alignment.bottomCenter, child: content),
           );
   }
 }
