@@ -8,6 +8,7 @@ import 'fullscreen_placement.dart';
 import 'fullscreen_request_queue.dart';
 import 'app_open/app_open_manager.dart';
 import 'inline_preload.dart';
+import 'inline_placement.dart';
 import 'consent_manager.dart';
 import 'interstitial/interstitial_manager.dart';
 import 'lifecycle_manager.dart';
@@ -23,6 +24,26 @@ class AdMobKit {
 
   static AdMobConfig _config = const AdMobConfig();
   static bool _isInitialized = false;
+
+  /// Declares the next screens' placements. Requests share the same caches as
+  /// NativeAdWidget and BannerAdWidget; nothing is rendered until claimed.
+  /// Call after initialization, once consent and destination config are known.
+  static void prepareInlinePlacements(Iterable<InlinePlacement> placements) {
+    if (!canRequestAds) return;
+    for (final placement in placements) {
+      if (placement.adUnitId.trim().isEmpty) continue;
+      final template = placement.template;
+      if (template != null) {
+        InlinePreload.nativeCache(
+          template,
+          placement.style,
+          placement.adUnitId,
+        );
+      } else {
+        InlinePreload.bannerCache(placement.size!, placement.adUnitId);
+      }
+    }
+  }
 
   static InterstitialManager? _interstitial;
   static RewardedManager? _rewarded;

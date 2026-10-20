@@ -357,3 +357,29 @@ Verified with Flutter 3.44.1 and Dart 3.12.1: 200 automated tests passed locally
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+### Prepare the next screens during splash
+
+After initialization and consent, declare only the inline placements needed by
+upcoming screens. The library caches them without displaying them. Destination
+widgets claim the same ad when the unit ID, native template/style or banner size
+matches; repeated declarations share a pending request.
+
+```dart
+AdMobKit.prepareInlinePlacements([
+  InlinePlacement.native(
+    adUnitId: languageNativeId,
+    template: NativeTemplate.mediaCtaNative,
+    style: const NativeAdStyle(),
+  ),
+  InlinePlacement.banner(
+    adUnitId: onboardingBannerId,
+    size: AdSize.mediumRectangle,
+  ),
+]);
+```
+
+Use the identical native style and banner size on the destination widget. Do not
+change the default native/banner IDs or test mode during this transition: such
+configuration changes invalidate inline caches. Preparation does not guarantee
+network fill or completion before navigation.
