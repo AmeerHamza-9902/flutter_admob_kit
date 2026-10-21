@@ -421,7 +421,7 @@ static void Add(UIView *child, UIView *parent) {
             forState:UIControlStateNormal];
   cta.backgroundColor = ColorFromOption(options, @"callToActionColor", 0xFF2563EB);
   cta.titleLabel.font = [UIFont boldSystemFontOfSize:13];
-  cta.layer.cornerRadius = radius;
+  cta.layer.cornerRadius = MIN(radius, 8);
   cta.userInteractionEnabled = NO;
   cta.hidden = nativeAd.callToAction.length == 0;
   Add(cta, details);

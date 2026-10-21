@@ -80,7 +80,8 @@ public final class MediaCtaNativeAdFactory implements NativeAdFactory {
         TextView cta = view.findViewById(R.id.ad_call_to_action);
         bindOptional(cta, ad.getCallToAction(),
             color(options, "callToActionTextColor", Color.WHITE));
-        cta.setBackground(rounded(accent, radius));
+        float ctaRadius = Math.min(radius, 8 * context.getResources().getDisplayMetrics().density);
+        cta.setBackground(rounded(accent, ctaRadius));
         if (cta.getVisibility() == View.VISIBLE) view.setCallToActionView(cta);
         view.setAdChoicesView((AdChoicesView) view.findViewById(R.id.ad_choices_view));
         view.setNativeAd(ad);
